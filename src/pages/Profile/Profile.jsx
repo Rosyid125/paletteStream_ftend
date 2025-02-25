@@ -1,5 +1,3 @@
-"use client";
-
 import { User, Mail, MapPin, Calendar, LinkIcon, PenTool, BookOpen, BookMarked, Award, Star, Zap, Target, Flame } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -67,9 +65,9 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        <Card className="w-full max-w-md">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-4">
               <Crown className="h-6 w-6 text-yellow-500" />
               Player Stats
             </CardTitle>
@@ -178,7 +176,18 @@ export default function Profile() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p>User's completed and ongoing challenges will be displayed here.</p>
+              <Tabs defaultValue="ongoing">
+                <TabsList>
+                  <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
+                  <TabsTrigger value="completed">Completed</TabsTrigger>
+                </TabsList>
+                <TabsContent value="ongoing">
+                  <p>User's ongoing challenges will be displayed here.</p>
+                </TabsContent>
+                <TabsContent value="completed">
+                  <p>User's completed challenges will be displayed here.</p>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>

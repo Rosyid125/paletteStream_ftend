@@ -8,11 +8,11 @@ const Layout = () => {
     <>
       <div data-theme="dark" className="wrapper">
         <Navbar className="Navbar" />
-        <div className="main-content">
+        <div className="main-content" style={{ display: "flex" }}>
           <div className="Sidebar">
             <Sidebar />
           </div>
-          <div className="Outlet">
+          <div className="Outlet" style={{ flex: 1 }}>
             <Outlet />
           </div>
         </div>
