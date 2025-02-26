@@ -4,6 +4,8 @@ import Layout from "@/layouts/MainLayout/Layout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Coins } from "lucide-react";
 
 // Deklarasi lazy load ketika page children sedang dimuat
 const Home = React.lazy(() => import("@/pages/Home/Home"));
@@ -38,9 +40,9 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex justify-center items-center min-h-screen">
-                <div className="w-16 h-16 border-4 border-t-4 border-red-600 rounded-full animate-spin"></div>
-              </div>
+              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+                <Coins className="w-10 h-10 text-red-600" />
+              </motion.div>
             }
           >
             <Home />
@@ -52,9 +54,9 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex justify-center items-center min-h-screen">
-                <div className="w-16 h-16 border-4 border-t-4 border-red-600 rounded-full animate-spin"></div>
-              </div>
+              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+                <Coins className="w-10 h-10 text-red-600" />
+              </motion.div>
             }
           >
             <Profile />

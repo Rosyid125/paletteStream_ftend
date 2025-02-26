@@ -25,8 +25,8 @@ export default function Navbar() {
   return (
     <nav className="border-b">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <h1 className="text-2xl font-bold md:mr-4">PaletteStream</h1>
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">PaletteStream</h1>
           <div className="hidden items-center space-x-4 md:flex md:mr-4">
             <a href="#" className="text-sm font-medium">
               Home
@@ -64,7 +64,7 @@ export default function Navbar() {
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem className="flex justify-between items-center" onSelect={(e) => e.preventDefault()}>
+                <DropdownMenuItem className="flex justify-between items-center hover:bg-transparent focus:bg-transparent" onSelect={(e) => e.preventDefault()}>
                   <span>Dark mode</span>
                   <Switch checked={isDark} onCheckedChange={handleToggleTheme} />
                 </DropdownMenuItem>

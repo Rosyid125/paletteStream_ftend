@@ -3,10 +3,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Crown } from "lucide-react";
+import { Trophy, Crown, Gamepad } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { motion } from "framer-motion";
 
 const achievements = [
   { icon: Trophy, title: "First Win", description: "Won your first game" },
@@ -16,26 +17,45 @@ const achievements = [
   { icon: Flame, title: "On Fire", description: "5-day login streak" },
 ];
 
+const badges = [{ icon: Crown, title: "Top 10 Human Being", description: "Better than 90% of players" }];
+
 export default function Profile() {
   return (
     <main className="flex-1 p-6">
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
+        <Card className="overflow-hidden shadow-lg">
+          {/* Banner */}
+          <div className="relative h-24 w-full bg-gradient-to-r from-red-500 to-purple-600">
+            <div className="absolute -bottom-10 left-6">
+              <Avatar className="h-20 w-20 border-4 border-white shadow-md">
                 <AvatarImage src="/placeholder-avatar.jpg" alt="@artlover" />
                 <AvatarFallback>AL</AvatarFallback>
               </Avatar>
-              <div>
-                <CardTitle>Art Lover</CardTitle>
-                <p className="text-sm text-muted-foreground">@artlover</p>
-              </div>
+            </div>
+          </div>
+
+          <CardHeader className="pt-12">
+            <div className="flex flex-col items-center text-center">
+              <CardTitle>Art Lover</CardTitle>
+              <p className="text-sm text-muted-foreground">@artlover</p>
             </div>
           </CardHeader>
+
+          {/* Follow Stats */}
+          <div className="flex justify-center gap-6 border-b pb-4">
+            <div className="flex flex-col items-center">
+              <p className="text-lg font-semibold">1.2K</p>
+              <p className="text-sm text-muted-foreground">Followers</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <p className="text-lg font-semibold">780</p>
+              <p className="text-sm text-muted-foreground">Followings</p>
+            </div>
+          </div>
+
           <CardContent>
-            <div className="grid gap-4">
-              <div className="flex items-center gap-2">
+            <div className="grid gap-4 text-sm">
+              <div className="flex items-center gap-2 mt-4">
                 <User className="h-4 w-4 opacity-70" />
                 <span>Digital Artist</span>
               </div>
@@ -58,7 +78,8 @@ export default function Profile() {
                 </a>
               </div>
             </div>
-            <div className="mt-6 flex gap-4">
+
+            <div className="mt-6 flex justify-center gap-4">
               <Button>Edit Profile</Button>
               <Button variant="outline">Follow</Button>
             </div>
@@ -68,7 +89,7 @@ export default function Profile() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-4">
-              <Crown className="h-6 w-6 text-yellow-500" />
+              <Gamepad className="h-6 w-6 text-red-600" />
               Player Stats
             </CardTitle>
           </CardHeader>
@@ -98,23 +119,46 @@ export default function Profile() {
               </div>
               <Progress value={65} className="h-2" />
             </div>
-            <div>
-              <h3 className="mb-4 text-lg font-semibold flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-yellow-500" />
-                Achievements
-              </h3>
-              <div className="grid gap-4">
-                {achievements.map((achievement, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <achievement.icon className="h-5 w-5 text-primary" />
+            <div className="flex justify-between">
+              <div>
+                <h3 className="mb-4 text-lg font-semibold flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-yellow-500" />
+                  Achievements
+                </h3>
+                <div className="grid gap-4">
+                  {achievements.map((achievement, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <achievement.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{achievement.title}</p>
+                        <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{achievement.title}</p>
-                      <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="mb-4 text-lg font-semibold flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-yellow-500" />
+                  Badges
+                </h3>
+                <div className="grid gap-4">
+                  {badges.map((badge, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 150, damping: 10 }}>
+                          <badge.icon className="h-5 w-5 text-primary" />
+                        </motion.div>
+                      </div>
+                      <div>
+                        <p className="font-medium">{badge.title}</p>
+                        <p className="text-sm text-muted-foreground">{badge.description}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </CardContent>

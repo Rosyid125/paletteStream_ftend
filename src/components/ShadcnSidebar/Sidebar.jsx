@@ -1,4 +1,4 @@
-import { Home, Compass, Award, PenTool, BookOpen, BookMarked, FileText, Users, Trophy, Minimize, Maximize } from "lucide-react";
+import { Home, Compass, Award, PenTool, BookOpen, BookMarked, FileText, Users, Trophy, Minimize, Maximize, X } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -102,16 +102,23 @@ export function ShadcnSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-        {/* Announcement Card */}
-        <div className="p-4 shadow-md rounded-md mb-4">
-          <div className="flex justify-between items-center">
-            <h2 className="font-bold text-lg">Announcement</h2>
-            <Button onClick={toggleMinimize} variant="ghost" size="icon" className="text-sm">
-              {isMinimized ? <Maximize className="text-lg" /> : <Minimize className="text-lg" />}
-            </Button>
+        <Button onClick={() => setIsMinimized(true)} variant="ghost" className="w-full mt-4">
+          📢 Show Announcement
+        </Button>
+
+        {isMinimized && (
+          <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+            <div className="bg-white p-4 rounded-lg shadow-lg w-80">
+              <div className="flex justify-between items-center">
+                <h2 className="font-bold text-lg">Announcement</h2>
+                <Button onClick={() => setIsMinimized(false)} variant="ghost" size="icon">
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <p className="mt-2 text-sm text-gray-600">Here is the latest announcement regarding PaletteStream.</p>
+            </div>
           </div>
-          {!isMinimized && <p className="mt-2 text-sm text-gray-600">Here is the latest announcement regarding PaletteStream.</p>}
-        </div>
+        )}
       </SidebarContent>
     </Sidebar>
   );
