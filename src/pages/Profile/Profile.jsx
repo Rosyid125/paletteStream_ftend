@@ -1,241 +1,601 @@
-import { User, Mail, MapPin, Calendar, LinkIcon, PenTool, BookOpen, BookMarked, Award, Star, Zap, Target, Flame } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Crown, Gamepad } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Image, Trophy, Star, Award, Users, Heart, MessageCircle, Share2, Calendar, TrendingUp, CheckCircle2, Crown, MapPin, Globe, Bookmark } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { motion } from "framer-motion";
-
-const achievements = [
-  { icon: Trophy, title: "First Win", description: "Won your first game" },
-  { icon: Star, title: "Rising Star", description: "Reached level 10" },
-  { icon: Zap, title: "Speed Demon", description: "Completed a game in under 1 minute" },
-  { icon: Target, title: "Sharpshooter", description: "Hit 100 targets" },
-  { icon: Flame, title: "On Fire", description: "5-day login streak" },
-];
-
-const badges = [{ icon: Crown, title: "Top 10 Human Being", description: "Better than 90% of players" }];
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Profile() {
+  const userProfile = {
+    name: "Jane Painter",
+    username: "@janepainter",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop",
+    bio: "Digital artist and illustrator specializing in fantasy and character design. Always looking to improve and connect with fellow artists!",
+    level: 7,
+    xp: 2450,
+    xpToNextLevel: 750,
+    followers: 342,
+    following: 128,
+    joined: "March 2023",
+    location: "Tokyo, Japan",
+    website: "janepainter.art",
+  };
+
+  const userStats = {
+    totalUploads: 47,
+    totalLikes: 1243,
+    totalComments: 356,
+    challengesParticipated: 8,
+    challengesWon: 1,
+  };
+
+  const badges = [
+    {
+      id: 1,
+      name: "First Upload",
+      icon: <Star className="h-5 w-5 text-yellow-500" />,
+      date: "Mar 15, 2023",
+      description: "Upload your first artwork to the platform",
+    },
+    {
+      id: 2,
+      name: "10 Comments",
+      icon: <MessageCircle className="h-5 w-5 text-blue-500" />,
+      date: "Apr 2, 2023",
+      description: "Leave 10 comments on other artists' work",
+    },
+    {
+      id: 3,
+      name: "Weekly Winner",
+      icon: <Trophy className="h-5 w-5 text-red-500" />,
+      date: "May 18, 2023",
+      description: "Win a weekly art challenge",
+    },
+    {
+      id: 4,
+      name: "100 Likes",
+      icon: <Heart className="h-5 w-5 text-pink-500" />,
+      date: "Jun 7, 2023",
+      description: "Receive 100 likes across all your artworks",
+    },
+    {
+      id: 5,
+      name: "Consistent Creator",
+      icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+      date: "Jul 22, 2023",
+      description: "Upload at least one artwork per week for a month",
+    },
+    {
+      id: 6,
+      name: "Rising Star",
+      icon: <TrendingUp className="h-5 w-5 text-purple-500" />,
+      date: "Aug 15, 2023",
+      description: "Gain 100 followers within your first 3 months",
+    },
+  ];
+
+  const achievements = [
+    { id: 1, name: "Upload 10 Artworks", progress: 100, completed: true },
+    { id: 2, name: "Receive 100 Likes", progress: 100, completed: true },
+    { id: 3, name: "Win a Challenge", progress: 100, completed: true },
+    { id: 4, name: "Upload 50 Artworks", progress: 94, completed: false },
+    { id: 5, name: "Receive 1000 Likes", progress: 80, completed: false },
+    { id: 6, name: "Win 5 Challenges", progress: 20, completed: false },
+  ];
+
+  const artworks = [
+    {
+      id: 1,
+      title: "Enchanted Forest",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop",
+      likes: 142,
+      comments: 28,
+      date: "2 weeks ago",
+    },
+    {
+      id: 2,
+      title: "Cyberpunk Portrait",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=1000&auto=format&fit=crop",
+      likes: 98,
+      comments: 15,
+      date: "1 month ago",
+    },
+    {
+      id: 3,
+      title: "Ocean Dreams",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1000&auto=format&fit=crop",
+      likes: 76,
+      comments: 12,
+      date: "2 months ago",
+    },
+    {
+      id: 4,
+      title: "Mountain Serenity",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1000&auto=format&fit=crop",
+      likes: 124,
+      comments: 18,
+      date: "3 months ago",
+    },
+    {
+      id: 5,
+      title: "Urban Sketches",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=1000&auto=format&fit=crop",
+      likes: 87,
+      comments: 9,
+      date: "3 months ago",
+    },
+    {
+      id: 6,
+      title: "Character Study",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1579547945413-497e1b99dac0?q=80&w=1000&auto=format&fit=crop",
+      likes: 112,
+      comments: 21,
+      date: "4 months ago",
+    },
+  ];
+
+  const challengeHistory = [
+    {
+      id: 1,
+      title: "Fantasy Landscapes",
+      result: "Winner",
+      date: "May 2023",
+      artwork: "Enchanted Forest",
+      thumbnail: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=200&auto=format&fit=crop",
+    },
+    {
+      id: 2,
+      title: "Character Design",
+      result: "Top 10",
+      date: "June 2023",
+      artwork: "Cyberpunk Hero",
+      thumbnail: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=200&auto=format&fit=crop",
+    },
+    {
+      id: 3,
+      title: "Mythology Reimagined",
+      result: "Participant",
+      date: "July 2023",
+      artwork: "Ocean Dreams",
+      thumbnail: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=200&auto=format&fit=crop",
+    },
+  ];
+
+  const getTypeColor = (type) => {
+    switch (type) {
+      case "illustration":
+        return "text-red-500 bg-red-500/10 hover:bg-red-500/20";
+      case "manga":
+        return "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20";
+      case "novel":
+        return "text-purple-500 bg-purple-500/10 hover:bg-purple-500/20";
+      default:
+        return "text-primary bg-primary/10 hover:bg-primary/20";
+    }
+  };
+
+  const getResultColor = (result) => {
+    switch (result) {
+      case "Winner":
+        return "bg-yellow-500/10 text-yellow-500";
+      case "Top 10":
+        return "bg-blue-500/10 text-blue-500";
+      default:
+        return "bg-muted-foreground/10";
+    }
+  };
+
   return (
-    <main className="flex-1 p-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="overflow-hidden shadow-lg">
-          {/* Banner */}
-          <div className="relative h-24 w-full bg-gradient-to-r from-red-500 to-purple-600">
-            <div className="absolute -bottom-10 left-6">
-              <Avatar className="h-20 w-20 border-4 border-white shadow-md">
-                <AvatarImage src="/placeholder-avatar.jpg" alt="@artlover" />
-                <AvatarFallback>AL</AvatarFallback>
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Profile Header */}
+      <Card className="border-t-4 border-t-red-500">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col items-center md:items-start">
+              <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background shadow-md">
+                <AvatarImage src={userProfile.avatar} />
+                <AvatarFallback>{userProfile.name.charAt(0)}</AvatarFallback>
               </Avatar>
-            </div>
-          </div>
 
-          <CardHeader className="pt-12">
-            <div className="flex flex-col items-center text-center">
-              <CardTitle>Art Lover</CardTitle>
-              <p className="text-sm text-muted-foreground">@artlover</p>
-            </div>
-          </CardHeader>
+              <div className="mt-4 text-center md:text-left">
+                <h2 className="text-2xl font-bold">{userProfile.name}</h2>
+                <p className="text-muted-foreground">{userProfile.username}</p>
 
-          {/* Follow Stats */}
-          <div className="flex justify-center gap-6 border-b pb-4">
-            <div className="flex flex-col items-center">
-              <p className="text-lg font-semibold">1.2K</p>
-              <p className="text-sm text-muted-foreground">Followers</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <p className="text-lg font-semibold">780</p>
-              <p className="text-sm text-muted-foreground">Followings</p>
-            </div>
-          </div>
-
-          <CardContent>
-            <div className="grid gap-4 text-sm">
-              <div className="flex items-center gap-2 mt-4">
-                <User className="h-4 w-4 opacity-70" />
-                <span>Digital Artist</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 opacity-70" />
-                <span>artlover@palettestream.com</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 opacity-70" />
-                <span>Tokyo, Japan</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 opacity-70" />
-                <span>Joined March 2023</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4 opacity-70" />
-                <a href="https://artlover.palettestream.com" className="text-blue-500 hover:underline">
-                  https://artlover.palettestream.com
-                </a>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-center gap-4">
-              <Button>Edit Profile</Button>
-              <Button variant="outline">Follow</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-4">
-              <Gamepad className="h-6 w-6 text-red-600" />
-              Player Stats
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Level 7</p>
-                <p className="text-2xl font-bold">3,542 XP</p>
-              </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Badge variant="secondary" className="h-10 w-10 rounded-full p-2">
-                      <Award className="h-6 w-6" />
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Gold Badge</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span>Progress to Level 8</span>
-                <span>65%</span>
-              </div>
-              <Progress value={65} className="h-2" />
-            </div>
-            <div className="flex justify-between">
-              <div>
-                <h3 className="mb-4 text-lg font-semibold flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-500" />
-                  Achievements
-                </h3>
-                <div className="grid gap-4">
-                  {achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <achievement.icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{achievement.title}</p>
-                        <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center mt-2 space-x-2">
+                  <Badge variant="outline" className="bg-red-500/10 text-red-500">
+                    Level {userProfile.level}
+                  </Badge>
+                  <Badge variant="outline">Digital Artist</Badge>
                 </div>
-              </div>
-              <div>
-                <h3 className="mb-4 text-lg font-semibold flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-yellow-500" />
-                  Badges
-                </h3>
-                <div className="grid gap-4">
-                  {badges.map((badge, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 150, damping: 10 }}>
-                          <badge.icon className="h-5 w-5 text-primary" />
-                        </motion.div>
-                      </div>
-                      <div>
-                        <p className="font-medium">{badge.title}</p>
-                        <p className="text-sm text-muted-foreground">{badge.description}</p>
-                      </div>
-                    </div>
-                  ))}
+
+                <div className="flex mt-4 space-x-4">
+                  <Button variant="destructive">Follow</Button>
+                  <Button variant="outline">Message</Button>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Tabs defaultValue="illustrations" className="mt-6">
-        <TabsList>
-          <TabsTrigger value="illustrations">Illustrations</TabsTrigger>
-          <TabsTrigger value="mangas">Mangas</TabsTrigger>
-          <TabsTrigger value="novels">Novels</TabsTrigger>
-          <TabsTrigger value="challenges">Challenges</TabsTrigger>
+            <div className="flex-1 mt-6 md:mt-0">
+              <div className="space-y-4">
+                <p>{userProfile.bio}</p>
+
+                <div className="flex flex-wrap gap-4">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-sm cursor-pointer">
+                          <Users className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <span>
+                            <strong>{userProfile.followers}</strong> Followers
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>People following {userProfile.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-sm cursor-pointer">
+                          <Users className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <span>
+                            <strong>{userProfile.following}</strong> Following
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>People {userProfile.name} follows</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                    <span>Joined {userProfile.joined}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4">
+                  {userProfile.location && (
+                    <div className="flex items-center text-sm">
+                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <span>{userProfile.location}</span>
+                    </div>
+                  )}
+
+                  {userProfile.website && (
+                    <div className="flex items-center text-sm">
+                      <Globe className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <a href={`https://${userProfile.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        {userProfile.website}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Level Progress</h3>
+                  <div className="flex justify-between text-xs">
+                    <span>Level {userProfile.level}</span>
+                    <span>
+                      {userProfile.xp} XP / {userProfile.xp + userProfile.xpToNextLevel} XP
+                    </span>
+                  </div>
+                  <Progress value={(userProfile.xp / (userProfile.xp + userProfile.xpToNextLevel)) * 100} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    {userProfile.xpToNextLevel} XP to Level {userProfile.level + 1}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <Card className="bg-muted/50 border-none shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center p-3 h-full">
+                <Image className="h-5 w-5 text-red-500 mb-1" />
+                <span className="font-bold">{userStats.totalUploads}</span>
+                <span className="text-xs text-muted-foreground">Uploads</span>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50 border-none shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center p-3 h-full">
+                <Heart className="h-5 w-5 text-red-500 mb-1" />
+                <span className="font-bold">{userStats.totalLikes}</span>
+                <span className="text-xs text-muted-foreground">Likes</span>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50 border-none shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center p-3 h-full">
+                <MessageCircle className="h-5 w-5 text-red-500 mb-1" />
+                <span className="font-bold">{userStats.totalComments}</span>
+                <span className="text-xs text-muted-foreground">Comments</span>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50 border-none shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center p-3 h-full">
+                <Trophy className="h-5 w-5 text-red-500 mb-1" />
+                <span className="font-bold">{userStats.challengesParticipated}</span>
+                <span className="text-xs text-muted-foreground">Challenges</span>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50 border-none shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center p-3 h-full">
+                <Crown className="h-5 w-5 text-yellow-500 mb-1" />
+                <span className="font-bold">{userStats.challengesWon}</span>
+                <span className="text-xs text-muted-foreground">Wins</span>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Profile Content */}
+      <Tabs defaultValue="artworks">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="artworks" className="flex items-center">
+            <Image className="h-4 w-4 mr-2" />
+            Artworks
+          </TabsTrigger>
+          <TabsTrigger value="badges" className="flex items-center">
+            <Award className="h-4 w-4 mr-2" />
+            Badges
+          </TabsTrigger>
+          <TabsTrigger value="achievements" className="flex items-center">
+            <Star className="h-4 w-4 mr-2" />
+            Achievements
+          </TabsTrigger>
+          <TabsTrigger value="challenges" className="flex items-center">
+            <Trophy className="h-4 w-4 mr-2" />
+            Challenges
+          </TabsTrigger>
         </TabsList>
-        <TabsContent value="illustrations">
-          <Card>
+
+        {/* Artworks Tab */}
+        <TabsContent value="artworks" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {artworks.map((artwork) => (
+              <Card key={artwork.id} className="overflow-hidden group">
+                <div className="relative aspect-square w-full overflow-hidden">
+                  <img src={artwork.imageUrl || "/placeholder.svg"} alt={artwork.title} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="outline" className={`${getTypeColor(artwork.type)} border-transparent text-white`}>
+                      {artwork.type.charAt(0).toUpperCase() + artwork.type.slice(1)}
+                    </Badge>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+                    <div className="p-4 w-full">
+                      <h3 className="font-semibold text-white">{artwork.title}</h3>
+                      <p className="text-xs text-white/80 mt-1">{artwork.date}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold">{artwork.title}</h3>
+                    <p className="text-xs text-muted-foreground">{artwork.date}</p>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="flex space-x-3">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center text-sm cursor-pointer">
+                              <Heart className="h-4 w-4 mr-1 text-red-500" />
+                              <span>{artwork.likes}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{artwork.likes} likes</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center text-sm cursor-pointer">
+                              <MessageCircle className="h-4 w-4 mr-1" />
+                              <span>{artwork.comments}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{artwork.comments} comments</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+
+                    <div className="flex space-x-1">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Share artwork</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Bookmark className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Save to collection</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Badges Tab */}
+        <TabsContent value="badges" className="mt-6">
+          <Card className="border-t-4 border-t-purple-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PenTool className="h-5 w-5" />
-                Illustrations
+              <CardTitle className="flex items-center">
+                <Award className="h-5 w-5 text-purple-500 mr-2" />
+                Badges Earned
               </CardTitle>
+              <CardDescription>Showcase of your achievements and milestones</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>User's illustrations will be displayed here.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {badges.map((badge) => (
+                  <HoverCard key={badge.id}>
+                    <HoverCardTrigger asChild>
+                      <Card className="overflow-hidden cursor-pointer hover:border-purple-200 transition-colors">
+                        <CardContent className="p-4 flex items-center">
+                          <div className="flex-shrink-0 h-12 w-12 rounded-full bg-muted flex items-center justify-center mr-4">{badge.icon}</div>
+                          <div>
+                            <h3 className="font-medium">{badge.name}</h3>
+                            <p className="text-xs text-muted-foreground">Earned on {badge.date}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80">
+                      <div className="flex justify-between space-x-4">
+                        <div className="flex-shrink-0 h-12 w-12 rounded-full bg-muted flex items-center justify-center">{badge.icon}</div>
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-semibold">{badge.name}</h4>
+                          <p className="text-sm">{badge.description}</p>
+                          <p className="text-xs text-muted-foreground">Earned on {badge.date}</p>
+                        </div>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="mangas">
-          <Card>
+
+        {/* Achievements Tab */}
+        <TabsContent value="achievements" className="mt-6">
+          <Card className="border-t-4 border-t-green-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Mangas
+              <CardTitle className="flex items-center">
+                <Star className="h-5 w-5 text-green-500 mr-2" />
+                Achievements
               </CardTitle>
+              <CardDescription>Track your progress towards goals</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>User's mangas will be displayed here.</p>
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-6">
+                  {achievements.map((achievement) => (
+                    <Card key={achievement.id} className="overflow-hidden shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center">
+                            {achievement.completed ? <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" /> : <div className="h-5 w-5 rounded-full border-2 border-muted mr-2" />}
+                            <h3 className="font-medium">{achievement.name}</h3>
+                          </div>
+                          <Badge variant={achievement.completed ? "outline" : "secondary"} className={achievement.completed ? "bg-green-500/10 text-green-500" : ""}>
+                            {achievement.completed ? "Completed" : `${achievement.progress}%`}
+                          </Badge>
+                        </div>
+                        <Progress value={achievement.progress} className={`h-2 ${achievement.completed ? "bg-green-100" : ""}`} />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="novels">
-          <Card>
+
+        {/* Challenges Tab */}
+        <TabsContent value="challenges" className="mt-6">
+          <Card className="border-t-4 border-t-yellow-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookMarked className="h-5 w-5" />
-                Novels
+              <CardTitle className="flex items-center">
+                <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
+                Challenge History
               </CardTitle>
+              <CardDescription>Your participation in community challenges</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>User's novels will be displayed here.</p>
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-6">
+                  {challengeHistory.map((challenge) => (
+                    <Card key={challenge.id} className="overflow-hidden shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start">
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <div className="relative h-16 w-16 rounded-md overflow-hidden mr-4 cursor-pointer">
+                                <img src={challenge.thumbnail || "/placeholder.svg"} alt={challenge.artwork} className="object-cover w-full h-full transition-transform duration-300 hover:scale-105" />
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80">
+                              <div className="space-y-2">
+                                <img src={challenge.thumbnail || "/placeholder.svg"} alt={challenge.artwork} className="object-cover w-full h-40 rounded-md" />
+                                <h4 className="font-semibold">{challenge.artwork}</h4>
+                                <p className="text-sm">Entry for {challenge.title} challenge</p>
+                                <p className="text-xs text-muted-foreground">{challenge.date}</p>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-medium">{challenge.title}</h3>
+                              <Badge variant="outline" className={getResultColor(challenge.result)}>
+                                {challenge.result}
+                              </Badge>
+                            </div>
+                            <p className="text-sm mt-1">Entry: {challenge.artwork}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{challenge.date}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
             </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="challenges">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                Challenges
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="ongoing">
-                <TabsList>
-                  <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
-                  <TabsTrigger value="completed">Completed</TabsTrigger>
-                </TabsList>
-                <TabsContent value="ongoing">
-                  <p>User's ongoing challenges will be displayed here.</p>
-                </TabsContent>
-                <TabsContent value="completed">
-                  <p>User's completed challenges will be displayed here.</p>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full">
+                View All Challenge Entries
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
-    </main>
+    </div>
   );
 }

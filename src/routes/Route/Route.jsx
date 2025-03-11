@@ -10,6 +10,8 @@ import { Coins } from "lucide-react";
 // Deklarasi lazy load ketika page children sedang dimuat
 const Home = React.lazy(() => import("@/pages/Home/Home"));
 const Profile = React.lazy(() => import("@/pages/Profile/Profile"));
+const Discover = React.lazy(() => import("@/pages/Discover/Discover"));
+const Challenges = React.lazy(() => import("@/pages/Challenges/Challenges"));
 
 // Rute komponen + halaman
 export const router = createBrowserRouter([
@@ -36,7 +38,7 @@ export const router = createBrowserRouter([
     // Komponen dinamis yang akah menjadi children dari komponen statis
     children: [
       {
-        path: "/",
+        path: "/home",
         element: (
           <Suspense
             fallback={
@@ -60,6 +62,34 @@ export const router = createBrowserRouter([
             }
           >
             <Profile />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/discover",
+        element: (
+          <Suspense
+            fallback={
+              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+                <Coins className="w-10 h-10 text-red-600" />
+              </motion.div>
+            }
+          >
+            <Discover />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/challenges",
+        element: (
+          <Suspense
+            fallback={
+              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+                <Coins className="w-10 h-10 text-red-600" />
+              </motion.div>
+            }
+          >
+            <Challenges />
           </Suspense>
         ),
       },

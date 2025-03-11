@@ -94,7 +94,7 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  @apply w-2.5 h-2.5;
+  @apply w-4 h-2.5;
 }
 
 ::-webkit-scrollbar-track {
