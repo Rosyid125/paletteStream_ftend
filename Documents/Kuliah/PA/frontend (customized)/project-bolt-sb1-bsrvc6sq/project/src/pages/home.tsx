@@ -1,0 +1,385 @@
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Heart, MessageCircle, Share2, Bookmark, Award, TrendingUp, Clock, CheckCircle2, Trophy, Star, Siren as Fire } from "lucide-react";
+
+export default function Home() {
+  const [feedTab, setFeedTab] = useState("latest");
+
+  const artPosts = [
+    {
+      id: 1,
+      title: "Crimson Dreams",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop",
+      author: {
+        name: "Mika Chen",
+        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop",
+        level: 12,
+      },
+      likes: 342,
+      comments: 28,
+      shares: 15,
+      timeAgo: "2 hours ago",
+      tags: ["fantasy", "digital", "portrait"],
+    },
+    {
+      id: 2,
+      title: "Urban Legends: Chapter 3",
+      type: "manga",
+      imageUrl: "https://images.unsplash.com/photo-1614583225154-5fcdda07019e?q=80&w=1000&auto=format&fit=crop",
+      author: {
+        name: "Takeshi Yamada",
+        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop",
+        level: 24,
+      },
+      likes: 876,
+      comments: 134,
+      shares: 67,
+      timeAgo: "1 day ago",
+      tags: ["manga", "action", "urban"],
+    },
+    {
+      id: 3,
+      title: "Whispers in the Wind",
+      type: "novel",
+      imageUrl: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1000&auto=format&fit=crop",
+      author: {
+        name: "Elena Frost",
+        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop",
+        level: 18,
+      },
+      likes: 523,
+      comments: 89,
+      shares: 32,
+      timeAgo: "3 days ago",
+      tags: ["fantasy", "romance", "novel"],
+    },
+  ];
+
+  const challenges = [
+    {
+      id: 1,
+      title: "Weekly Theme: Mythology",
+      description: "Create artwork inspired by myths and legends from around the world.",
+      deadline: "5 days left",
+      participants: 234,
+      prize: "2000 XP + Mythologist Badge",
+    },
+    {
+      id: 2,
+      title: "Character Design Challenge",
+      description: "Design an original character with a detailed backstory.",
+      deadline: "2 days left",
+      participants: 187,
+      prize: "1500 XP + Character Creator Badge",
+    },
+  ];
+
+  const dailyMissions = [
+    { id: 1, title: "Upload 1 artwork", xp: 100, completed: true },
+    { id: 2, title: "Comment on 3 posts", xp: 50, completed: false },
+    { id: 3, title: "Share an artwork", xp: 75, completed: false },
+  ];
+
+  const weeklyMissions = [
+    { id: 1, title: "Upload 5 artworks", xp: 300, progress: 3, total: 5 },
+    { id: 2, title: "Participate in a challenge", xp: 250, progress: 0, total: 1 },
+    { id: 3, title: "Get 50 likes on your posts", xp: 400, progress: 32, total: 50 },
+  ];
+
+  const badges = [
+    { id: 1, title: "First Upload", description: "Upload your first artwork", icon: <Star className="h-5 w-5 text-yellow-500" /> },
+    { id: 2, title: "Rising Star", description: "Reach 100 followers", icon: <TrendingUp className="h-5 w-5 text-blue-500" /> },
+    { id: 3, title: "Challenge Champion", description: "Win your first challenge", icon: <Trophy className="h-5 w-5 text-red-500" /> },
+    { id: 4, title: "Consistent Creator", description: "Upload 5 artworks in a week", icon: <CheckCircle2 className="h-5 w-5 text-green-500" /> },
+    { id: 5, title: "Art Critic", description: "Leave 10 comments", icon: <MessageCircle className="h-5 w-5 text-purple-500" /> },
+    { id: 6, title: "Weekly Winner", description: "Win the weekly challenge", icon: <Award className="h-5 w-5 text-pink-500" /> },
+  ];
+
+  const achievements = [
+    { id: 1, name: "Upload 10 Artworks", progress: 10, total: 10, completed: true },
+    { id: 2, name: "Receive 100 Likes", progress: 100, total: 100, completed: true },
+    { id: 3, name: "Win a Challenge", progress: 1, total: 1, completed: true },
+    { id: 4, name: "Upload 50 Artworks", progress: 25, total: 50, completed: false },
+    { id: 5, name: "Receive 1000 Likes", progress: 100, total: 1000, completed: false },
+    { id: 6, name: "Win 5 Challenges", progress: 1, total: 5, completed: false },
+  ];
+
+  const recommendedArtists = [
+    {
+      id: 1,
+      name: "Kai Nakamura",
+      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop",
+      specialty: "Digital Illustration",
+      level: 15,
+    },
+    {
+      id: 2,
+      name: "Sofia Martinez",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop",
+      specialty: "Character Design",
+      level: 22,
+    },
+    {
+      id: 3,
+      name: "Alex Kim",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
+      specialty: "Manga Artist",
+      level: 19,
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* Main Feed - 2/3 width on large screens */}
+      <div className="lg:col-span-2 space-y-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Feed</CardTitle>
+            <Tabs defaultValue="latest" value={feedTab} onValueChange={setFeedTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="latest">Latest</TabsTrigger>
+                <TabsTrigger value="trending">Trending</TabsTrigger>
+                <TabsTrigger value="following">Following</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+
+          <CardContent className="pt-4">
+            <div className="space-y-6">
+              {artPosts.map((post) => (
+                <Card key={post.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-2">
+                        <Avatar>
+                          <AvatarImage src={post.author.avatar} />
+                          <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">{post.author.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Level {post.author.level} • {post.timeAgo}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={post.type === "illustration" ? "bg-red-500/10 text-red-500" : post.type === "manga" ? "bg-blue-500/10 text-blue-500" : "bg-purple-500/10 text-purple-500"}>
+                        {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+
+                  <div className="relative aspect-video w-full overflow-hidden">
+                    <img src={post.imageUrl} alt={post.title} className="object-cover w-full h-full" />
+                  </div>
+
+                  <CardContent className="pt-4">
+                    <h3 className="text-lg font-semibold">{post.title}</h3>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {post.tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          #{tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="flex justify-between border-t pt-4">
+                    <div className="flex space-x-4">
+                      <Button variant="ghost" size="sm" className="flex items-center space-x-1">
+                        <Heart className="h-4 w-4" />
+                        <span>{post.likes}</span>
+                      </Button>
+                      <Button variant="ghost" size="sm" className="flex items-center space-x-1">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{post.comments}</span>
+                      </Button>
+                      <Button variant="ghost" size="sm" className="flex items-center space-x-1">
+                        <Share2 className="h-4 w-4" />
+                        <span>{post.shares}</span>
+                      </Button>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <Bookmark className="h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sidebar - 1/3 width on large screens */}
+      <div className="space-y-6">
+        {/* Active Challenges */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center">
+              <Trophy className="h-5 w-5 text-red-500 mr-2" />
+              Active Challenges
+            </CardTitle>
+            <CardDescription>Compete and earn rewards</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {challenges.map((challenge) => (
+              <div key={challenge.id} className="rounded-lg border p-3">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-semibold">{challenge.title}</h3>
+                  <Badge variant="outline" className="bg-red-500/10 text-red-500">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {challenge.deadline}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{challenge.description}</p>
+                <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
+                  <span>{challenge.participants} participants</span>
+                  <span className="font-medium text-foreground">{challenge.prize}</span>
+                </div>
+                <Button className="w-full mt-3 bg-red-600 hover:bg-red-700">Join Challenge</Button>
+              </div>
+            ))}
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" className="w-full">
+              View All Challenges
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Gamification Hub */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center">
+              <Award className="h-5 w-5 text-red-500 mr-2" />
+              Gamification Hub
+            </CardTitle>
+            <CardDescription>Track your progress and missions</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Tabs defaultValue="daily">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="daily">Daily Missions</TabsTrigger>
+                <TabsTrigger value="weekly">Weekly Missions</TabsTrigger>
+              </TabsList>
+              <TabsContent value="daily" className="space-y-3 mt-3">
+                {dailyMissions.map((mission) => (
+                  <div key={mission.id} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      {mission.completed ? <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" /> : <div className="h-5 w-5 rounded-full border-2 border-muted mr-2" />}
+                      <span className={mission.completed ? "line-through text-muted-foreground" : ""}>{mission.title}</span>
+                    </div>
+                    <Badge variant={mission.completed ? "outline" : "secondary"}>{mission.xp} XP</Badge>
+                  </div>
+                ))}
+              </TabsContent>
+              <TabsContent value="weekly" className="space-y-4 mt-3">
+                {weeklyMissions.map((mission) => (
+                  <div key={mission.id} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span>{mission.title}</span>
+                      <Badge variant="secondary">{mission.xp} XP</Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>
+                          Progress: {mission.progress}/{mission.total}
+                        </span>
+                        <span>{Math.round((mission.progress / mission.total) * 100)}%</span>
+                      </div>
+                      <Progress value={(mission.progress / mission.total) * 100} className="h-2" />
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
+            </Tabs>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-medium mb-3">Badges</h3>
+              <div className="space-y-2">
+                {badges.map((badge) => (
+                  <div key={badge.id} className="flex items-center space-x-2 rounded-lg border p-2">
+                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-muted flex items-center justify-center">{badge.icon}</div>
+                    <div>
+                      <p className="font-medium text-sm">{badge.title}</p>
+                      <p className="text-xs text-muted-foreground">{badge.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-medium mb-3">Achievements</h3>
+              <div className="space-y-2">
+                {achievements.map((achievement) => (
+                  <div key={achievement.id} className="flex items-center justify-between">
+                    <div className="w-full">
+                      <p className="font-medium text-sm">{achievement.name}</p>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>
+                          Progress: {achievement.progress}/{achievement.total}
+                        </span>
+                      </div>
+                      <Progress value={(achievement.progress / achievement.total) * 100} className="h-2 w-full" />
+                    </div>
+                    <Badge variant={achievement.completed ? "secondary" : "outline"} className="ml-2">
+                      {achievement.completed ? "Completed" : "In Progress"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recommended for You */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center">
+              <Fire className="h-5 w-5 text-red-500 mr-2" />
+              Recommended for You
+            </CardTitle>
+            <CardDescription>Artists you might like</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {recommendedArtists.map((artist) => (
+              <div key={artist.id} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src={artist.avatar} />
+                    <AvatarFallback>{artist.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-sm">{artist.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {artist.specialty} • Level {artist.level}
+                    </p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  Follow
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" className="w-full">
+              View More
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
+  );
+}
