@@ -32,7 +32,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                 <Coins className="w-10 h-10 text-red-600" />
               </motion.div>
             }
@@ -46,7 +46,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                 <Coins className="w-10 h-10 text-red-600" />
               </motion.div>
             }
@@ -60,7 +60,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                 <Coins className="w-10 h-10 text-red-600" />
               </motion.div>
             }
@@ -74,7 +74,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                 <Coins className="w-10 h-10 text-red-600" />
               </motion.div>
             }
@@ -89,7 +89,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                 <Coins className="w-10 h-10 text-red-600" />
               </motion.div>
             }
@@ -103,7 +103,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                 <Coins className="w-10 h-10 text-red-600" />
               </motion.div>
             }
@@ -117,7 +117,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                 <Coins className="w-10 h-10 text-red-600" />
               </motion.div>
             }
@@ -131,7 +131,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <motion.div className="flex justify-center items-center min-h-screen" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                 <Coins className="w-10 h-10 text-red-600" />
               </motion.div>
             }
