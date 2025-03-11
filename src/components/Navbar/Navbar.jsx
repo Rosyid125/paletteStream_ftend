@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useTheme } from "@/theme/ThemeContext.jsx/ThemeContext";
+import { useTheme } from "@/contexts/ThemeContext.jsx/ThemeContext";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
 
@@ -40,30 +40,23 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-4 md:hidden">
-          {/* Mobile logo */}
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500 text-white">
-            <Image className="h-5 w-5" />
-          </div>
-        </div>
-
         <div className="hidden items-center space-x-1 md:flex">
           {/* Desktop navigation links */}
-          <a href="/home">
+          <Link to="/home">
             <Button variant="ghost" className="text-sm font-medium">
               Home
             </Button>
-          </a>
-          <a href="/discover">
+          </Link>
+          <Link to="/discover">
             <Button variant="ghost" className="text-sm font-medium">
               Discover
             </Button>
-          </a>
-          <a href="/challenges">
+          </Link>
+          <Link to="/challenges">
             <Button variant="ghost" className="text-sm font-medium">
               Challenges
             </Button>
-          </a>
+          </Link>
         </div>
 
         <div className={`relative mx-4 flex-1 transition-all duration-200 ${searchFocused ? "md:mx-0" : "md:mx-4"}`}>
@@ -74,30 +67,30 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 md:gap-2">
+        <div className="flex items-center gap-1 ml-2 md:gap-2">
           {/* Create post button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="destructive" size="sm" className="hidden md:flex">
+              <Button size="sm" className="hidden md:flex">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create Post
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuGroup>
-                <Link href="/post/illustration">
+                <Link to="/post/illustration">
                   <DropdownMenuItem>
-                    <Image className="mr-2 h-4 w-4 text-red-500" />
+                    <Image className="mr-2 h-4 w-4 text-primary" />
                     <span>Illustration</span>
                   </DropdownMenuItem>
                 </Link>
-                <Link href="/post/manga">
+                <Link to="/post/manga">
                   <DropdownMenuItem>
                     <BookOpen className="mr-2 h-4 w-4 text-blue-500" />
                     <span>Manga</span>
                   </DropdownMenuItem>
                 </Link>
-                <Link href="/post/novel">
+                <Link to="/post/novel">
                   <DropdownMenuItem>
                     <BookMarked className="mr-2 h-4 w-4 text-purple-500" />
                     <span>Novel</span>
@@ -107,20 +100,13 @@ export default function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mobile create button */}
-          <Link href="/post" className="md:hidden">
-            <Button variant="destructive" size="icon">
-              <PlusCircle className="h-5 w-5" />
-            </Button>
-          </Link>
-
           {/* Notifications */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
-                  {currentUser.notifications > 0 && <Badge className="absolute -right-1 -top-1 flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-[10px] text-white">{currentUser.notifications}</Badge>}
+                  {currentUser.notifications > 0 && <Badge className="absolute -right-1 -top-1 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-[10px] text-white">{currentUser.notifications}</Badge>}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -134,7 +120,7 @@ export default function Navbar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
+                  <MessageSquare className="h-5 w-5" />
                   {currentUser.messages > 0 && (
                     <Badge className="absolute -right-1 -top-1 flex items-center justify-center h-5 w-5 rounded-full bg-blue-500 text-[10px] hover:bg-blue-600 dark:hover:bg-blue-800 text-white">{currentUser.messages}</Badge>
                   )}

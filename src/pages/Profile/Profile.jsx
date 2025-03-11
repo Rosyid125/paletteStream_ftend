@@ -52,7 +52,7 @@ export default function Profile() {
     {
       id: 3,
       name: "Weekly Winner",
-      icon: <Trophy className="h-5 w-5 text-red-500" />,
+      icon: <Trophy className="h-5 w-5 text-primary" />,
       date: "May 18, 2023",
       description: "Win a weekly art challenge",
     },
@@ -175,7 +175,7 @@ export default function Profile() {
   const getTypeColor = (type) => {
     switch (type) {
       case "illustration":
-        return "text-red-500 bg-red-500/10 hover:bg-red-500/20";
+        return "text-primary bg-primary/10 hover:bg-primary/20";
       case "manga":
         return "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20";
       case "novel":
@@ -199,7 +199,7 @@ export default function Profile() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Profile Header */}
-      <Card className="border-t-4 border-t-red-500">
+      <Card className="border-t-4 border-t-primary">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex flex-col items-center md:items-start">
@@ -213,14 +213,14 @@ export default function Profile() {
                 <p className="text-muted-foreground">{userProfile.username}</p>
 
                 <div className="flex items-center mt-2 space-x-2">
-                  <Badge variant="outline" className="bg-red-500/10 text-red-500">
+                  <Badge variant="outline" className="bg-primary/10 text-primary">
                     Level {userProfile.level}
                   </Badge>
                   <Badge variant="outline">Digital Artist</Badge>
                 </div>
 
                 <div className="flex mt-4 space-x-4">
-                  <Button variant="destructive">Follow</Button>
+                  <Button>Follow</Button>
                   <Button variant="outline">Message</Button>
                 </div>
               </div>
@@ -309,7 +309,7 @@ export default function Profile() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
-                <Image className="h-5 w-5 text-red-500 mb-1" />
+                <Image className="h-5 w-5 text-primary mb-1" />
                 <span className="font-bold">{userStats.totalUploads}</span>
                 <span className="text-xs text-muted-foreground">Uploads</span>
               </CardContent>
@@ -317,7 +317,7 @@ export default function Profile() {
 
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
-                <Heart className="h-5 w-5 text-red-500 mb-1" />
+                <Heart className="h-5 w-5 text-primary mb-1" />
                 <span className="font-bold">{userStats.totalLikes}</span>
                 <span className="text-xs text-muted-foreground">Likes</span>
               </CardContent>
@@ -325,7 +325,7 @@ export default function Profile() {
 
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
-                <MessageCircle className="h-5 w-5 text-red-500 mb-1" />
+                <MessageCircle className="h-5 w-5 text-primary mb-1" />
                 <span className="font-bold">{userStats.totalComments}</span>
                 <span className="text-xs text-muted-foreground">Comments</span>
               </CardContent>
@@ -333,7 +333,7 @@ export default function Profile() {
 
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
-                <Trophy className="h-5 w-5 text-red-500 mb-1" />
+                <Trophy className="h-5 w-5 text-primary mb-1" />
                 <span className="font-bold">{userStats.challengesParticipated}</span>
                 <span className="text-xs text-muted-foreground">Challenges</span>
               </CardContent>
@@ -403,7 +403,7 @@ export default function Profile() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex items-center text-sm cursor-pointer">
-                              <Heart className="h-4 w-4 mr-1 text-red-500" />
+                              <Heart className="h-4 w-4 mr-1 text-primary" />
                               <span>{artwork.likes}</span>
                             </div>
                           </TooltipTrigger>

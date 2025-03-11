@@ -115,7 +115,7 @@ export default function Home() {
       id: 3,
       title: "Challenge Champion",
       description: "Win your first challenge",
-      icon: <Trophy className="h-5 w-5 text-red-500" />,
+      icon: <Trophy className="h-5 w-5 text-primary" />,
     },
     {
       id: 4,
@@ -173,7 +173,7 @@ export default function Home() {
   const getTypeColor = (type) => {
     switch (type) {
       case "illustration":
-        return "text-red-500 bg-red-500/10 hover:bg-red-500/20";
+        return "text-primary bg-primary/10 hover:bg-primary/20";
       case "manga":
         return "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20";
       case "novel":
@@ -328,10 +328,10 @@ export default function Home() {
       {/* Sidebar - 1/3 width on large screens */}
       <div className="space-y-6">
         {/* Active Challenges */}
-        <Card className="border-t-4 border-t-red-500">
+        <Card className="border-t-4 border-t-primary">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center">
-              <Trophy className="h-5 w-5 text-red-500 mr-2" />
+              <Trophy className="h-5 w-5 text-primary mr-2" />
               Active Challenges
             </CardTitle>
             <CardDescription>Compete and earn rewards</CardDescription>
@@ -342,7 +342,7 @@ export default function Home() {
                 <CardContent className="p-3">
                   <div className="flex justify-between items-start">
                     <h3 className="font-semibold">{challenge.title}</h3>
-                    <Badge variant="outline" className="bg-red-500/10 text-red-500">
+                    <Badge variant="outline" className="bg-primary/10 text-primary">
                       <Clock className="h-3 w-3 mr-1" />
                       {challenge.deadline}
                     </Badge>
@@ -352,9 +352,7 @@ export default function Home() {
                     <span>{challenge.participants} participants</span>
                     <span className="font-medium text-foreground">{challenge.prize}</span>
                   </div>
-                  <Button className="w-full mt-3" variant="destructive">
-                    Join Challenge
-                  </Button>
+                  <Button className="w-full mt-3">Join Challenge</Button>
                 </CardContent>
               </Card>
             ))}

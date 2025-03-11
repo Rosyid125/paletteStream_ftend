@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,10 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Filter, Palette, BookOpen, PenTool, Users, TrendingUp, Heart } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export default function Discover() {
+  const [activeFilter, setActiveFilter] = useState("recent");
+  const [activeTab, setActiveTab] = useState("artworks");
+
   const popularTags = ["fantasy", "digital", "portrait", "landscape", "character", "anime", "scifi", "traditional", "concept", "fanart"];
 
   const featuredArtworks = [
@@ -114,14 +121,14 @@ export default function Discover() {
       name: "Character Creators",
       members: 9341,
       description: "Focus on character design across all mediums and styles.",
-      icon: <PenTool className="h-10 w-10 text-red-500" />,
+      icon: <PenTool className="h-10 w-10 text-primary" />,
     },
   ];
 
   const getTypeColor = (type) => {
     switch (type) {
       case "illustration":
-        return "text-red-500 bg-red-500/10 hover:bg-red-500/20";
+        return "text-primary bg-primary/10 hover:bg-primary/20";
       case "manga":
         return "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20";
       case "novel":
@@ -132,7 +139,7 @@ export default function Discover() {
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="grid grid-cols-1 space-y-6 p-4 md:p-6">
       {/* Search and Filter Section */}
       <Card className="border-t-4 border-t-primary">
         <CardHeader className="pb-2">
@@ -140,30 +147,70 @@ export default function Discover() {
           <CardDescription>Find new artworks, artists, and communities</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            {/* Search Bar */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Search for artworks, artists, or tags..." className="pl-10" />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filters
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem>Most Recent</DropdownMenuItem>
-                <DropdownMenuItem>Most Popular</DropdownMenuItem>
-                <DropdownMenuItem>Most Liked</DropdownMenuItem>
-                <DropdownMenuItem>Trending</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            {/* Desktop Filter Dropdown */}
+            <div className="hidden sm:block">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    <span>Filter: {activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
+                    <DropdownMenuRadioItem value="recent">Most Recent</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="popular">Most Popular</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="liked">Most Liked</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="trending">Trending</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Mobile Filter Sheet */}
+            <div className="sm:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="flex w-full items-center justify-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    <span>Filters</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-80">
+                  <SheetHeader>
+                    <SheetTitle>Filter Options</SheetTitle>
+                    <SheetDescription>Choose how you want to sort the content</SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-2">
+                    <Button variant={activeFilter === "recent" ? "default" : "outline"} className="w-full justify-start" onClick={() => setActiveFilter("recent")}>
+                      Most Recent
+                    </Button>
+                    <Button variant={activeFilter === "popular" ? "default" : "outline"} className="w-full justify-start" onClick={() => setActiveFilter("popular")}>
+                      Most Popular
+                    </Button>
+                    <Button variant={activeFilter === "liked" ? "default" : "outline"} className="w-full justify-start" onClick={() => setActiveFilter("liked")}>
+                      Most Liked
+                    </Button>
+                    <Button variant={activeFilter === "trending" ? "default" : "outline"} className="w-full justify-start" onClick={() => setActiveFilter("trending")}>
+                      Trending
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
 
+          {/* Popular Tags */}
           <div className="mt-4">
             <h3 className="text-sm font-medium mb-2">Popular Tags</h3>
-            <ScrollArea className="whitespace-nowrap pb-2" orientation="horizontal">
+            <ScrollArea className="w-full whitespace-nowrap pb-2">
               <div className="flex gap-2">
                 {popularTags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="cursor-pointer hover:bg-secondary/80 transition-colors">
@@ -171,13 +218,14 @@ export default function Discover() {
                   </Badge>
                 ))}
               </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </div>
         </CardContent>
       </Card>
 
       {/* Main Content */}
-      <Tabs defaultValue="artworks">
+      <Tabs defaultValue="artworks" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="artworks">Artworks</TabsTrigger>
           <TabsTrigger value="artists">Artists</TabsTrigger>
@@ -186,9 +234,9 @@ export default function Discover() {
 
         {/* Artworks Tab */}
         <TabsContent value="artworks" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {featuredArtworks.map((artwork) => (
-              <Card key={artwork.id} className="overflow-hidden group">
+              <Card key={artwork.id} className="overflow-hidden group h-full flex flex-col">
                 <div className="relative aspect-square w-full overflow-hidden">
                   <img src={artwork.imageUrl || "/placeholder.svg"} alt={artwork.title} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
                   <div className="absolute top-2 right-2">
@@ -198,7 +246,7 @@ export default function Discover() {
                   </div>
                 </div>
 
-                <CardContent className="p-4">
+                <CardContent className="p-4 flex-grow">
                   <h3 className="font-semibold truncate">{artwork.title}</h3>
 
                   <div className="flex justify-between items-center mt-2">
@@ -236,7 +284,7 @@ export default function Discover() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center text-sm text-muted-foreground">
-                            <Heart className="h-4 w-4 mr-1 fill-red-500 text-red-500" />
+                            <Heart className="h-4 w-4 mr-1 fill-primary text-primary" />
                             <span>{artwork.likes}</span>
                           </div>
                         </TooltipTrigger>
@@ -262,8 +310,8 @@ export default function Discover() {
 
         {/* Artists Tab */}
         <TabsContent value="artists" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* This is a placeholder for the Artists tab content */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Placeholder for the Artists tab content */}
             <Card className="border-t-4 border-t-blue-500">
               <CardHeader className="pb-2">
                 <CardTitle>Artists Tab</CardTitle>
@@ -283,9 +331,9 @@ export default function Discover() {
 
         {/* Communities Tab */}
         <TabsContent value="communities" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {popularCommunities.map((community) => (
-              <Card key={community.id} className="border-t-4 border-t-red-500 overflow-hidden">
+              <Card key={community.id} className="border-t-4 border-t-primary overflow-hidden h-full flex flex-col">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -302,7 +350,7 @@ export default function Discover() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="rounded-full p-1 bg-muted">
-                            <TrendingUp className="h-5 w-5 text-red-500" />
+                            <TrendingUp className="h-5 w-5 text-primary" />
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -312,13 +360,11 @@ export default function Discover() {
                     </TooltipProvider>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow">
                   <p className="text-sm text-muted-foreground">{community.description}</p>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" variant="destructive">
-                    Join Community
-                  </Button>
+                  <Button className="w-full">Join Community</Button>
                 </CardFooter>
               </Card>
             ))}
