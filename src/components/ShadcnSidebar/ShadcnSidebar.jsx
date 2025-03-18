@@ -1,4 +1,4 @@
-import { Home, Compass, Award, PenTool, BookOpen, BookMarked, FileText, Users, Trophy, Palette, Bell } from "lucide-react";
+import { Home, Compass, Award, BookMarked, FileText, Users, Trophy, Palette, Bell, Heart, Group } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,72 +16,65 @@ const items = [
     title: "Home",
     url: "/home",
     icon: Home,
-    group: "Main Navigation",
+    group: "Main",
     color: "text-primary",
   },
   {
     title: "Discover",
     url: "/discover",
     icon: Compass,
-    group: "Main Navigation",
+    group: "Main",
     color: "text-blue-500",
   },
   {
     title: "Challenges",
     url: "/challenges",
     icon: Award,
-    group: "Main Navigation",
+    group: "Main",
     color: "text-amber-500",
-  },
-  {
-    title: "Profile",
-    url: "/profile/socital",
-    icon: Avatar,
-    group: "Main Navigation",
-    color: "text-purple-500",
-    isAvatar: true,
   },
   {
     title: "Top Artists",
     url: "/top-artists",
     icon: Users,
-    group: "Gamification",
+    group: "Leaderboard",
     color: "text-green-500",
   },
   {
     title: "Top Artworks",
     url: "/top-artworks",
     icon: FileText,
-    group: "Gamification",
+    group: "Leaderboard",
     color: "text-blue-500",
   },
   {
     title: "Weekly Winners",
     url: "/weekly-winners",
     icon: Trophy,
-    group: "Gamification",
+    group: "Leaderboard",
     color: "text-yellow-500",
   },
   {
-    title: "Illustrations",
-    url: "/illustrations",
-    icon: PenTool,
-    group: "Categories",
-    color: "text-primary",
-  },
-  {
-    title: "Manga",
-    url: "/manga",
-    icon: BookOpen,
-    group: "Categories",
-    color: "text-blue-500",
-  },
-  {
-    title: "Novels",
-    url: "/novels",
-    icon: BookMarked,
-    group: "Categories",
+    title: "Profile",
+    url: "/profile/socital",
+    icon: Avatar,
+    group: "User's",
     color: "text-purple-500",
+    isAvatar: true,
+  },
+  {
+    title: "Bookmarked",
+    url: "/bookmarked",
+    icon: BookMarked,
+    group: "User's",
+    color: "text-amber-500",
+  },
+  {
+    title: "Liked",
+    url: "/liked",
+    icon: Heart,
+    group: "User's",
+    color: "text-green-500",
   },
 ];
 
@@ -114,9 +107,9 @@ export default function ShadcnSidebar() {
   // Helper function to get group border color
   const getGroupBorderColor = (group) => {
     switch (group) {
-      case "Main Navigation":
+      case "Main":
         return "border-l-primary";
-      case "Gamification":
+      case "Leaderboard":
         return "border-l-amber-500";
       case "Categories":
         return "border-l-blue-500";

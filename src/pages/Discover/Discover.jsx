@@ -101,29 +101,29 @@ export default function Discover() {
     },
   ];
 
-  const popularCommunities = [
-    {
-      id: 1,
-      name: "Digital Dreamers",
-      members: 12453,
-      description: "A community for digital artists to share techniques and inspiration.",
-      icon: <Palette className="h-10 w-10 text-purple-500" />,
-    },
-    {
-      id: 2,
-      name: "Manga Masters",
-      members: 8762,
-      description: "For manga artists and enthusiasts to discuss styles and storytelling.",
-      icon: <BookOpen className="h-10 w-10 text-blue-500" />,
-    },
-    {
-      id: 3,
-      name: "Character Creators",
-      members: 9341,
-      description: "Focus on character design across all mediums and styles.",
-      icon: <PenTool className="h-10 w-10 text-primary" />,
-    },
-  ];
+  // const popularCommunities = [
+  //   {
+  //     id: 1,
+  //     name: "Digital Dreamers",
+  //     members: 12453,
+  //     description: "A community for digital artists to share techniques and inspiration.",
+  //     icon: <Palette className="h-10 w-10 text-purple-500" />,
+  //   },
+  //   {
+  //     id: 2,
+  //     name: "Manga Masters",
+  //     members: 8762,
+  //     description: "For manga artists and enthusiasts to discuss styles and storytelling.",
+  //     icon: <BookOpen className="h-10 w-10 text-blue-500" />,
+  //   },
+  //   {
+  //     id: 3,
+  //     name: "Character Creators",
+  //     members: 9341,
+  //     description: "Focus on character design across all mediums and styles.",
+  //     icon: <PenTool className="h-10 w-10 text-primary" />,
+  //   },
+  // ];
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -144,7 +144,8 @@ export default function Discover() {
       <Card className="border-t-4 border-t-primary">
         <CardHeader className="pb-2">
           <CardTitle>Discover</CardTitle>
-          <CardDescription>Find new artworks, artists, and communities</CardDescription>
+          {/* <CardDescription>Find new artworks, artists, and communities</CardDescription> */}
+          <CardDescription>Find new artworks, and artists</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 sm:flex-row">
@@ -226,10 +227,11 @@ export default function Discover() {
 
       {/* Main Content */}
       <Tabs defaultValue="artworks" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        {/* <TabsList className="grid w-full grid-cols-3"> */}
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="artworks">Artworks</TabsTrigger>
           <TabsTrigger value="artists">Artists</TabsTrigger>
-          <TabsTrigger value="communities">Communities</TabsTrigger>
+          {/* <TabsTrigger value="communities">Communities</TabsTrigger> */}
         </TabsList>
 
         {/* Artworks Tab */}
@@ -330,7 +332,7 @@ export default function Discover() {
         </TabsContent>
 
         {/* Communities Tab */}
-        <TabsContent value="communities" className="mt-6">
+        {/* <TabsContent value="communities" className="mt-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {popularCommunities.map((community) => (
               <Card key={community.id} className="border-t-4 border-t-primary overflow-hidden h-full flex flex-col">
@@ -369,7 +371,7 @@ export default function Discover() {
               </Card>
             ))}
           </div>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );

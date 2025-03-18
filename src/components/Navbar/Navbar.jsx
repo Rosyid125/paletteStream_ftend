@@ -173,12 +173,6 @@ export default function Navbar() {
                     <span>Liked Artworks</span>
                   </DropdownMenuItem>
                 </Link>
-                <Link href="/settings">
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                </Link>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>

@@ -263,7 +263,7 @@ export default function WeeklyWinners() {
                 <span>{currentWeekData.participants} participants</span>
               </div>
 
-              {currentWeekData.status === "active" ? <Button variant="destructive">Join Challenge</Button> : <Button variant="outline">View All Entries</Button>}
+              {currentWeekData.status === "active" ? <Button>Join Challenge</Button> : <Button variant="outline">View All Entries</Button>}
             </div>
           </div>
           <CardDescription className="mt-2">{currentWeekData.description}</CardDescription>
