@@ -1,5 +1,3 @@
-"use client";
-
 import { Search, Bell, MessageSquare, User, LogOut, PlusCircle, Image, BookOpen, BookMarked, Settings, Heart, Bookmark, HelpCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,13 +6,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useTheme } from "@/contexts/ThemeContext.jsx/ThemeContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
+import { logout } from "@/services/authService"; // Impor API login yang sudah dibuat
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [searchFocused, setSearchFocused] = useState(false);
+  const [handlleLogout, setHandlleLogout] = useState(false);
 
   const [isDark, setIsDark] = useState(theme === "dark");
 
@@ -35,6 +35,16 @@ export default function Navbar() {
     level: 7,
     notifications: 3,
     messages: 2,
+  };
+
+  // Hapus state handlleLogout dan ubah menjadi fungsi biasa
+  const handleLogout = () => {
+    // Logout user
+    const response = logout();
+    if (response) {
+      // Redirect to login page
+      window.location.href = "/login";
+    }
   };
 
   return (
@@ -188,7 +198,7 @@ export default function Navbar() {
                 </Link>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

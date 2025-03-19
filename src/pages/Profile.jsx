@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,168 +10,62 @@ import { Image, Trophy, Star, Award, Users, Heart, MessageCircle, Share2, Calend
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Link, useNavigate } from "react-router-dom"; // Import Link dan useNavigate
 
 export default function Profile() {
-  const userProfile = {
-    name: "Jane Painter",
-    username: "@janepainter",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop",
-    bio: "Digital artist and illustrator specializing in fantasy and character design. Always looking to improve and connect with fellow artists!",
-    level: 7,
-    xp: 2450,
-    xpToNextLevel: 750,
-    followers: 342,
-    following: 128,
-    joined: "March 2023",
-    location: "Tokyo, Japan",
-    website: "janepainter.art",
+  const navigate = useNavigate(); // Inisialisasi useNavigate
+
+  // State untuk menyimpan data dari API
+  const [userProfile, setUserProfile] = useState(null);
+  const [userStats, setUserStats] = useState(null);
+  const [badges, setBadges] = useState(null);
+  const [achievements, setAchievements] = useState(null);
+  const [artworks, setArtworks] = useState(null);
+  const [challengeHistory, setChallengeHistory] = useState(null);
+  const [loading, setLoading] = useState(true); // Menambahkan state loading
+
+  const [activeTab, setActiveTab] = useState("artworks");
+
+  // Fungsi untuk mengambil data dari API (ganti dengan URL API yang sesuai)
+  const fetchData = async () => {
+    setLoading(true); // Set loading true saat memulai fetching
+
+    try {
+      const profileResponse = await fetch("/api/profile"); // Endpoint untuk profil user
+      const profileData = await profileResponse.json();
+      setUserProfile(profileData);
+
+      const statsResponse = await fetch("/api/stats"); // Endpoint untuk stats user
+      const statsData = await statsResponse.json();
+      setUserStats(statsData);
+
+      const badgesResponse = await fetch("/api/badges"); // Endpoint untuk daftar badges
+      const badgesData = await badgesResponse.json();
+      setBadges(badgesData);
+
+      const achievementsResponse = await fetch("/api/achievements"); // Endpoint untuk daftar achievements
+      const achievementsData = await achievementsResponse.json();
+      setAchievements(achievementsData);
+
+      const artworksResponse = await fetch("/api/artworks"); // Endpoint untuk daftar artworks
+      const artworksData = await artworksResponse.json();
+      setArtworks(artworksData);
+
+      const challengeHistoryResponse = await fetch("/api/challengeHistory"); // Endpoint untuk challenge history
+      const challengeHistoryData = await challengeHistoryResponse.json();
+      setChallengeHistory(challengeHistoryData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      // Handle error di sini, misalnya menampilkan pesan error ke user
+    } finally {
+      setLoading(false); // Set loading false setelah selesai (berhasil atau gagal)
+    }
   };
 
-  const userStats = {
-    totalUploads: 47,
-    totalLikes: 1243,
-    totalComments: 356,
-    challengesParticipated: 8,
-    challengesWon: 1,
-  };
-
-  const badges = [
-    {
-      id: 1,
-      name: "First Upload",
-      icon: <Star className="h-5 w-5 text-yellow-500" />,
-      date: "Mar 15, 2023",
-      description: "Upload your first artwork to the platform",
-    },
-    {
-      id: 2,
-      name: "10 Comments",
-      icon: <MessageCircle className="h-5 w-5 text-blue-500" />,
-      date: "Apr 2, 2023",
-      description: "Leave 10 comments on other artists' work",
-    },
-    {
-      id: 3,
-      name: "Weekly Winner",
-      icon: <Trophy className="h-5 w-5 text-primary" />,
-      date: "May 18, 2023",
-      description: "Win a weekly art challenge",
-    },
-    {
-      id: 4,
-      name: "100 Likes",
-      icon: <Heart className="h-5 w-5 text-pink-500" />,
-      date: "Jun 7, 2023",
-      description: "Receive 100 likes across all your artworks",
-    },
-    {
-      id: 5,
-      name: "Consistent Creator",
-      icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
-      date: "Jul 22, 2023",
-      description: "Upload at least one artwork per week for a month",
-    },
-    {
-      id: 6,
-      name: "Rising Star",
-      icon: <TrendingUp className="h-5 w-5 text-purple-500" />,
-      date: "Aug 15, 2023",
-      description: "Gain 100 followers within your first 3 months",
-    },
-  ];
-
-  const achievements = [
-    { id: 1, name: "Upload 10 Artworks", progress: 100, completed: true },
-    { id: 2, name: "Receive 100 Likes", progress: 100, completed: true },
-    { id: 3, name: "Win a Challenge", progress: 100, completed: true },
-    { id: 4, name: "Upload 50 Artworks", progress: 94, completed: false },
-    { id: 5, name: "Receive 1000 Likes", progress: 80, completed: false },
-    { id: 6, name: "Win 5 Challenges", progress: 20, completed: false },
-  ];
-
-  const artworks = [
-    {
-      id: 1,
-      title: "Enchanted Forest",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop",
-      likes: 142,
-      comments: 28,
-      date: "2 weeks ago",
-    },
-    {
-      id: 2,
-      title: "Cyberpunk Portrait",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=1000&auto=format&fit=crop",
-      likes: 98,
-      comments: 15,
-      date: "1 month ago",
-    },
-    {
-      id: 3,
-      title: "Ocean Dreams",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1000&auto=format&fit=crop",
-      likes: 76,
-      comments: 12,
-      date: "2 months ago",
-    },
-    {
-      id: 4,
-      title: "Mountain Serenity",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1000&auto=format&fit=crop",
-      likes: 124,
-      comments: 18,
-      date: "3 months ago",
-    },
-    {
-      id: 5,
-      title: "Urban Sketches",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=1000&auto=format&fit=crop",
-      likes: 87,
-      comments: 9,
-      date: "3 months ago",
-    },
-    {
-      id: 6,
-      title: "Character Study",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1579547945413-497e1b99dac0?q=80&w=1000&auto=format&fit=crop",
-      likes: 112,
-      comments: 21,
-      date: "4 months ago",
-    },
-  ];
-
-  const challengeHistory = [
-    {
-      id: 1,
-      title: "Fantasy Landscapes",
-      result: "Winner",
-      date: "May 2023",
-      artwork: "Enchanted Forest",
-      thumbnail: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=200&auto=format&fit=crop",
-    },
-    {
-      id: 2,
-      title: "Character Design",
-      result: "Top 10",
-      date: "June 2023",
-      artwork: "Cyberpunk Hero",
-      thumbnail: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=200&auto=format&fit=crop",
-    },
-    {
-      id: 3,
-      title: "Mythology Reimagined",
-      result: "Participant",
-      date: "July 2023",
-      artwork: "Ocean Dreams",
-      thumbnail: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=200&auto=format&fit=crop",
-    },
-  ];
+  // Efek untuk menjalankan fetchData saat komponen di-mount
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -196,6 +91,45 @@ export default function Profile() {
     }
   };
 
+  const handleFollowClick = () => {
+    // Logika untuk mengikuti user
+    alert(`Following ${userProfile.name}!`);
+  };
+
+  const handleMessageClick = () => {
+    // Navigasi ke halaman pesan
+    navigate("/messages");
+  };
+
+  const handleShareClick = (artworkId) => {
+    // Logika untuk berbagi artwork
+    alert(`Sharing artwork with ID: ${artworkId}!`);
+  };
+
+  const handleBookmarkClick = (artworkId) => {
+    // Logika untuk menyimpan artwork
+    alert(`Saving artwork with ID: ${artworkId}!`);
+  };
+
+  const handleViewAllChallengesClick = () => {
+    // Navigasi ke halaman challenge
+    navigate("/challenges");
+  };
+
+  const handleWebsiteClick = () => {
+    window.open(`https://${userProfile.website}`, "_blank");
+  };
+
+  // Tampilkan pesan loading jika data sedang di-fetch
+  if (loading) {
+    return <div className="text-center">Loading profile...</div>;
+  }
+
+  // Tampilkan pesan error jika data gagal di-fetch
+  if (!userProfile || !userStats || !badges || !achievements || !artworks || !challengeHistory) {
+    return <div className="text-center">Failed to load profile data. Please try again later.</div>;
+  }
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Profile Header */}
@@ -220,8 +154,10 @@ export default function Profile() {
                 </div>
 
                 <div className="flex mt-4 space-x-4">
-                  <Button>Follow</Button>
-                  <Button variant="outline">Message</Button>
+                  <Button onClick={handleFollowClick}>Follow</Button>
+                  <Button variant="outline" onClick={handleMessageClick}>
+                    Message
+                  </Button>
                 </div>
               </div>
             </div>
@@ -278,11 +214,9 @@ export default function Profile() {
                   )}
 
                   {userProfile.website && (
-                    <div className="flex items-center text-sm">
+                    <div className="flex items-center text-sm cursor-pointer" onClick={handleWebsiteClick}>
                       <Globe className="h-4 w-4 mr-1 text-muted-foreground" />
-                      <a href={`https://${userProfile.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                        {userProfile.website}
-                      </a>
+                      <span className="text-blue-500 hover:underline">{userProfile.website}</span>
                     </div>
                   )}
                 </div>
@@ -351,7 +285,7 @@ export default function Profile() {
       </Card>
 
       {/* Profile Content */}
-      <Tabs defaultValue="artworks">
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="artworks" className="flex items-center">
             <Image className="h-4 w-4 mr-2" />
@@ -432,7 +366,7 @@ export default function Profile() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleShareClick(artwork.id)}>
                               <Share2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -445,7 +379,7 @@ export default function Profile() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleBookmarkClick(artwork.id)}>
                               <Bookmark className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -589,7 +523,7 @@ export default function Profile() {
               </ScrollArea>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={handleViewAllChallengesClick}>
                 View All Challenge Entries
               </Button>
             </CardFooter>

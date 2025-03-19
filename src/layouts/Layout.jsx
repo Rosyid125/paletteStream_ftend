@@ -1,7 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom"; //Mengapa menggunakan kurung karena dalam satu file ada banyak fungsi //Outlet digunakan untuk merender children
-import Navbar from "@/components/Navbar/Navbar"; //Mengapa tidak menggunakan kurung karena dalam satu file hanya ada satu fungsi
-import ShadcnSidebar from "@/components/ShadcnSidebar/ShadcnSidebar";
+import Navbar from "@/components/Navbar"; //Mengapa tidak menggunakan kurung karena dalam satu file hanya ada satu fungsi
+import ShadcnSidebar from "@/components/ShadcnSidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function Layout() {

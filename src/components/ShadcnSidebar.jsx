@@ -64,14 +64,14 @@ const items = [
   },
   {
     title: "Bookmarked",
-    url: "/bookmarked",
+    url: "/bookmarks",
     icon: BookMarked,
     group: "User's",
     color: "text-amber-500",
   },
   {
     title: "Liked",
-    url: "/liked",
+    url: "/likes",
     icon: Heart,
     group: "User's",
     color: "text-green-500",
