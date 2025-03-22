@@ -11,6 +11,8 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link, useNavigate } from "react-router-dom"; // Import Link dan useNavigate
+import api from "../api/axiosInstance"; // Import axios instance
+import { useParams } from "react-router-dom"; // Import useParams
 
 export default function Profile() {
   const navigate = useNavigate(); // Inisialisasi useNavigate
@@ -26,46 +28,77 @@ export default function Profile() {
 
   const [activeTab, setActiveTab] = useState("artworks");
 
-  // Fungsi untuk mengambil data dari API (ganti dengan URL API yang sesuai)
-  const fetchData = async () => {
-    setLoading(true); // Set loading true saat memulai fetching
+  // useParams hook to get the userId from the URL
+  const { userId } = useParams();
 
+  // Function to fetch user profile data
+  const fetchUserProfile = async () => {
+    setLoading(true);
     try {
-      const profileResponse = await fetch("/api/profile"); // Endpoint untuk profil user
-      const profileData = await profileResponse.json();
-      setUserProfile(profileData);
-
-      const statsResponse = await fetch("/api/stats"); // Endpoint untuk stats user
-      const statsData = await statsResponse.json();
-      setUserStats(statsData);
-
-      const badgesResponse = await fetch("/api/badges"); // Endpoint untuk daftar badges
-      const badgesData = await badgesResponse.json();
-      setBadges(badgesData);
-
-      const achievementsResponse = await fetch("/api/achievements"); // Endpoint untuk daftar achievements
-      const achievementsData = await achievementsResponse.json();
-      setAchievements(achievementsData);
-
-      const artworksResponse = await fetch("/api/artworks"); // Endpoint untuk daftar artworks
-      const artworksData = await artworksResponse.json();
-      setArtworks(artworksData);
-
-      const challengeHistoryResponse = await fetch("/api/challengeHistory"); // Endpoint untuk challenge history
-      const challengeHistoryData = await challengeHistoryResponse.json();
-      setChallengeHistory(challengeHistoryData);
+      const response = await api.get(`/profiles/profile/${userId}`);
+      setUserProfile(response.data);
     } catch (error) {
-      console.error("Error fetching data:", error);
-      // Handle error di sini, misalnya menampilkan pesan error ke user
+      console.error("Error fetching user profile:", error);
+      // Handle error (e.g., show error message)
     } finally {
-      setLoading(false); // Set loading false setelah selesai (berhasil atau gagal)
+      setLoading(false);
     }
   };
 
-  // Efek untuk menjalankan fetchData saat komponen di-mount
+  // useEffect to fetch user profile data when the component mounts or userId changes
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchUserProfile();
+  }, [userId]);
+
+  // Fungsi helper untuk mendapatkan jumlah followers dan following dengan aman
+  const getCount = (arr) => {
+    if (Array.isArray(arr) && arr.length > 0) {
+      // Pastikan properti ada dan merupakan angka
+      const countValue = arr[0][Object.keys(arr[0])[0]];
+      return typeof countValue === "number" ? countValue : 0;
+    }
+    return 0;
+  };
+
+  const followerCount = getCount(userProfile?.followers);
+  const followingCount = getCount(userProfile?.followings);
+
+  // useEffect to set dummy data
+  useEffect(() => {
+    // Set dummy data for other states
+    setUserStats({
+      totalUploads: 150,
+      totalLikes: 5200,
+      totalComments: 800,
+      challengesParticipated: 30,
+      challengesWon: 5,
+    });
+
+    setBadges([
+      { id: 1, name: "Early Bird", description: "Joined the platform early.", date: "2023-01-15", icon: "🐦" },
+      { id: 2, name: "Art Lover", description: "Liked 50 artworks.", date: "2023-03-20", icon: "❤️" },
+      { id: 3, name: "Commentator", description: "Made 100 comments.", date: "2023-05-10", icon: "💬" },
+    ]);
+
+    setAchievements([
+      { id: 1, name: "First Upload", progress: 100, completed: true },
+      { id: 2, name: "100 Likes", progress: 100, completed: true },
+      { id: 3, name: "Participate in Challenge", progress: 100, completed: true },
+      { id: 4, name: "Win Challenge", progress: 50, completed: false },
+    ]);
+
+    setArtworks([
+      { id: 1, title: "Sunset Painting", imageUrl: "/placeholder.svg", type: "illustration", date: "2023-07-01", likes: 50, comments: 10 },
+      { id: 2, title: "Manga Panel", imageUrl: "/placeholder.svg", type: "manga", date: "2023-07-15", likes: 30, comments: 5 },
+      { id: 3, title: "Fantasy Novel Excerpt", imageUrl: "/placeholder.svg", type: "novel", date: "2023-08-01", likes: 70, comments: 20 },
+    ]);
+
+    setChallengeHistory([
+      { id: 1, title: "Summer Art Challenge", artwork: "Seascape", result: "Top 10", date: "2023-06-20", thumbnail: "/placeholder.svg" },
+      { id: 2, title: "Autumn Colors Challenge", artwork: "Fall Trees", result: "Winner", date: "2023-09-15", thumbnail: "/placeholder.svg" },
+      { id: 3, title: "Winter Wonderland Challenge", artwork: "Snowy Village", result: "Top 10", date: "2023-12-24", thumbnail: "/placeholder.svg" },
+    ]);
+  }, []); // Empty dependency array ensures this runs only once
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -126,7 +159,7 @@ export default function Profile() {
   }
 
   // Tampilkan pesan error jika data gagal di-fetch
-  if (!userProfile || !userStats || !badges || !achievements || !artworks || !challengeHistory) {
+  if (!userProfile) {
     return <div className="text-center">Failed to load profile data. Please try again later.</div>;
   }
 
@@ -138,17 +171,17 @@ export default function Profile() {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex flex-col items-center md:items-start">
               <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background shadow-md">
-                <AvatarImage src={userProfile.avatar} />
-                <AvatarFallback>{userProfile.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={userProfile?.avatar} alt="Avatar" />
+                <AvatarFallback>{userProfile?.username?.charAt(0) || "A"}</AvatarFallback>
               </Avatar>
 
               <div className="mt-4 text-center md:text-left">
-                <h2 className="text-2xl font-bold">{userProfile.name}</h2>
-                <p className="text-muted-foreground">{userProfile.username}</p>
+                <h2 className="text-2xl font-bold">{userProfile?.username}</h2>
+                <p className="text-muted-foreground">@{userProfile?.username}</p>
 
                 <div className="flex items-center mt-2 space-x-2">
                   <Badge variant="outline" className="bg-primary/10 text-primary">
-                    Level {userProfile.level}
+                    Level {userProfile?.level}
                   </Badge>
                   <Badge variant="outline">Digital Artist</Badge>
                 </div>
@@ -164,7 +197,7 @@ export default function Profile() {
 
             <div className="flex-1 mt-6 md:mt-0">
               <div className="space-y-4">
-                <p>{userProfile.bio}</p>
+                <p>{userProfile?.bio}</p>
 
                 <div className="flex flex-wrap gap-4">
                   <TooltipProvider>
@@ -173,12 +206,12 @@ export default function Profile() {
                         <div className="flex items-center text-sm cursor-pointer">
                           <Users className="h-4 w-4 mr-1 text-muted-foreground" />
                           <span>
-                            <strong>{userProfile.followers}</strong> Followers
+                            <strong>{followerCount}</strong> Followers
                           </span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>People following {userProfile.name}</p>
+                        <p>People following {userProfile?.username}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -189,49 +222,53 @@ export default function Profile() {
                         <div className="flex items-center text-sm cursor-pointer">
                           <Users className="h-4 w-4 mr-1 text-muted-foreground" />
                           <span>
-                            <strong>{userProfile.following}</strong> Following
+                            <strong>{followingCount}</strong> Following
                           </span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>People {userProfile.name} follows</p>
+                        <p>People {userProfile?.username} follows</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
 
-                  <div className="flex items-center text-sm">
-                    <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                    <span>Joined {userProfile.joined}</span>
-                  </div>
+                  {/* Bagian ini dihilangkan karena tidak ada properti 'joined' di response */}
+                  {/* <div className="flex items-center text-sm">
+                <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                <span>Joined {userProfile.joined}</span>
+              </div> */}
                 </div>
 
                 <div className="flex flex-wrap gap-4">
-                  {userProfile.location && (
+                  {userProfile?.location && (
                     <div className="flex items-center text-sm">
                       <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                      <span>{userProfile.location}</span>
+                      <span>{userProfile?.location}</span>
                     </div>
                   )}
 
-                  {userProfile.website && (
-                    <div className="flex items-center text-sm cursor-pointer" onClick={handleWebsiteClick}>
-                      <Globe className="h-4 w-4 mr-1 text-muted-foreground" />
-                      <span className="text-blue-500 hover:underline">{userProfile.website}</span>
-                    </div>
-                  )}
+                  {/* Bagian ini dihilangkan karena tidak ada properti 'website' di response */}
+                  {/* {userProfile.website && (
+                <div className="flex items-center text-sm cursor-pointer" onClick={handleWebsiteClick}>
+                  <Globe className="h-4 w-4 mr-1 text-muted-foreground" />
+                  <span className="text-blue-500 hover:underline">{userProfile.website}</span>
+                </div>
+              )} */}
                 </div>
 
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Level Progress</h3>
                   <div className="flex justify-between text-xs">
-                    <span>Level {userProfile.level}</span>
+                    <span>Level {userProfile?.level}</span>
                     <span>
-                      {userProfile.xp} XP / {userProfile.xp + userProfile.xpToNextLevel} XP
+                      {userProfile?.exp} XP / {userProfile?.exp} XP {/* Sesuaikan dengan logika XP yang benar */}
                     </span>
                   </div>
-                  <Progress value={(userProfile.xp / (userProfile.xp + userProfile.xpToNextLevel)) * 100} className="h-2" />
+                  {/* Nilai progress harus antara 0 dan 1 */}
+                  <Progress value={userProfile?.exp / 100} className="h-2" />
                   <p className="text-xs text-muted-foreground">
-                    {userProfile.xpToNextLevel} XP to Level {userProfile.level + 1}
+                    {/* Sesuaikan dengan logika XP yang benar */}
+                    XP to Level {userProfile?.level + 1}
                   </p>
                 </div>
               </div>
@@ -244,7 +281,7 @@ export default function Profile() {
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
                 <Image className="h-5 w-5 text-primary mb-1" />
-                <span className="font-bold">{userStats.totalUploads}</span>
+                <span className="font-bold">{userStats?.totalUploads}</span>
                 <span className="text-xs text-muted-foreground">Uploads</span>
               </CardContent>
             </Card>
@@ -252,7 +289,7 @@ export default function Profile() {
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
                 <Heart className="h-5 w-5 text-primary mb-1" />
-                <span className="font-bold">{userStats.totalLikes}</span>
+                <span className="font-bold">{userStats?.totalLikes}</span>
                 <span className="text-xs text-muted-foreground">Likes</span>
               </CardContent>
             </Card>
@@ -260,7 +297,7 @@ export default function Profile() {
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
                 <MessageCircle className="h-5 w-5 text-primary mb-1" />
-                <span className="font-bold">{userStats.totalComments}</span>
+                <span className="font-bold">{userStats?.totalComments}</span>
                 <span className="text-xs text-muted-foreground">Comments</span>
               </CardContent>
             </Card>
@@ -268,7 +305,7 @@ export default function Profile() {
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
                 <Trophy className="h-5 w-5 text-primary mb-1" />
-                <span className="font-bold">{userStats.challengesParticipated}</span>
+                <span className="font-bold">{userStats?.challengesParticipated}</span>
                 <span className="text-xs text-muted-foreground">Challenges</span>
               </CardContent>
             </Card>
@@ -276,7 +313,7 @@ export default function Profile() {
             <Card className="bg-muted/50 border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-3 h-full">
                 <Crown className="h-5 w-5 text-yellow-500 mb-1" />
-                <span className="font-bold">{userStats.challengesWon}</span>
+                <span className="font-bold">{userStats?.challengesWon}</span>
                 <span className="text-xs text-muted-foreground">Wins</span>
               </CardContent>
             </Card>
@@ -308,7 +345,7 @@ export default function Profile() {
         {/* Artworks Tab */}
         <TabsContent value="artworks" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {artworks.map((artwork) => (
+            {artworks?.map((artwork) => (
               <Card key={artwork.id} className="overflow-hidden group">
                 <div className="relative aspect-square w-full overflow-hidden">
                   <img src={artwork.imageUrl || "/placeholder.svg"} alt={artwork.title} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
@@ -408,7 +445,7 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {badges.map((badge) => (
+                {badges?.map((badge) => (
                   <HoverCard key={badge.id}>
                     <HoverCardTrigger asChild>
                       <Card className="overflow-hidden cursor-pointer hover:border-purple-200 transition-colors">
@@ -451,7 +488,7 @@ export default function Profile() {
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-6">
-                  {achievements.map((achievement) => (
+                  {achievements?.map((achievement) => (
                     <Card key={achievement.id} className="overflow-hidden shadow-sm">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-center mb-2">
@@ -486,7 +523,7 @@ export default function Profile() {
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-6">
-                  {challengeHistory.map((challenge) => (
+                  {challengeHistory?.map((challenge) => (
                     <Card key={challenge.id} className="overflow-hidden shadow-sm">
                       <CardContent className="p-4">
                         <div className="flex items-start">

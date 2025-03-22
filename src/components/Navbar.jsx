@@ -1,5 +1,4 @@
-import { Search, Bell, MessageSquare, User, LogOut, PlusCircle, Image, BookOpen, BookMarked, Settings, Heart, Bookmark, HelpCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Bell, MessageSquare, User, LogOut, PlusCircle, Image, BookOpen, BookMarked, Heart, Bookmark, HelpCircle, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,9 +13,9 @@ import { logout } from "@/services/authService"; // Impor API login yang sudah d
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [searchFocused, setSearchFocused] = useState(false);
-  const [handlleLogout, setHandlleLogout] = useState(false);
-
+  const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")).id : null;
   const [isDark, setIsDark] = useState(theme === "dark");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State untuk menu mobile
 
   useEffect(() => {
     setIsDark(theme === "dark");
@@ -27,7 +26,6 @@ export default function Navbar() {
     toggleTheme();
   };
 
-  // Get the current user info (this would normally come from your auth system)
   const currentUser = {
     name: "Jane Painter",
     username: "jane_painter",
@@ -37,22 +35,23 @@ export default function Navbar() {
     messages: 2,
   };
 
-  // Hapus state handlleLogout dan ubah menjadi fungsi biasa
   const handleLogout = () => {
-    // Logout user
     const response = logout();
     if (response) {
-      // Redirect to login page
       window.location.href = "/login";
     }
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="hidden items-center space-x-1 md:flex">
-          {/* Desktop navigation links */}
-          <Link to="/home">
+        {/* Desktop Navigation (Hidden on Mobile) */}
+        <div className={`hidden items-center space-x-1 md:flex ${isMobileMenuOpen ? "hidden" : ""}`}>
+          <Link to="/">
             <Button variant="ghost" className="text-sm font-medium">
               Home
             </Button>
@@ -69,38 +68,30 @@ export default function Navbar() {
           </Link>
         </div>
 
-        <div className={`relative mx-4 flex-1 transition-all duration-200 ${searchFocused ? "md:mx-0" : "md:mx-4"}`}>
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Search for artworks, artists, or tags..." className="w-full pl-10 pr-4" onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 ml-2 md:gap-2">
+        <div className="flex items-center gap-1 md:gap-2 ml-auto">
           {/* Create post button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" className="hidden md:flex">
+              <Button size="sm" className="flex items-center">
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Create Post
+                <span className="hidden md:inline">Create Post</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuGroup>
-                <Link to="/post/illustration">
+                <Link to={`/post/illustration/${userId}`}>
                   <DropdownMenuItem>
                     <Image className="mr-2 h-4 w-4 text-primary" />
                     <span>Illustration</span>
                   </DropdownMenuItem>
                 </Link>
-                <Link to="/post/manga">
+                <Link to={`/post/manga/${userId}`}>
                   <DropdownMenuItem>
                     <BookOpen className="mr-2 h-4 w-4 text-blue-500" />
                     <span>Manga</span>
                   </DropdownMenuItem>
                 </Link>
-                <Link to="/post/novel">
+                <Link to={`/post/novel/${userId}`}>
                   <DropdownMenuItem>
                     <BookMarked className="mr-2 h-4 w-4 text-purple-500" />
                     <span>Novel</span>
@@ -109,7 +100,6 @@ export default function Navbar() {
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-
           {/* Notifications */}
           <TooltipProvider>
             <Tooltip>
@@ -124,7 +114,6 @@ export default function Navbar() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
           {/* Messages */}
           <TooltipProvider>
             <Tooltip>
@@ -141,7 +130,6 @@ export default function Navbar() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

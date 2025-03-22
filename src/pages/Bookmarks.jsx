@@ -93,89 +93,11 @@ export default function BookmarksPage() {
 
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6">
-      {/* Header Section */}
-      <Card className="border-t-4 border-t-blue-500">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Bookmark className="h-6 w-6 text-blue-500 mr-2" />
-              <div>
-                <CardTitle className="text-2xl">Bookmarks</CardTitle>
-                <CardDescription>Your saved artworks and content</CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant={viewMode === "grid" ? "default" : "outline"} size="icon" onClick={() => setViewMode("grid")}>
-                      <Grid3X3 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Grid View</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant={viewMode === "list" ? "default" : "outline"} size="icon" onClick={() => setViewMode("list")}>
-                      <List className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>List View</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search bookmarks..." className="pl-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </div>
-
-            <div className="flex gap-2">
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="illustration">Illustrations</SelectItem>
-                  <SelectItem value="manga">Manga</SelectItem>
-                  <SelectItem value="novel">Novels</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Tabs defaultValue="all" value={selectedCollection} onValueChange={setSelectedCollection}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All Bookmarks</TabsTrigger>
-              <TabsTrigger value="favorites">Favorites</TabsTrigger>
-              <TabsTrigger value="inspiration">Inspiration</TabsTrigger>
-              <TabsTrigger value="reference">Reference</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </CardContent>
-      </Card>
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <CardTitle>Bookmarked Posts</CardTitle>
+        <CardDescription>View and manage your bookmarked posts</CardDescription>
+      </div>
 
       {/* Bookmarks Content */}
       {sortedPosts.length === 0 ? (

@@ -6,18 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Heart, MessageCircle, Share2, Bookmark, Award, TrendingUp, Clock, CheckCircle2, Trophy, Star, FlameIcon as Fire } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Award, TrendingUp, Clock, CheckCircle2, Trophy, Star, FlameIcon as Fire } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Home() {
-  const [feedTab, setFeedTab] = useState("latest");
+  const [feedTab, setFeedTab] = useState("illustration");
 
   const artPosts = [
     {
       id: 1,
       title: "Crimson Dreams",
+      description: "A vibrant digital painting depicting a dreamlike landscape with crimson skies and ethereal figures.",
       type: "illustration",
       imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop",
       author: {
@@ -34,6 +35,7 @@ export default function Home() {
     {
       id: 2,
       title: "Urban Legends: Chapter 3",
+      description: "The third chapter of a thrilling manga series set in a gritty urban environment, filled with supernatural mysteries and action-packed scenes.",
       type: "manga",
       imageUrl: "https://images.unsplash.com/photo-1614583225154-5fcdda07019e?q=80&w=1000&auto=format&fit=crop",
       author: {
@@ -50,6 +52,58 @@ export default function Home() {
     {
       id: 3,
       title: "Whispers in the Wind",
+      description: "A captivating novel that weaves a tale of love, loss, and redemption, set against the backdrop of a mystical world where the wind carries secrets of the past.",
+      type: "novel",
+      imageUrl: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1000&auto=format&fit=crop",
+      author: {
+        name: "Elena Frost",
+        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop",
+        level: 18,
+      },
+      likes: 523,
+      comments: 89,
+      shares: 32,
+      timeAgo: "3 days ago",
+      tags: ["fantasy", "romance", "novel"],
+    },
+    {
+      id: 4,
+      title: "Another Illustration",
+      description: "Another illustration for testing purposes.",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop",
+      author: {
+        name: "Mika Chen",
+        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop",
+        level: 12,
+      },
+      likes: 342,
+      comments: 28,
+      shares: 15,
+      timeAgo: "2 hours ago",
+      tags: ["fantasy", "digital", "portrait"],
+    },
+    {
+      id: 5,
+      title: "Another Manga",
+      description: "Another manga for testing purposes.",
+      type: "manga",
+      imageUrl: "https://images.unsplash.com/photo-1614583225154-5fcdda07019e?q=80&w=1000&auto=format&fit=crop",
+      author: {
+        name: "Takeshi Yamada",
+        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop",
+        level: 24,
+      },
+      likes: 876,
+      comments: 134,
+      shares: 67,
+      timeAgo: "1 day ago",
+      tags: ["manga", "action", "urban"],
+    },
+    {
+      id: 6,
+      title: "Another Novel",
+      description: "Another novel for testing purposes.",
       type: "novel",
       imageUrl: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1000&auto=format&fit=crop",
       author: {
@@ -181,6 +235,9 @@ export default function Home() {
     }
   };
 
+  // Filter artPosts based on the active tab
+  const filteredArtPosts = artPosts.filter((post) => post.type === feedTab);
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 p-4 md:p-6">
       {/* Main Feed - 2/3 width on large screens */}
@@ -188,18 +245,19 @@ export default function Home() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle>Feed</CardTitle>
-            <Tabs defaultValue="latest" value={feedTab} onValueChange={setFeedTab} className="w-full">
+            {/* ADDED TABS */}
+            <Tabs defaultValue="illustration" value={feedTab} onValueChange={setFeedTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="latest">Latest</TabsTrigger>
-                <TabsTrigger value="trending">Trending</TabsTrigger>
-                <TabsTrigger value="following">Following</TabsTrigger>
+                <TabsTrigger value="illustration">Illustration</TabsTrigger>
+                <TabsTrigger value="manga">Manga</TabsTrigger>
+                <TabsTrigger value="novel">Novel</TabsTrigger>
               </TabsList>
             </Tabs>
           </CardHeader>
 
           <CardContent className="pt-4">
             <div className="space-y-6">
-              {artPosts.map((post) => (
+              {filteredArtPosts.map((post) => (
                 <Card key={post.id} className="overflow-hidden">
                   <CardHeader className="pb-2 space-y-0">
                     <div className="flex justify-between items-center">
@@ -249,6 +307,9 @@ export default function Home() {
 
                   <CardContent className="pt-4">
                     <h3 className="text-lg font-semibold">{post.title}</h3>
+                    {/* Added Description */}
+                    <p className="text-sm text-muted-foreground mt-1">{post.description}</p>
+
                     <div className="flex flex-wrap gap-1 mt-2">
                       {post.tags.map((tag, index) => (
                         <Badge key={index} variant="secondary" className="text-xs">
@@ -284,20 +345,6 @@ export default function Home() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Comment on this post</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="flex items-center space-x-1 h-8">
-                              <Share2 className="h-4 w-4" />
-                              <span>{post.shares}</span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Share this post</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

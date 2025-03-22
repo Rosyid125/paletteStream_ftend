@@ -1,68 +1,44 @@
-const API_URL = "http://localhost:3000/api/auth"; // Sesuaikan dengan URL API kamu
+import api from "../api/axiosInstance";
 
-// Utility function untuk fetch dengan kredensial (HTTP-only cookies)
-const fetchWithAuth = async (url, options = {}) => {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      "Content-Type": "application/json",
-    },
-    credentials: "include", // Pastikan cookies dikirim dalam setiap request
-  });
-
-  const result = await response.json();
-  if (!response.ok) {
-    throw new Error(result.error || "Something went wrong");
-  }
-  return result;
-};
+const API_URL = `/auth`; // Sesuaikan dengan URL API kamu
 
 // Fungsi untuk register dan auto login
 export const register = async (data) => {
-  const response = await fetchWithAuth(`${API_URL}/register`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  const response = await api.post(`${API_URL}/register`, data);
 
   // Save user in localStorage
-  localStorage.setItem("user", JSON.stringify(response.user));
+  localStorage.setItem("user", JSON.stringify(response.data.user));
 
   // Auto login setelah berhasil register
   const { email, password } = data;
   const loginResponse = await login({ email, password });
 
-  return { registerResponse: response, loginResponse };
+  return { registerResponse: response.data, loginResponse };
 };
 
 // Fungsi untuk login
 export const login = async (data) => {
-  const response = await fetchWithAuth(`${API_URL}/login`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  const response = await api.post(`${API_URL}/login`, data);
 
-  return response; // Tidak perlu menyimpan token secara manual, karena sudah dikelola oleh cookies
+  // Save user in localStorage
+  localStorage.setItem("user", JSON.stringify(response.data.user));
+
+  return response.data;
 };
 
 // Fungsi untuk fetch data user yang sedang login (endpoint /me)
 export const fetchMe = async () => {
-  const response = await fetchWithAuth(`${API_URL}/me`);
-  return response; // Mengembalikan data pengguna yang sedang login
+  const response = await api.get(`${API_URL}/me`);
+  return response.data; // Mengembalikan data pengguna yang sedang login
 };
 
 // Fungsi untuk refresh token (tanpa mengambil dari localStorage)
 export const refreshToken = async () => {
-  const response = await fetchWithAuth(`${API_URL}/refresh-token`, {
-    method: "POST",
-  });
-
-  return response; // Token baru otomatis tersimpan dalam cookies
+  const response = await api.post(`${API_URL}/refresh-token`);
+  return response.data; // Token baru otomatis tersimpan dalam cookies
 };
 
 // Fungsi untuk logout (menghapus session di backend)
 export const logout = async () => {
-  await fetchWithAuth(`${API_URL}/logout`, {
-    method: "POST",
-  });
+  await api.post(`${API_URL}/logout`);
 };

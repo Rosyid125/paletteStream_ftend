@@ -1,21 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Filter, Palette, BookOpen, PenTool, Users, TrendingUp, Heart } from "lucide-react";
+import { Search, Heart } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export default function Discover() {
-  const [activeFilter, setActiveFilter] = useState("recent");
   const [activeTab, setActiveTab] = useState("artworks");
 
   const popularTags = ["fantasy", "digital", "portrait", "landscape", "character", "anime", "scifi", "traditional", "concept", "fanart"];
@@ -101,29 +98,50 @@ export default function Discover() {
     },
   ];
 
-  // const popularCommunities = [
-  //   {
-  //     id: 1,
-  //     name: "Digital Dreamers",
-  //     members: 12453,
-  //     description: "A community for digital artists to share techniques and inspiration.",
-  //     icon: <Palette className="h-10 w-10 text-purple-500" />,
-  //   },
-  //   {
-  //     id: 2,
-  //     name: "Manga Masters",
-  //     members: 8762,
-  //     description: "For manga artists and enthusiasts to discuss styles and storytelling.",
-  //     icon: <BookOpen className="h-10 w-10 text-blue-500" />,
-  //   },
-  //   {
-  //     id: 3,
-  //     name: "Character Creators",
-  //     members: 9341,
-  //     description: "Focus on character design across all mediums and styles.",
-  //     icon: <PenTool className="h-10 w-10 text-primary" />,
-  //   },
-  // ];
+  const featuredArtists = [
+    {
+      id: 1,
+      name: "Kai Nakamura",
+      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop",
+      bio: "Digital Illustration",
+      level: 15,
+    },
+    {
+      id: 2,
+      name: "Sofia Martinez",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop",
+      bio: "Character Design",
+      level: 22,
+    },
+    {
+      id: 3,
+      name: "Alex Kim",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
+      bio: "Manga Artist",
+      level: 19,
+    },
+    {
+      id: 4,
+      name: "Emily Johnson",
+      avatar: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=100&auto=format&fit=crop",
+      bio: "Concept Art",
+      level: 18,
+    },
+    {
+      id: 5,
+      name: "David Rodriguez",
+      avatar: "https://images.unsplash.com/photo-1521119989659-a83eee242995?q=80&w=100&auto=format&fit=crop",
+      bio: "Traditional Painting",
+      level: 20,
+    },
+    {
+      id: 6,
+      name: "Priya Sharma",
+      avatar: "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?q=80&w=100&auto=format&fit=crop",
+      bio: "Anime Art",
+      level: 24,
+    },
+  ];
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -144,7 +162,6 @@ export default function Discover() {
       <Card className="border-t-4 border-t-primary">
         <CardHeader className="pb-2">
           <CardTitle>Discover</CardTitle>
-          {/* <CardDescription>Find new artworks, artists, and communities</CardDescription> */}
           <CardDescription>Find new artworks, and artists</CardDescription>
         </CardHeader>
         <CardContent>
@@ -152,59 +169,7 @@ export default function Discover() {
             {/* Search Bar */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search for artworks, artists, or tags..." className="pl-10" />
-            </div>
-
-            {/* Desktop Filter Dropdown */}
-            <div className="hidden sm:block">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    <span>Filter: {activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
-                    <DropdownMenuRadioItem value="recent">Most Recent</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="popular">Most Popular</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="liked">Most Liked</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="trending">Trending</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Mobile Filter Sheet */}
-            <div className="sm:hidden">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="flex w-full items-center justify-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    <span>Filters</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="h-80">
-                  <SheetHeader>
-                    <SheetTitle>Filter Options</SheetTitle>
-                    <SheetDescription>Choose how you want to sort the content</SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-6 space-y-2">
-                    <Button variant={activeFilter === "recent" ? "default" : "outline"} className="w-full justify-start" onClick={() => setActiveFilter("recent")}>
-                      Most Recent
-                    </Button>
-                    <Button variant={activeFilter === "popular" ? "default" : "outline"} className="w-full justify-start" onClick={() => setActiveFilter("popular")}>
-                      Most Popular
-                    </Button>
-                    <Button variant={activeFilter === "liked" ? "default" : "outline"} className="w-full justify-start" onClick={() => setActiveFilter("liked")}>
-                      Most Liked
-                    </Button>
-                    <Button variant={activeFilter === "trending" ? "default" : "outline"} className="w-full justify-start" onClick={() => setActiveFilter("trending")}>
-                      Trending
-                    </Button>
-                  </div>
-                </SheetContent>
-              </Sheet>
+              <Input placeholder="Search for artworks, artists, type, or tags..." className="pl-10" />
             </div>
           </div>
 
@@ -227,11 +192,9 @@ export default function Discover() {
 
       {/* Main Content */}
       <Tabs defaultValue="artworks" value={activeTab} onValueChange={setActiveTab}>
-        {/* <TabsList className="grid w-full grid-cols-3"> */}
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="artworks">Artworks</TabsTrigger>
           <TabsTrigger value="artists">Artists</TabsTrigger>
-          {/* <TabsTrigger value="communities">Communities</TabsTrigger> */}
         </TabsList>
 
         {/* Artworks Tab */}
@@ -312,66 +275,26 @@ export default function Discover() {
 
         {/* Artists Tab */}
         <TabsContent value="artists" className="mt-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Placeholder for the Artists tab content */}
-            <Card className="border-t-4 border-t-blue-500">
-              <CardHeader className="pb-2">
-                <CardTitle>Artists Tab</CardTitle>
-                <CardDescription>This tab will display featured artists</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Content for the Artists tab will be implemented in the next phase.</p>
-              </CardContent>
-              <CardFooter className="pt-0">
-                <Button variant="outline" className="w-full">
-                  View All Artists
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Communities Tab */}
-        {/* <TabsContent value="communities" className="mt-6">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {popularCommunities.map((community) => (
-              <Card key={community.id} className="border-t-4 border-t-primary overflow-hidden h-full flex flex-col">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex-shrink-0 h-12 w-12 rounded-full bg-muted flex items-center justify-center shadow-sm">{community.icon}</div>
-                      <div>
-                        <CardTitle className="text-lg">{community.name}</CardTitle>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Users className="h-3 w-3 mr-1" />
-                          <span>{community.members.toLocaleString()} members</span>
-                        </div>
-                      </div>
+          <div className="space-y-4">
+            {featuredArtists.map((artist) => (
+              <Card key={artist.id} className="overflow-hidden">
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={artist.avatar} alt={artist.name} />
+                      <AvatarFallback>{artist.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle className="text-lg font-medium">{artist.name}</CardTitle>
+                      <CardDescription className="text-sm text-muted-foreground">{artist.bio}</CardDescription>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="rounded-full p-1 bg-muted">
-                            <TrendingUp className="h-5 w-5 text-primary" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Trending Community</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
                   </div>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-sm text-muted-foreground">{community.description}</p>
+                  <Button variant="outline">View Profile</Button>
                 </CardContent>
-                <CardFooter>
-                  <Button className="w-full">Join Community</Button>
-                </CardFooter>
               </Card>
             ))}
           </div>
-        </TabsContent> */}
+        </TabsContent>
       </Tabs>
     </div>
   );

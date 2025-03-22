@@ -237,67 +237,19 @@ export default function TopArtists() {
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6">
       {/* Header Section */}
-      <Card className="border-t-4 border-t-blue-500">
+      <Card className="border-t-4 border-t-yellow-500">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <Users className="h-6 w-6 text-blue-500 mr-2" />
+              <Trophy className="h-6 w-6 text-yellow-500 mr-2" />
               <div>
                 <CardTitle className="text-2xl">Top Artists</CardTitle>
-                <CardDescription>The most talented creators on the platform</CardDescription>
+                <CardDescription>The most popular artists on the platform</CardDescription>
               </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              {/* Category Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    <Filter className="h-4 w-4 mr-2" />
-                    {categories.find((c) => c.value === category)?.label || "Specialty"}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuRadioGroup value={category} onValueChange={setCategory}>
-                    {categories.map((cat) => (
-                      <DropdownMenuRadioItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Timeframe Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    {timeframes.find((t) => t.value === timeframe)?.label || "Timeframe"}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuRadioGroup value={timeframe} onValueChange={setTimeframe}>
-                    {timeframes.map((time) => (
-                      <DropdownMenuRadioItem key={time.value} value={time.value}>
-                        {time.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-4">
-          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all">All Artists</TabsTrigger>
-              <TabsTrigger value="trending">Trending</TabsTrigger>
-              <TabsTrigger value="featured">Featured</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </CardContent>
+        <div className="mb-4" />
       </Card>
 
       {/* Top Artist Spotlight (Rank #1) */}

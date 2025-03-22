@@ -9,11 +9,9 @@ import { Separator } from "@/components/ui/separator";
 import { Heart, MessageCircle, Share2, Bookmark, Trophy, TrendingUp, Calendar, Filter, Eye, Crown } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 
 export default function TopArtworks() {
-  const [timeframe, setTimeframe] = useState("week");
   const [category, setCategory] = useState("all");
 
   // Top artworks data
@@ -152,17 +150,6 @@ export default function TopArtworks() {
     { value: "illustration", label: "Illustrations" },
     { value: "manga", label: "Manga" },
     { value: "novel", label: "Novels" },
-    { value: "digital", label: "Digital Art" },
-    { value: "traditional", label: "Traditional Art" },
-  ];
-
-  // Timeframes for filtering
-  const timeframes = [
-    { value: "day", label: "Today" },
-    { value: "week", label: "This Week" },
-    { value: "month", label: "This Month" },
-    { value: "year", label: "This Year" },
-    { value: "all", label: "All Time" },
   ];
 
   // Helper function to get type color
@@ -224,25 +211,6 @@ export default function TopArtworks() {
                     {categories.map((cat) => (
                       <DropdownMenuRadioItem key={cat.value} value={cat.value}>
                         {cat.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Timeframe Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    {timeframes.find((t) => t.value === timeframe)?.label || "Timeframe"}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuRadioGroup value={timeframe} onValueChange={setTimeframe}>
-                    {timeframes.map((time) => (
-                      <DropdownMenuRadioItem key={time.value} value={time.value}>
-                        {time.label}
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
@@ -464,98 +432,6 @@ export default function TopArtworks() {
           </Card>
         ))}
       </div>
-
-      {/* Stats Section */}
-      <Card className="border-t-4 border-t-blue-500">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <TrendingUp className="h-5 w-5 text-blue-500 mr-2" />
-            Artwork Statistics
-          </CardTitle>
-          <CardDescription>Insights about the top performing artworks</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Most Popular Categories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Illustration</span>
-                      <span>42%</span>
-                    </div>
-                    <Progress value={42} className="h-2" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Digital Art</span>
-                      <span>28%</span>
-                    </div>
-                    <Progress value={28} className="h-2" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Manga</span>
-                      <span>18%</span>
-                    </div>
-                    <Progress value={18} className="h-2" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Traditional Art</span>
-                      <span>12%</span>
-                    </div>
-                    <Progress value={12} className="h-2" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Popular Tags</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-primary/10 text-primary px-3 py-1">
-                    #fantasy <span className="ml-1 opacity-70">1.2k</span>
-                  </Badge>
-                  <Badge className="bg-blue-500/10 text-blue-500 px-3 py-1">
-                    #digital <span className="ml-1 opacity-70">987</span>
-                  </Badge>
-                  <Badge className="bg-green-500/10 text-green-500 px-3 py-1">
-                    #landscape <span className="ml-1 opacity-70">876</span>
-                  </Badge>
-                  <Badge className="bg-purple-500/10 text-purple-500 px-3 py-1">
-                    #character <span className="ml-1 opacity-70">754</span>
-                  </Badge>
-                  <Badge className="bg-amber-500/10 text-amber-500 px-3 py-1">
-                    #anime <span className="ml-1 opacity-70">632</span>
-                  </Badge>
-                  <Badge className="bg-cyan-500/10 text-cyan-500 px-3 py-1">
-                    #scifi <span className="ml-1 opacity-70">521</span>
-                  </Badge>
-                  <Badge className="bg-pink-500/10 text-pink-500 px-3 py-1">
-                    #portrait <span className="ml-1 opacity-70">498</span>
-                  </Badge>
-                  <Badge className="bg-indigo-500/10 text-indigo-500 px-3 py-1">
-                    #fanart <span className="ml-1 opacity-70">432</span>
-                  </Badge>
-                  <Badge className="bg-orange-500/10 text-orange-500 px-3 py-1">
-                    #traditional <span className="ml-1 opacity-70">387</span>
-                  </Badge>
-                  <Badge className="bg-emerald-500/10 text-emerald-500 px-3 py-1">
-                    #concept <span className="ml-1 opacity-70">321</span>
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

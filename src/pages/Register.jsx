@@ -112,7 +112,7 @@ export default function RegisterPage() {
           title: "Registration successful",
           description: "Welcome to PaletteStream! Your account has been created.",
         });
-        navigate("/home");
+        navigate("/");
       } else {
         setErrors({
           general: registerResponse.error || "Registration failed. Please try again.",
@@ -122,7 +122,7 @@ export default function RegisterPage() {
       console.error("Registration error:", error); // Log the error for debugging
 
       // Display more specific error messages from the API if available
-      if (error.message && error.message.includes("duplicate key error")) {
+      if (error.response.data.error === "Email already registered.") {
         setErrors({ general: "This email is already registered." });
       } else {
         setErrors({

@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
   });
   const [errors, setErrors] = useState({});
 
@@ -78,7 +77,7 @@ export default function LoginPage() {
       });
 
       // Redirect user ke halaman utama setelah login berhasil
-      navigate("/home");
+      navigate("/");
     } catch (error) {
       setErrors({
         general: "Invalid email or password. Please try again.",
