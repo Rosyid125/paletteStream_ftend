@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,13 +6,62 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Heart, MessageCircle, Bookmark, Award, TrendingUp, Clock, CheckCircle2, Trophy, Star, FlameIcon as Fire } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Award, TrendingUp, Clock, CheckCircle2, Trophy, Star, FlameIcon as Fire, ChevronLeft, ChevronRight } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
   const [feedTab, setFeedTab] = useState("illustration");
+  const [page, setPage] = useState(1); // Current page number
+  const [pageSize, setPageSize] = useState(10); // Items per page (can be made dynamic)
+  const [total, setTotal] = useState(0); // Total number of items (from API)
+  const [posts, setPosts] = useState([]); // The array of posts for the *current* page
+  const [loading, setLoading] = useState(true); // Loading state indicator
+
+  //Dummy API integration
+  const fetchPosts = async (currentPage, currentpageSize, type) => {
+    setLoading(true);
+    try {
+      // Simulate fetching data with a delay and filtering
+      const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+      await delay(500); // Simulate network latency
+
+      const filteredData = artPosts.filter((post) => post.type === type);
+
+      const startIndex = (currentPage - 1) * currentpageSize;
+      const endIndex = startIndex + currentpageSize;
+      const paginatedPosts = filteredData.slice(startIndex, endIndex);
+
+      const response = {
+        total: filteredData.length,
+        page: currentPage,
+        pageSize: currentpageSize,
+        results: paginatedPosts,
+      };
+      setPosts(response.results);
+      setTotal(response.total);
+      setPage(response.page);
+      setPageSize(response.pageSize);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      setLoading(false);
+      // Handle errors (e.g., display an error message)
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts(page, pageSize, feedTab);
+  }, [page, pageSize, feedTab]); // Refetch when page, pageSize, or feedTab changes
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= Math.ceil(total / pageSize)) {
+      //Important page validation
+      setPage(newPage);
+    }
+  };
 
   const artPosts = [
     {
@@ -119,6 +168,12 @@ export default function Home() {
     },
   ];
 
+  const dummyUserData = {
+    level: 7,
+    exp: 320,
+    expToNextLevel: 500,
+  };
+
   const challenges = [
     {
       id: 1,
@@ -136,18 +191,6 @@ export default function Home() {
       participants: 187,
       prize: "1500 XP + Character Creator Badge",
     },
-  ];
-
-  const dailyMissions = [
-    { id: 1, title: "Upload 1 artwork", xp: 100, completed: true },
-    { id: 2, title: "Comment on 3 posts", xp: 50, completed: false },
-    { id: 3, title: "Share an artwork", xp: 75, completed: false },
-  ];
-
-  const weeklyMissions = [
-    { id: 1, title: "Upload 5 artworks", xp: 300, progress: 3, total: 5 },
-    { id: 2, title: "Participate in a challenge", xp: 250, progress: 0, total: 1 },
-    { id: 3, title: "Get 50 likes on your posts", xp: 400, progress: 32, total: 50 },
   ];
 
   const badges = [
@@ -235,9 +278,6 @@ export default function Home() {
     }
   };
 
-  // Filter artPosts based on the active tab
-  const filteredArtPosts = artPosts.filter((post) => post.type === feedTab);
-
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 p-4 md:p-6">
       {/* Main Feed - 2/3 width on large screens */}
@@ -245,8 +285,14 @@ export default function Home() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle>Feed</CardTitle>
-            {/* ADDED TABS */}
-            <Tabs defaultValue="illustration" value={feedTab} onValueChange={setFeedTab} className="w-full">
+            <Tabs
+              defaultValue="illustration"
+              value={feedTab}
+              onValueChange={(value) => {
+                setFeedTab(value);
+                setPage(1); //VERY IMPORTANT, Reset the page
+              }}
+            >
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="illustration">Illustration</TabsTrigger>
                 <TabsTrigger value="manga">Manga</TabsTrigger>
@@ -257,120 +303,176 @@ export default function Home() {
 
           <CardContent className="pt-4">
             <div className="space-y-6">
-              {filteredArtPosts.map((post) => (
-                <Card key={post.id} className="overflow-hidden">
-                  <CardHeader className="pb-2 space-y-0">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
-                        <HoverCard>
-                          <HoverCardTrigger asChild>
-                            <Avatar className="cursor-pointer">
-                              <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                              <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                          </HoverCardTrigger>
-                          <HoverCardContent className="w-80">
-                            <div className="flex justify-between space-x-4">
-                              <Avatar>
-                                <AvatarImage src={post.author.avatar} />
+              {loading ? (
+                // Show skeletons while loading
+                Array.from({ length: pageSize }).map((_, index) => (
+                  <Card key={index} className="overflow-hidden">
+                    <CardHeader className="pb-2 space-y-0">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div>
+                            <Skeleton className="h-4 w-20 mb-1" />
+                            <Skeleton className="h-3 w-32" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                    </CardHeader>
+                    <Skeleton className="aspect-video w-full" />
+                    <CardContent className="pt-4">
+                      <Skeleton className="h-5 w-full mb-2" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <Skeleton key={i} className="h-4 w-12 mr-1" />
+                        ))}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between border-t pt-4">
+                      <div className="flex space-x-4">
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-8 w-20" />
+                      </div>
+                      <Skeleton className="h-8 w-8" />
+                    </CardFooter>
+                  </Card>
+                ))
+              ) : posts.length === 0 ? (
+                // Handle the case where there are no posts
+                <p>No posts found for this category.</p>
+              ) : (
+                // Display the posts
+                posts.map((post) => (
+                  <Card key={post.id} className="overflow-hidden">
+                    <CardHeader className="pb-2 space-y-0">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <Avatar className="cursor-pointer">
+                                <AvatarImage src={post.author.avatar} alt={post.author.name} />
                                 <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
                               </Avatar>
-                              <div className="space-y-1">
-                                <h4 className="text-sm font-semibold">{post.author.name}</h4>
-                                <p className="text-sm">Level {post.author.level} Artist</p>
-                                <div className="flex items-center pt-2">
-                                  <Button variant="outline" size="sm" className="mr-2">
-                                    View Profile
-                                  </Button>
-                                  <Button size="sm">Follow</Button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80">
+                              <div className="flex justify-between space-x-4">
+                                <Avatar>
+                                  <AvatarImage src={post.author.avatar} />
+                                  <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="space-y-1">
+                                  <h4 className="text-sm font-semibold">{post.author.name}</h4>
+                                  <p className="text-sm">Level {post.author.level} Artist</p>
+                                  <div className="flex items-center pt-2">
+                                    <Button variant="outline" size="sm" className="mr-2">
+                                      View Profile
+                                    </Button>
+                                    <Button size="sm">Follow</Button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </HoverCardContent>
-                        </HoverCard>
-                        <div>
-                          <p className="font-medium text-sm">{post.author.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Level {post.author.level} • {post.timeAgo}
-                          </p>
+                            </HoverCardContent>
+                          </HoverCard>
+                          <div>
+                            <p className="font-medium text-sm">{post.author.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Level {post.author.level} • {post.timeAgo}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <Badge variant="outline" className={getTypeColor(post.type)}>
-                        {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-
-                  <div className="relative aspect-video w-full overflow-hidden">
-                    <img src={post.imageUrl || "/placeholder.svg"} alt={post.title} className="object-cover w-full h-full transition-transform duration-300 hover:scale-105" />
-                  </div>
-
-                  <CardContent className="pt-4">
-                    <h3 className="text-lg font-semibold">{post.title}</h3>
-                    {/* Added Description */}
-                    <p className="text-sm text-muted-foreground mt-1">{post.description}</p>
-
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {post.tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          #{tag}
+                        <Badge variant="outline" className={getTypeColor(post.type)}>
+                          {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
                         </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
+                      </div>
+                    </CardHeader>
 
-                  <CardFooter className="flex justify-between border-t pt-4">
-                    <div className="flex space-x-4">
+                    <div className="relative aspect-video w-full overflow-hidden">
+                      <img src={post.imageUrl || "/placeholder.svg"} alt={post.title} className="object-cover w-full h-full transition-transform duration-300 hover:scale-105" />
+                    </div>
+
+                    <CardContent className="pt-4">
+                      <h3 className="text-lg font-semibold">{post.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{post.description}</p>
+
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {post.tags.map((tag, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            #{tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+
+                    <CardFooter className="flex justify-between border-t pt-4">
+                      <div className="flex space-x-4">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="sm" className="flex items-center space-x-1 h-8">
+                                <Heart className="h-4 w-4" />
+                                <span>{post.likes}</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Like this post</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="sm" className="flex items-center space-x-1 h-8">
+                                <MessageCircle className="h-4 w-4" />
+                                <span>{post.comments}</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Comment on this post</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="flex items-center space-x-1 h-8">
-                              <Heart className="h-4 w-4" />
-                              <span>{post.likes}</span>
+                            <Button variant="ghost" size="sm" className="h-8">
+                              <Bookmark className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Like this post</p>
+                            <p>Save to bookmarks</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
 
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="flex items-center space-x-1 h-8">
-                              <MessageCircle className="h-4 w-4" />
-                              <span>{post.comments}</span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Comment on this post</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8">
-                            <Bookmark className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Save to bookmarks</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </CardFooter>
-                </Card>
-              ))}
+              {/* Pagination Controls */}
+              {!loading && (
+                <div className="flex justify-center mt-4 space-x-2">
+                  <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" disabled>
+                    {page} / {Math.ceil(total / pageSize)}
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === Math.ceil(total / pageSize)}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Sidebar - 1/3 width on large screens */}
+
       <div className="space-y-6">
         {/* Active Challenges */}
         <Card className="border-t-4 border-t-primary">
@@ -419,45 +521,18 @@ export default function Home() {
             <CardDescription>Track your progress and missions</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="daily" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="daily">Daily Missions</TabsTrigger>
-                <TabsTrigger value="weekly">Weekly Missions</TabsTrigger>
-              </TabsList>
-              <TabsContent value="daily" className="space-y-3 mt-0">
-                {dailyMissions.map((mission) => (
-                  <div key={mission.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center">
-                      {mission.completed ? <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" /> : <div className="h-5 w-5 rounded-full border-2 border-muted mr-2" />}
-                      <span className={mission.completed ? "line-through text-muted-foreground" : ""}>{mission.title}</span>
-                    </div>
-                    <Badge variant={mission.completed ? "outline" : "secondary"}>{mission.xp} XP</Badge>
-                  </div>
-                ))}
-              </TabsContent>
-              <TabsContent value="weekly" className="space-y-4 mt-0">
-                {weeklyMissions.map((mission) => (
-                  <div key={mission.id} className="space-y-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <div className="flex justify-between items-center">
-                      <span>{mission.title}</span>
-                      <Badge variant="secondary">{mission.xp} XP</Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>
-                          Progress: {mission.progress}/{mission.total}
-                        </span>
-                        <span>{Math.round((mission.progress / mission.total) * 100)}%</span>
-                      </div>
-                      <Progress value={(mission.progress / mission.total) * 100} className="h-2" />
-                    </div>
-                  </div>
-                ))}
-              </TabsContent>
-            </Tabs>
+            {/* User's EXP and Level */}
+            <div className="mb-4">
+              <h3 className="font-semibold text-lg">Level {dummyUserData.level}</h3>
+              <p className="text-sm text-muted-foreground">
+                EXP: {dummyUserData.exp} / {dummyUserData.expToNextLevel}
+              </p>
+              <Progress value={(dummyUserData.exp / dummyUserData.expToNextLevel) * 100} />
+            </div>
 
             <Separator className="my-4" />
 
+            {/* Badges */}
             <div>
               <h3 className="font-medium mb-3">Badges</h3>
               <ScrollArea className="h-[180px] pr-4">
@@ -476,9 +551,7 @@ export default function Home() {
                 </div>
               </ScrollArea>
             </div>
-
             <Separator className="my-4" />
-
             <div>
               <h3 className="font-medium mb-3">Achievements</h3>
               <ScrollArea className="h-[180px] pr-4">

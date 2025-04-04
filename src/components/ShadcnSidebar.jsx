@@ -1,4 +1,4 @@
-import { Home, Compass, Award, BookMarked, FileText, Users, Trophy, Palette, Bell, Heart } from "lucide-react";
+import { Home, Compass, Award, BookMarked, FileText, Users, Trophy, Palette, Heart } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -108,7 +108,7 @@ export default function ShadcnSidebar() {
         return "border-l-primary";
       case "Leaderboard":
         return "border-l-amber-500";
-      case "Categories":
+      case "User's":
         return "border-l-blue-500";
       default:
         return "border-l-primary";

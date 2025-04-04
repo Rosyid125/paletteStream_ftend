@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -132,7 +133,13 @@ const Sidebar = React.forwardRef(({ side = "left", variant = "sidebar", collapsi
           }}
           side={side}
         >
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div className="flex h-full w-full flex-col">
+            {/* Add the DialogTitle with VisuallyHidden for accessibility */}
+            <DialogTitle className="m-2">sidebar isMobile fix bug</DialogTitle>
+
+            {/* Children or any other content inside the dialog */}
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     );

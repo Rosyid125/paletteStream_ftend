@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import { Plus, Hash, X, Upload, Image as ImageIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import api from "../api/axiosInstance";
+import { toast } from "sonner";
+import LoadingDots from "@/components/ui/custom-loading-dots";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 export default function CreatePost() {
   const navigate = useNavigate();
@@ -26,6 +29,12 @@ export default function CreatePost() {
   const [dragOver, setDragOver] = useState(false); // For handling drag over state
   const [errors, setErrors] = useState({}); // State untuk menyimpan pesan kesalahan
   const popularTags = ["illustration", "manga", "novel", "digital art", "traditional art", "fanart", "sketch", "painting", "character design", "concept art"];
+  const [loading, setLoading] = useState(false);
+
+  // User effect yang akan dijalankan setiap kali params berubah
+  useEffect(() => {
+    setType(initialType || "illustration");
+  }, [initialType]);
 
   const handleAddTag = () => {
     if (tagInput && !tags.includes(tagInput)) {
@@ -136,15 +145,19 @@ export default function CreatePost() {
 
   const handleSubmit = async () => {
     if (validateForm()) {
+      // Set button loading to true
+      setLoading(true);
+
       try {
         const formData = new FormData();
         formData.append("title", title);
         formData.append("description", description);
         formData.append("type", type);
         formData.append("userId", userId);
-
-        // Tambahkan tag sebagai JSON string
-        formData.append("tags", JSON.stringify(tags));
+        // Kirim tags sebagai array dalam FormData
+        tags.forEach((tag) => {
+          formData.append("tags[]", tag); // Gunakan `tags[]` agar diterima sebagai array
+        });
 
         // Ubah Base64 ke File Blob sebelum dikirim
         images.forEach((base64, index) => {
@@ -168,12 +181,17 @@ export default function CreatePost() {
           },
         });
 
-        console.log("Post created successfully:", response.data);
-        alert("Post created successfully!");
-        navigate("/");
+        // Pastikan response sukses sebelum melanjutkan
+        if (response.status === 200) {
+          toast("Post created successfully!");
+          navigate("/");
+        }
       } catch (error) {
         console.error("Error creating post:", error);
         alert("Failed to create post.");
+      } finally {
+        // Finally merupakan blok yang akan dijalankan mekipun try/catch gagal atau berhasil
+        setLoading(false);
       }
     }
   };
@@ -268,7 +286,7 @@ export default function CreatePost() {
 
             <div>
               <Label htmlFor="type">Type</Label>
-              <Select onValueChange={(value) => setType(value)} defaultValue={initialType}>
+              <Select value={type} onValueChange={(value) => setType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
@@ -283,7 +301,16 @@ export default function CreatePost() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit}>Create Post</Button>
+          <Button onClick={handleSubmit} disabled={loading} className="relative">
+            {loading ? (
+              <span className="flex items-center gap-2">
+                Creating
+                <LoadingDots />
+              </span>
+            ) : (
+              "Create"
+            )}
+          </Button>
         </CardFooter>
       </Card>
 
@@ -291,6 +318,7 @@ export default function CreatePost() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Images</DialogTitle>
+            <DialogDescription>Upload up to 10 images for your post</DialogDescription>
           </DialogHeader>
 
           <Input type="file" id="image-upload" multiple accept="image/jpeg, image/png, image/jpg" onChange={handleImageUpload} ref={fileInputRef} className="hidden" />

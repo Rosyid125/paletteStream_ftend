@@ -7,7 +7,7 @@ export const register = async (data) => {
   const response = await api.post(`${API_URL}/register`, data);
 
   // Save user in localStorage
-  localStorage.setItem("user", JSON.stringify(response.data.user));
+  localStorage.setItem("user", JSON.stringify(response.data.data));
 
   // Auto login setelah berhasil register
   const { email, password } = data;
@@ -21,7 +21,7 @@ export const login = async (data) => {
   const response = await api.post(`${API_URL}/login`, data);
 
   // Save user in localStorage
-  localStorage.setItem("user", JSON.stringify(response.data.user));
+  localStorage.setItem("user", JSON.stringify(response.data.data));
 
   return response.data;
 };

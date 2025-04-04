@@ -1,23 +1,32 @@
-"use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Heart } from "lucide-react";
+import { Search, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Discover() {
   const [activeTab, setActiveTab] = useState("artworks");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6); // Adjust as needed for the grid
+  const [totalArtworks, setTotalArtworks] = useState(0);
+  const [totalArtists, setTotalArtists] = useState(0);
+  const [artworks, setArtworks] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [loadingArtworks, setLoadingArtworks] = useState(true);
+  const [loadingArtists, setLoadingArtists] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const popularTags = ["fantasy", "digital", "portrait", "landscape", "character", "anime", "scifi", "traditional", "concept", "fanart"];
 
-  const featuredArtworks = [
+  // Dummy data (make sure this is larger than your pageSize)
+  const allArtworks = [
     {
       id: 1,
       title: "Ethereal Forest",
@@ -96,9 +105,15 @@ export default function Discover() {
       likes: 689,
       tags: ["traditional", "japanese", "nature"],
     },
+    { id: 7, title: "Another Artwork 1", type: "illustration", imageUrl: "/placeholder.svg", author: { name: "Test Author 1", avatar: "/placeholder.svg", level: 10 }, likes: 123, tags: ["test", "tag1"] },
+    { id: 8, title: "Another Artwork 2", type: "manga", imageUrl: "/placeholder.svg", author: { name: "Test Author 2", avatar: "/placeholder.svg", level: 15 }, likes: 456, tags: ["test", "tag2"] },
+    { id: 9, title: "Another Artwork 3", type: "novel", imageUrl: "/placeholder.svg", author: { name: "Test Author 3", avatar: "/placeholder.svg", level: 20 }, likes: 789, tags: ["test", "tag3"] },
+    { id: 10, title: "Another Artwork 4", type: "illustration", imageUrl: "/placeholder.svg", author: { name: "Test Author 4", avatar: "/placeholder.svg", level: 12 }, likes: 987, tags: ["test", "tag4"] },
+    { id: 11, title: "Another Artwork 5", type: "manga", imageUrl: "/placeholder.svg", author: { name: "Test Author 5", avatar: "/placeholder.svg", level: 18 }, likes: 654, tags: ["test", "tag5"] },
+    { id: 12, title: "Another Artwork 6", type: "novel", imageUrl: "/placeholder.svg", author: { name: "Test Author 6", avatar: "/placeholder.svg", level: 22 }, likes: 321, tags: ["test", "tag6"] },
   ];
 
-  const featuredArtists = [
+  const allArtists = [
     {
       id: 1,
       name: "Kai Nakamura",
@@ -141,7 +156,106 @@ export default function Discover() {
       bio: "Anime Art",
       level: 24,
     },
+    { id: 7, name: "Artist 7", avatar: "/placeholder.svg", bio: "Bio 7", level: 17 },
+    { id: 8, name: "Artist 8", avatar: "/placeholder.svg", bio: "Bio 8", level: 21 },
+    { id: 9, name: "Artist 9", avatar: "/placeholder.svg", bio: "Bio 9", level: 16 },
+    { id: 10, name: "Artist 10", avatar: "/placeholder.svg", bio: "Bio 10", level: 25 },
+    { id: 11, name: "Artist 11", avatar: "/placeholder.svg", bio: "Bio 11", level: 19 },
+    { id: 12, name: "Artist 12", avatar: "/placeholder.svg", bio: "Bio 12", level: 23 },
   ];
+
+  // --- Fetching and Pagination Logic ---
+
+  const fetchArtworks = async (currentPage, currentpageSize, query) => {
+    setLoadingArtworks(true);
+    try {
+      const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+      await delay(500);
+
+      let filteredData = allArtworks;
+      if (query) {
+        filteredData = allArtworks.filter(
+          (artwork) =>
+            artwork.title.toLowerCase().includes(query.toLowerCase()) ||
+            artwork.type.toLowerCase().includes(query.toLowerCase()) ||
+            artwork.author.name.toLowerCase().includes(query.toLowerCase()) ||
+            artwork.tags.some((tag) => tag.toLowerCase().includes(query.toLowerCase()))
+        );
+      }
+
+      const startIndex = (currentPage - 1) * currentpageSize;
+      const endIndex = startIndex + currentpageSize;
+      const paginatedArtworks = filteredData.slice(startIndex, endIndex);
+
+      const response = {
+        total: filteredData.length,
+        page: currentPage,
+        pageSize: currentpageSize,
+        results: paginatedArtworks,
+      };
+      setArtworks(response.results);
+      setTotalArtworks(response.total);
+      setPage(response.page);
+      setPageSize(response.pageSize); //Keep this for consistency
+      setLoadingArtworks(false);
+    } catch (error) {
+      console.error("Error fetching artworks:", error);
+      setLoadingArtworks(false);
+    }
+  };
+
+  const fetchArtists = async (currentPage, currentpageSize, query) => {
+    setLoadingArtists(true);
+    try {
+      const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+      await delay(500);
+      let filteredData = allArtists;
+      if (query) {
+        filteredData = allArtists.filter((artist) => artist.name.toLowerCase().includes(query.toLowerCase()) || artist.bio.toLowerCase().includes(query.toLowerCase()));
+      }
+
+      const startIndex = (currentPage - 1) * currentpageSize;
+      const endIndex = startIndex + currentpageSize;
+      const paginatedArtists = filteredData.slice(startIndex, endIndex);
+
+      const response = {
+        total: filteredData.length,
+        page: currentPage,
+        pageSize: currentpageSize,
+        results: paginatedArtists,
+      };
+
+      setArtists(response.results);
+      setTotalArtists(response.total);
+      setPage(response.page); //Keep the state consistent.
+      setPageSize(response.pageSize);
+      setLoadingArtists(false);
+    } catch (error) {
+      console.error("Error fetching artists:", error);
+      setLoadingArtists(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "artworks") {
+      fetchArtworks(page, pageSize, searchQuery);
+    } else {
+      fetchArtists(page, pageSize, searchQuery);
+    }
+  }, [page, pageSize, activeTab, searchQuery]); // Include searchQuery
+
+  const handlePageChange = (newPage) => {
+    if (activeTab === "artworks" && newPage >= 1 && newPage <= Math.ceil(totalArtworks / pageSize)) {
+      setPage(newPage);
+    } else if (activeTab === "artists" && newPage >= 1 && newPage <= Math.ceil(totalArtists / pageSize)) {
+      setPage(newPage);
+    }
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setPage(1); // Reset to page 1 when searching
+  };
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -169,7 +283,7 @@ export default function Discover() {
             {/* Search Bar */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search for artworks, artists, type, or tags..." className="pl-10" />
+              <Input placeholder="Search for artworks, artists, type, or tags..." className="pl-10" value={searchQuery} onChange={(e) => handleSearch(e.target.value)} />
             </div>
           </div>
 
@@ -191,7 +305,14 @@ export default function Discover() {
       </Card>
 
       {/* Main Content */}
-      <Tabs defaultValue="artworks" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        defaultValue="artworks"
+        value={activeTab}
+        onValueChange={(tab) => {
+          setActiveTab(tab);
+          setPage(1); // Reset page when switching tabs
+        }}
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="artworks">Artworks</TabsTrigger>
           <TabsTrigger value="artists">Artists</TabsTrigger>
@@ -199,101 +320,179 @@ export default function Discover() {
 
         {/* Artworks Tab */}
         <TabsContent value="artworks" className="mt-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredArtworks.map((artwork) => (
-              <Card key={artwork.id} className="overflow-hidden group h-full flex flex-col">
-                <div className="relative aspect-square w-full overflow-hidden">
-                  <img src={artwork.imageUrl || "/placeholder.svg"} alt={artwork.title} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
-                  <div className="absolute top-2 right-2">
-                    <Badge variant="outline" className={getTypeColor(artwork.type)}>
-                      {artwork.type.charAt(0).toUpperCase() + artwork.type.slice(1)}
-                    </Badge>
-                  </div>
-                </div>
+          {loadingArtworks ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Skeleton Loaders */}
+              {Array.from({ length: pageSize }).map((_, index) => (
+                <Card key={index} className="overflow-hidden">
+                  <Skeleton className="aspect-square w-full" />
+                  <CardContent className="p-4">
+                    <Skeleton className="h-5 w-2/3 mb-2" />
+                    <div className="flex justify-between items-center mt-2">
+                      <div className="flex items-center space-x-2">
+                        <Skeleton className="h-6 w-6 rounded-full" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-10" />
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-4 w-12 mr-1" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : artworks.length === 0 ? (
+            <p>No artworks found.</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {artworks.map((artwork) => (
+                  <Card key={artwork.id} className="overflow-hidden group h-full flex flex-col">
+                    <div className="relative aspect-square w-full overflow-hidden">
+                      <img src={artwork.imageUrl || "/placeholder.svg"} alt={artwork.title} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
+                      <div className="absolute top-2 right-2">
+                        <Badge variant="outline" className={getTypeColor(artwork.type)}>
+                          {artwork.type.charAt(0).toUpperCase() + artwork.type.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
 
-                <CardContent className="p-4 flex-grow">
-                  <h3 className="font-semibold truncate">{artwork.title}</h3>
+                    <CardContent className="p-4 flex-grow">
+                      <h3 className="font-semibold truncate">{artwork.title}</h3>
 
-                  <div className="flex justify-between items-center mt-2">
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <div className="flex items-center space-x-2 cursor-pointer">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={artwork.author.avatar} alt={artwork.author.name} />
-                            <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm">{artwork.author.name}</span>
-                        </div>
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80">
-                        <div className="flex justify-between space-x-4">
-                          <Avatar>
-                            <AvatarImage src={artwork.author.avatar} />
-                            <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div className="space-y-1">
-                            <h4 className="text-sm font-semibold">{artwork.author.name}</h4>
-                            <p className="text-sm">Level {artwork.author.level} Artist</p>
-                            <div className="flex items-center pt-2">
-                              <Button variant="outline" size="sm" className="mr-2">
-                                View Profile
-                              </Button>
-                              <Button size="sm">Follow</Button>
+                      <div className="flex justify-between items-center mt-2">
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <div className="flex items-center space-x-2 cursor-pointer">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={artwork.author.avatar} alt={artwork.author.name} />
+                                <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{artwork.author.name}</span>
                             </div>
-                          </div>
-                        </div>
-                      </HoverCardContent>
-                    </HoverCard>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80">
+                            <div className="flex justify-between space-x-4">
+                              <Avatar>
+                                <AvatarImage src={artwork.author.avatar} />
+                                <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-semibold">{artwork.author.name}</h4>
+                                <p className="text-sm">Level {artwork.author.level} Artist</p>
+                                <div className="flex items-center pt-2">
+                                  <Button variant="outline" size="sm" className="mr-2">
+                                    View Profile
+                                  </Button>
+                                  <Button size="sm">Follow</Button>
+                                </div>
+                              </div>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
 
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Heart className="h-4 w-4 mr-1 fill-primary text-primary" />
-                            <span>{artwork.likes}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{artwork.likes} likes</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Heart className="h-4 w-4 mr-1 fill-primary text-primary" />
+                                <span>{artwork.likes}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{artwork.likes} likes</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
 
-                  <div className="flex flex-wrap gap-1 mt-3">
-                    {artwork.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs hover:bg-secondary/80 transition-colors cursor-pointer">
-                        #{tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                      <div className="flex flex-wrap gap-1 mt-3">
+                        {artwork.tags.map((tag, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs hover:bg-secondary/80 transition-colors cursor-pointer">
+                            #{tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              {/* Pagination Controls (Artworks) */}
+              <div className="flex justify-center mt-4 space-x-2">
+                <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" disabled>
+                  {page} / {Math.ceil(totalArtworks / pageSize)}
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === Math.ceil(totalArtworks / pageSize)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* Artists Tab */}
         <TabsContent value="artists" className="mt-6">
-          <div className="space-y-4">
-            {featuredArtists.map((artist) => (
-              <Card key={artist.id} className="overflow-hidden">
-                <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={artist.avatar} alt={artist.name} />
-                      <AvatarFallback>{artist.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-lg font-medium">{artist.name}</CardTitle>
-                      <CardDescription className="text-sm text-muted-foreground">{artist.bio}</CardDescription>
+          {loadingArtists ? (
+            <div className="space-y-4">
+              {/* Skeleton Loaders */}
+              {Array.from({ length: pageSize }).map((_, index) => (
+                <Card key={index} className="overflow-hidden">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center space-x-4">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div>
+                        <Skeleton className="h-6 w-24 mb-1" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
                     </div>
-                  </div>
-                  <Button variant="outline">View Profile</Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <Skeleton className="h-8 w-20" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : artists.length === 0 ? (
+            <p>No artists found.</p>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {artists.map((artist) => (
+                  <Card key={artist.id} className="overflow-hidden">
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div className="flex items-center space-x-4">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={artist.avatar} alt={artist.name} />
+                          <AvatarFallback>{artist.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-lg font-medium">{artist.name}</CardTitle>
+                          <CardDescription className="text-sm text-muted-foreground">{artist.bio}</CardDescription>
+                        </div>
+                      </div>
+                      <Button variant="outline">View Profile</Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              {/* Pagination Controls (Artists)*/}
+              <div className="flex justify-center mt-4 space-x-2">
+                <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" disabled>
+                  {page} / {Math.ceil(totalArtists / pageSize)}
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === Math.ceil(totalArtists / pageSize)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>

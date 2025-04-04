@@ -60,9 +60,6 @@ export default function Profile() {
     return 0;
   };
 
-  const followerCount = getCount(userProfile?.followers);
-  const followingCount = getCount(userProfile?.followings);
-
   // useEffect to set dummy data
   useEffect(() => {
     // Set dummy data for other states
@@ -163,6 +160,9 @@ export default function Profile() {
     return <div className="text-center">Failed to load profile data. Please try again later.</div>;
   }
 
+  const followerCount = userProfile?.followers?.[0]?.["count(`followed_id`)"] || 0;
+  const followingCount = userProfile?.followings?.[0]?.["count(`follower_id`)"] || 0;
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Profile Header */}
@@ -171,7 +171,7 @@ export default function Profile() {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex flex-col items-center md:items-start">
               <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background shadow-md">
-                <AvatarImage src={userProfile?.avatar} alt="Avatar" />
+                <AvatarImage src={userProfile?.avatar || "storage/avatars/noimage.png"} alt="Avatar" />
                 <AvatarFallback>{userProfile?.username?.charAt(0) || "A"}</AvatarFallback>
               </Avatar>
 
@@ -187,10 +187,8 @@ export default function Profile() {
                 </div>
 
                 <div className="flex mt-4 space-x-4">
-                  <Button onClick={handleFollowClick}>Follow</Button>
-                  <Button variant="outline" onClick={handleMessageClick}>
-                    Message
-                  </Button>
+                  <Button>Follow</Button>
+                  <Button variant="outline">Message</Button>
                 </div>
               </div>
             </div>
@@ -231,45 +229,23 @@ export default function Profile() {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-
-                  {/* Bagian ini dihilangkan karena tidak ada properti 'joined' di response */}
-                  {/* <div className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                <span>Joined {userProfile.joined}</span>
-              </div> */}
                 </div>
 
-                <div className="flex flex-wrap gap-4">
-                  {userProfile?.location && (
-                    <div className="flex items-center text-sm">
-                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                      <span>{userProfile?.location}</span>
-                    </div>
-                  )}
-
-                  {/* Bagian ini dihilangkan karena tidak ada properti 'website' di response */}
-                  {/* {userProfile.website && (
-                <div className="flex items-center text-sm cursor-pointer" onClick={handleWebsiteClick}>
-                  <Globe className="h-4 w-4 mr-1 text-muted-foreground" />
-                  <span className="text-blue-500 hover:underline">{userProfile.website}</span>
-                </div>
-              )} */}
-                </div>
+                {userProfile?.location && (
+                  <div className="flex items-center text-sm">
+                    <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                    <span>{userProfile?.location}</span>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Level Progress</h3>
                   <div className="flex justify-between text-xs">
                     <span>Level {userProfile?.level}</span>
-                    <span>
-                      {userProfile?.exp} XP / {userProfile?.exp} XP {/* Sesuaikan dengan logika XP yang benar */}
-                    </span>
+                    <span>{userProfile?.exp} XP / 100 XP</span>
                   </div>
-                  {/* Nilai progress harus antara 0 dan 1 */}
-                  <Progress value={userProfile?.exp / 100} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {/* Sesuaikan dengan logika XP yang benar */}
-                    XP to Level {userProfile?.level + 1}
-                  </p>
+                  <Progress value={(userProfile?.exp / 100) * 100} className="h-2" />
+                  <p className="text-xs text-muted-foreground">XP to Level {userProfile?.level + 1}</p>
                 </div>
               </div>
             </div>

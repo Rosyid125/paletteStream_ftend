@@ -138,7 +138,7 @@ export default function RegisterPage() {
     <div className="container flex w-full h-full flex-col items-center justify-center py-4">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] md:w-[450px]">
         <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white">
             <Palette className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-bold">Join PaletteStream</h1>
