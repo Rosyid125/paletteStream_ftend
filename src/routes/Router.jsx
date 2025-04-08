@@ -32,13 +32,35 @@ const LoadingSpinner = () => (
 const router = createBrowserRouter([
   // Route for the Landing Page (unauthenticated users primarily)
   {
-    path: "/",
+    path: "/landing",
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <Landing />
       </Suspense>
     ),
     // This route does NOT use the main Layout or ProtectedRoute
+    errorElement: <Error404 />, // Optional: You might want a simpler error page here
+  },
+
+  // Standalone Login and Register routes
+  {
+    path: "/login",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Login />
+      </Suspense>
+    ),
+
+    errorElement: <Error404 />, // Optional: You might want a simpler error page here
+  },
+  {
+    path: "/register",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Register />
+      </Suspense>
+    ),
+
     errorElement: <Error404 />, // Optional: You might want a simpler error page here
   },
 
@@ -156,27 +178,6 @@ const router = createBrowserRouter([
       // e.g., { path: "*", element: <Navigate to="/home" replace /> }
     ],
   },
-
-  // Standalone Login and Register routes
-  {
-    path: "/login",
-    element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <Login />
-      </Suspense>
-    ),
-  },
-  {
-    path: "/register",
-    element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <Register />
-      </Suspense>
-    ),
-  },
-  // Consider adding a general catch-all 404 route at the end if needed,
-  // although the errorElement on the root routes handles many cases.
-  // { path: "*", element: <Error404 /> }
 ]);
 
 export default router;

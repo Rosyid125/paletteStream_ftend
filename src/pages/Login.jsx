@@ -88,7 +88,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="container flex w-full h-full flex-col items-center justify-center py-4">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] md:w-[450px]">
         <div className="flex flex-col items-center space-y-2 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white">
