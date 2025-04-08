@@ -14,7 +14,7 @@ const userId = user ? user.id : null;
 const items = [
   {
     title: "Home",
-    url: "/",
+    url: "/home",
     icon: Home,
     group: "Main",
     color: "text-primary",

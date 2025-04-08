@@ -15,7 +15,7 @@ const Error404 = () => (
         </CardHeader>
         <CardContent className="text-center">
           <p className="text-lg text-gray-700 mb-4">Halaman yang Anda cari tidak ditemukan.</p>
-          <Link to="/">
+          <Link to="/home">
             <Button variant="primary" className="flex items-center justify-center gap-2">
               <Home className="w-4 h-4" />
               Kembali ke Beranda

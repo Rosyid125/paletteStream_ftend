@@ -12,26 +12,46 @@ import WeeklyWinners from "@/pages/WeeklyWinners";
 import CreatePost from "@/pages/CreatePost";
 import Bookmarks from "@/pages/Bookmarks";
 import Likes from "@/pages/Likes";
+import Landing from "@/pages/Landing";
 import Error404 from "@/errors/Error404/Error404";
-import ProtectedRoute from "../components/ProtectedRoute";
+import ProtectedRoute from "../components/ProtectedRoute"; // Assuming correct path
 import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import { Coins } from "lucide-react";
 
 const LoadingSpinner = () => (
-  <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-    <Coins className="w-10 h-10 text-red-600" />
+  <motion.div
+    className="fixed inset-0 flex justify-center items-center bg-background/80 z-50" // Added background and z-index
+    animate={{ rotate: 360 }}
+    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+  >
+    <Coins className="w-10 h-10 text-primary" /> {/* Use primary color */}
   </motion.div>
 );
 
 const router = createBrowserRouter([
+  // Route for the Landing Page (unauthenticated users primarily)
   {
     path: "/",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Landing />
+      </Suspense>
+    ),
+    // This route does NOT use the main Layout or ProtectedRoute
+    errorElement: <Error404 />, // Optional: You might want a simpler error page here
+  },
+
+  // Routes for authenticated users, wrapped in Layout and ProtectedRoute
+  {
+    path: "/", // This path segment is just for grouping routes under Layout
     element: <Layout />,
-    errorElement: <Error404 />,
+    errorElement: <Error404 />, // Catches errors for all child routes
     children: [
       {
-        path: "/",
+        // Path for the authenticated user's home/dashboard
+        // It becomes `/home` because the parent path is `/` and this path is relative
+        path: "home",
         element: (
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
@@ -101,7 +121,9 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "post/:type/:userId",
+        // Note: Path might need adjustment depending on how CreatePost is used.
+        // If it's always related to the logged-in user, :userId might not be needed.
+        path: "post/:type/:userId?", // Made userId optional if it can be inferred
         element: (
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
@@ -130,8 +152,12 @@ const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      // Add a catch-all or redirect within the authenticated layout if needed
+      // e.g., { path: "*", element: <Navigate to="/home" replace /> }
     ],
   },
+
+  // Standalone Login and Register routes
   {
     path: "/login",
     element: (
@@ -148,6 +174,9 @@ const router = createBrowserRouter([
       </Suspense>
     ),
   },
+  // Consider adding a general catch-all 404 route at the end if needed,
+  // although the errorElement on the root routes handles many cases.
+  // { path: "*", element: <Error404 /> }
 ]);
 
 export default router;
