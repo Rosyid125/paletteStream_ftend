@@ -10,9 +10,9 @@ import { MessageSquare, CornerDownRight } from "lucide-react";
 import api from "./../api/axiosInstance"; // Adjust path if necessary
 import { Textarea } from "@/components/ui/textarea";
 
-// Helper function to format image URLs
+// Helper function to format image URLs (Tetap sama)
 const formatImageUrl = (imagePath) => {
-  if (!imagePath) return "/avatars/noimage.png"; // Default fallback
+  if (!imagePath) return "/storage/avatars/noimage.png"; // Default fallback
   const cleanedPath = imagePath.replace(/\\/g, "/");
 
   // Check if it's already a full URL or a path starting with /storage/
@@ -53,7 +53,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
   const commentObserver = useRef();
   const replyObservers = useRef({}); // Stores observers keyed by commentId
 
-  // --- Fetching Comments ---
+  // --- Fetching Comments --- (Tetap sama)
   const loadComments = useCallback(
     async (pageToLoad, isInitial = false) => {
       if (loadingComments || (!hasMoreComments && !isInitial)) return;
@@ -91,7 +91,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     [postId, loadingComments, hasMoreComments]
   );
 
-  // --- Fetching Replies ---
+  // --- Fetching Replies --- (Tetap sama)
   const loadReplies = useCallback(async (commentId, pageToLoad = 1, isInitial = false) => {
     setLoadingReplies((prev) => ({ ...prev, [commentId]: true }));
     if (isInitial) {
@@ -123,102 +123,115 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     }
   }, []); // No external changing dependencies needed
 
-  // --- Toggle Reply Visibility and Load Initial ---
+  // --- Toggle Reply Visibility and Load Initial --- (Tetap sama)
   const toggleReplies = (commentId) => {
     const isVisible = !visibleReplies[commentId];
     setVisibleReplies((prev) => ({ ...prev, [commentId]: isVisible }));
-    // If becoming visible and no replies loaded yet, load initial page
     if (isVisible && (!replies[commentId] || replies[commentId].length === 0)) {
       loadReplies(commentId, 1, true);
     }
-    // Also reset reply input visibility when collapsing replies
     if (!isVisible) {
       setShowReplyInput((prev) => ({ ...prev, [commentId]: false }));
       setNewReply((prev) => ({ ...prev, [commentId]: "" }));
     }
   };
 
-  // --- Toggle Reply Input Visibility ---
+  // --- Toggle Reply Input Visibility --- (Tetap sama)
   const toggleReplyInput = (commentId) => {
     setShowReplyInput((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
   };
 
-  // --- Posting New Comment ---
-  const handlePostComment = async () => {
-    if (!newComment.trim() || !currentUser?.id) return;
+  // --- Posting New Comment --- (Tetap sama, dipanggil oleh handler baru)
+  const handlePostComment = useCallback(async () => {
+    // Ubah ke useCallback agar stabil
+    if (!newComment.trim() || !currentUser?.id || postingComment) return; // Tambah cek postingComment
     setPostingComment(true);
     setError(null);
 
     try {
-      const response = await api.post("/comments", {
+      const response = await api.post("/comments/create", {
         post_id: postId,
-        user_id: currentUser.id, // Backend might use authenticated user instead
+        user_id: currentUser.id,
         content: newComment.trim(),
       });
 
       if (response.data.success && response.data.data) {
         const addedComment = {
-          ...response.data.data, // Assumes API returns the created comment
+          ...response.data.data,
           username: currentUser.username,
           avatar: currentUser.avatar,
           level: currentUser.level,
-          created_at: new Date().toISOString(), // Use current time for immediate display
+          created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          replies_count: 0,
         };
-        setComments((prev) => [addedComment, ...prev]); // Prepend new comment
+        setComments((prev) => [addedComment, ...prev]);
         setNewComment("");
-        if (onCommentAdded) onCommentAdded(postId); // Notify parent
+        if (onCommentAdded) onCommentAdded(postId);
       } else {
         setError(response.data.message || "Failed to post comment.");
       }
     } catch (err) {
       console.error("Error posting comment:", err);
-      setError("An error occurred while posting the comment.");
+      let errorMsg = "An error occurred while posting the comment.";
+      if (err.response && err.response.data && err.response.data.message) {
+        errorMsg = `Failed to post comment: ${err.response.data.message}`;
+      } else if (err.message) {
+        errorMsg = `Failed to post comment: ${err.message}`;
+      }
+      setError(errorMsg);
     } finally {
       setPostingComment(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newComment, currentUser, postId, onCommentAdded, postingComment]); // Tambahkan dependensi
 
-  // --- Posting New Reply ---
-  const handlePostReply = async (commentId) => {
-    const replyContent = newReply[commentId]?.trim();
-    if (!replyContent || !currentUser?.id) return;
+  // --- Posting New Reply --- (Tetap sama, dipanggil oleh handler baru)
+  const handlePostReply = useCallback(
+    async (commentId) => {
+      // Ubah ke useCallback agar stabil
+      const replyContent = newReply[commentId]?.trim();
+      // Tambah cek postingReply[commentId]
+      if (!replyContent || !currentUser?.id || postingReply[commentId]) return;
 
-    setPostingReply((prev) => ({ ...prev, [commentId]: true }));
+      setPostingReply((prev) => ({ ...prev, [commentId]: true }));
 
-    try {
-      const response = await api.post("/comments/replies", {
-        comment_id: commentId,
-        user_id: currentUser.id, // Backend might use authenticated user
-        content: replyContent,
-      });
+      try {
+        const response = await api.post("/comments/comment-replies/create", {
+          post_comment_id: commentId,
+          user_id: currentUser.id,
+          content: replyContent,
+        });
 
-      if (response.data.success && response.data.data) {
-        const addedReply = {
-          ...response.data.data, // Assumes API returns the created reply
-          username: currentUser.username,
-          avatar: currentUser.avatar,
-          level: currentUser.level,
-          created_at: new Date().toISOString(),
-        };
-        setReplies((prev) => ({
-          ...prev,
-          [commentId]: [...(prev[commentId] || []), addedReply], // Append new reply
-        }));
-        setNewReply((prev) => ({ ...prev, [commentId]: "" })); // Clear input
-        setShowReplyInput((prev) => ({ ...prev, [commentId]: false })); // Hide input
-      } else {
-        console.error("Failed to post reply:", response.data.message);
-        // Optionally set a reply-specific error state
+        if (response.data.success && response.data.data) {
+          const addedReply = {
+            ...response.data.data,
+            username: currentUser.username,
+            avatar: currentUser.avatar,
+            level: currentUser.level,
+            created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          };
+          setReplies((prev) => ({
+            ...prev,
+            [commentId]: [...(prev[commentId] || []), addedReply],
+          }));
+          setNewReply((prev) => ({ ...prev, [commentId]: "" }));
+          setShowReplyInput((prev) => ({ ...prev, [commentId]: false }));
+
+          setComments((prevComments) => prevComments.map((c) => (c.id === commentId ? { ...c, replies_count: (c.replies_count || 0) + 1 } : c)));
+        } else {
+          console.error("Failed to post reply:", response.data.message);
+        }
+      } catch (err) {
+        console.error("Error posting reply:", err);
+      } finally {
+        setPostingReply((prev) => ({ ...prev, [commentId]: false }));
       }
-    } catch (err) {
-      console.error("Error posting reply:", err);
-      // Optionally set a reply-specific error state
-    } finally {
-      setPostingReply((prev) => ({ ...prev, [commentId]: false }));
-    }
-  };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [newReply, currentUser, postingReply]
+  ); // Tambahkan dependensi
 
-  // --- Intersection Observer for Comments ---
+  // --- Intersection Observer for Comments --- (Tetap sama)
   const lastCommentElementRef = useCallback(
     (node) => {
       if (loadingComments) return;
@@ -234,13 +247,12 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     [loadingComments, hasMoreComments, commentPage, loadComments]
   );
 
-  // --- Effect for Initial Load & Cleanup ---
+  // --- Effect for Initial Load & Cleanup --- (Tetap sama)
   useEffect(() => {
     if (isOpen && postId) {
       console.log("Comment modal opened, loading initial comments.");
-      loadComments(1, true); // Load page 1 initially
+      loadComments(1, true);
     } else {
-      // Reset state when modal closes or postId changes significantly
       setComments([]);
       setReplies({});
       setVisibleReplies({});
@@ -256,20 +268,37 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       setShowReplyInput({});
       setPostingComment(false);
       setPostingReply({});
-      // Disconnect observers on close
       if (commentObserver.current) commentObserver.current.disconnect();
       Object.values(replyObservers.current).forEach((obs) => obs?.disconnect());
       replyObservers.current = {};
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, postId]); // Rerun only when modal visibility or postId changes
+  }, [isOpen, postId]);
 
+  // --- NEW: Handler for Enter key on Comment Input ---
+  const handleCommentKeyDown = (event) => {
+    // Cek jika Enter ditekan TANPA Shift
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault(); // Mencegah newline default
+      handlePostComment(); // Panggil fungsi post comment
+    }
+  };
+
+  // --- NEW: Handler for Enter key on Reply Input ---
+  const handleReplyKeyDown = (event, commentId) => {
+    // Cek jika Enter ditekan TANPA Shift
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault(); // Mencegah newline default
+      handlePostReply(commentId); // Panggil fungsi post reply
+    }
+  };
+
+  // --- Return JSX --- (Modifikasi pada Textarea)
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle>Comments on "{postTitle}"</DialogTitle>
-          {/* Optional: <DialogDescription>Join the conversation.</DialogDescription> */}
         </DialogHeader>
 
         {/* Comment List Area */}
@@ -277,7 +306,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
           <div className="space-y-4">
             {error && <p className="text-sm text-red-600 text-center py-4">{error}</p>}
 
-            {/* Skeletons for initial comment loading */}
+            {/* Skeletons */}
             {loadingComments &&
               comments.length === 0 &&
               Array.from({ length: 3 }).map((_, index) => (
@@ -311,18 +340,15 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                         <span className="font-semibold text-sm">{comment.username}</span>
                         <span className="text-xs text-muted-foreground">• Lvl {comment.level || 1}</span>
                       </div>
-                      <p className="text-sm mt-0.5 whitespace-pre-wrap">{comment.content}</p> {/* Allow line breaks */}
+                      <p className="text-sm mt-0.5 whitespace-pre-wrap">{comment.content}</p>
                       <div className="flex items-center space-x-3 mt-1.5 text-xs text-muted-foreground">
-                        <span>{comment.created_at}</span>
+                        <span>{comment.created_at instanceof Date ? comment.created_at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : comment.created_at}</span>
                         <button onClick={() => toggleReplyInput(comment.id)} className="hover:text-primary font-medium" aria-label={`Reply to ${comment.username}`}>
                           Reply
                         </button>
-                        {/* Show 'View Replies' if they exist or might exist (hasMoreReplies not explicitly false) */}
-                        {(replies[comment.id]?.length > 0 || hasMoreReplies[comment.id] !== false) && (
-                          <button onClick={() => toggleReplies(comment.id)} className="hover:text-primary font-medium" aria-expanded={!!visibleReplies[comment.id]}>
-                            {visibleReplies[comment.id] ? "Hide" : "View"} Replies ({comment.replies_count || 0}){loadingReplies[comment.id] && "..."} {/* Indicate loading */}
-                          </button>
-                        )}
+                        <button onClick={() => toggleReplies(comment.id)} className="hover:text-primary font-medium" aria-expanded={!!visibleReplies[comment.id]}>
+                          {visibleReplies[comment.id] ? "Hide" : "View"} Replies ({comment.replies_count || 0}){loadingReplies[comment.id] ? "..." : ""}
+                        </button>
                       </div>
                       {/* Reply Input Area */}
                       {showReplyInput[comment.id] && (
@@ -332,14 +358,17 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                             <AvatarFallback>{currentUser?.username?.charAt(0).toUpperCase() || "Me"}</AvatarFallback>
                           </Avatar>
                           <div className="flex-grow">
+                            {/* === MODIFIED Textarea for Reply === */}
                             <Textarea
                               placeholder={`Replying to ${comment.username}...`}
                               value={newReply[comment.id] || ""}
                               onChange={(e) => setNewReply((prev) => ({ ...prev, [comment.id]: e.target.value }))}
+                              onKeyDown={(e) => handleReplyKeyDown(e, comment.id)} // <-- Tambahkan onKeyDown
                               rows={2}
                               className="text-sm resize-none"
                               aria-label={`Reply input for comment by ${comment.username}`}
                             />
+                            {/* === End of MODIFIED Textarea === */}
                             <div className="flex justify-end space-x-2 mt-1.5">
                               <Button
                                 variant="ghost"
@@ -362,19 +391,16 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                       {/* Replies Section */}
                       {visibleReplies[comment.id] && (
                         <div className="mt-3 pl-8 border-l-2 border-muted ml-5" aria-live="polite">
-                          {" "}
-                          {/* Announce changes */}
                           {(replies[comment.id] || []).map((reply, replyIndex, arr) => (
                             <div
                               key={reply.id}
                               className="flex space-x-3 py-2"
-                              // Ref logic for Intersection Observer
                               ref={
                                 replyIndex === arr.length - 1
                                   ? (node) => {
                                       const currentCommentId = comment.id;
-                                      const isLoading = loadingReplies[currentCommentId];
-                                      const hasMore = hasMoreReplies[currentCommentId];
+                                      const isLoading = loadingReplies[currentCommentId] || false;
+                                      const hasMore = hasMoreReplies[currentCommentId] === undefined ? true : hasMoreReplies[currentCommentId];
                                       const currentPage = replyPage[currentCommentId] || 1;
 
                                       if (isLoading) return;
@@ -408,15 +434,14 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                                   <span className="font-semibold text-xs">{reply.username}</span>
                                   <span className="text-xs text-muted-foreground">• Lvl {reply.level || 1}</span>
                                 </div>
-                                <p className="text-sm mt-0.5 whitespace-pre-wrap">{reply.content}</p> {/* Allow line breaks */}
+                                <p className="text-sm mt-0.5 whitespace-pre-wrap">{reply.content}</p>
                                 <div className="flex items-center space-x-3 mt-1 text-xs text-muted-foreground">
-                                  <span>{reply.created_at}</span>
-                                  {/* Add reply-to-reply button here if needed */}
+                                  <span>{reply.created_at instanceof Date ? reply.created_at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : reply.created_at}</span>
                                 </div>
                               </div>
                             </div>
                           ))}
-                          {/* Loading Indicator/Button for Replies */}
+                          {/* Loading/Button Replies */}
                           {loadingReplies[comment.id] && <p className="text-xs text-muted-foreground text-center py-2">Loading replies...</p>}
                           {!loadingReplies[comment.id] && hasMoreReplies[comment.id] && (
                             <Button variant="link" size="sm" className="w-full h-6 text-xs mt-1" onClick={() => loadReplies(comment.id, replyPage[comment.id] || 1)}>
@@ -424,19 +449,17 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                             </Button>
                           )}
                           {!loadingReplies[comment.id] && !hasMoreReplies[comment.id] && replies[comment.id]?.length > 0 && <p className="text-xs text-muted-foreground text-center py-2 italic">End of replies</p>}
-                          {/* Show 'No replies yet' only if not loading, no more to load, and array is empty */}
                           {!loadingReplies[comment.id] && !hasMoreReplies[comment.id] && !replies[comment.id]?.length && <p className="text-xs text-muted-foreground text-center py-2">No replies yet.</p>}
                         </div>
                       )}
                     </div>
                   </div>
-                  {/* Add separator between comments unless it's the last one */}
                   {index < comments.length - 1 && <Separator className="my-2" />}
                 </div>
               );
             })}
 
-            {/* Loading Indicator/Button for Comments */}
+            {/* Loading/Button Comments */}
             {loadingComments && comments.length > 0 && <p className="text-sm text-muted-foreground text-center py-4">Loading more comments...</p>}
             {!loadingComments && !hasMoreComments && comments.length > 0 && <p className="text-sm text-muted-foreground text-center py-4 italic">End of comments</p>}
           </div>
@@ -450,7 +473,17 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
               <AvatarFallback>{currentUser?.username?.charAt(0).toUpperCase() || "Me"}</AvatarFallback>
             </Avatar>
             <div className="flex-grow space-y-2">
-              <Textarea placeholder="Add a comment..." value={newComment} onChange={(e) => setNewComment(e.target.value)} rows={3} className="resize-none" aria-label="New comment input" />
+              {/* === MODIFIED Textarea for Comment === */}
+              <Textarea
+                placeholder="Add a comment... (Press Enter to send, Shift+Enter for new line)" // Update placeholder
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={handleCommentKeyDown} // <-- Tambahkan onKeyDown
+                rows={3}
+                className="resize-none"
+                aria-label="New comment input"
+              />
+              {/* === End of MODIFIED Textarea === */}
               <Button onClick={handlePostComment} disabled={postingComment || !newComment.trim()} className="w-full sm:w-auto float-right">
                 {postingComment ? "Posting..." : "Post Comment"}
               </Button>
@@ -462,6 +495,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
   );
 }
 
+// PropTypes (Tetap sama)
 CommentModal.propTypes = {
   postId: PropTypes.number.isRequired,
   isOpen: PropTypes.bool.isRequired,
@@ -473,5 +507,5 @@ CommentModal.propTypes = {
     avatar: PropTypes.string,
     level: PropTypes.number,
   }),
-  onCommentAdded: PropTypes.func, // Callback when a comment is successfully posted
+  onCommentAdded: PropTypes.func,
 };

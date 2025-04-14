@@ -67,7 +67,13 @@ const router = createBrowserRouter([
   // Routes for authenticated users, wrapped in Layout and ProtectedRoute
   {
     path: "/", // This path segment is just for grouping routes under Layout
-    element: <Layout />,
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ProtectedRoute>
+          <Layout />
+        </ProtectedRoute>
+      </Suspense>
+    ),
     errorElement: <Error404 />, // Catches errors for all child routes
     children: [
       {

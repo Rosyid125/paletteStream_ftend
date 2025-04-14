@@ -21,7 +21,7 @@ import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal"; // <-- IMPORT COMMENT MODAL
 
 // --- Import instance Axios ---
-import api from "./../api/axiosInstance";
+import api from "./../api/axiosInstance"; // Pastikan path ini benar
 
 // --- Constants ---
 const USER_DATA = JSON.parse(localStorage.getItem("user")); // Get full user object
@@ -47,7 +47,7 @@ export default function Home() {
 
   // --- Helper function to format image URLs ---
   const formatImageUrl = (imagePath) => {
-    if (!imagePath) return "/avatars/noimage.png"; // Consistent default
+    if (!imagePath) return "/storage/avatars/noimage.png"; // Consistent default
     const cleanedPath = imagePath.replace(/\\/g, "/");
 
     // Check if it's already a full URL or a path starting with /storage/
@@ -130,8 +130,13 @@ export default function Home() {
     [loading, hasMore, posts.length] // Removed page state from deps, managed internally
   );
 
-  // --- Like/Unlike Post ---
+  // --- Like/Unlike Post --- (MODIFIED FUNCTION) ---
   const handleLikeToggle = async (postId, currentStatus) => {
+    if (!USER_ID) {
+      setError("You must be logged in to like posts.");
+      return; // Jangan lakukan apa-apa jika user tidak login
+    }
+
     // Find the index of the post to update its state optimistically
     const postIndex = posts.findIndex((p) => p.id === postId);
     if (postIndex === -1) return; // Post not found
@@ -144,27 +149,37 @@ export default function Home() {
     setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? { ...p, postLikeStatus: optimisticStatus, likeCount: optimisticCount } : p)));
 
     try {
-      if (optimisticStatus) {
-        // If liking
-        await api.post("/likes", { post_id: postId, user_id: USER_ID }); // Ensure user_id is handled backend/passed
-        console.log(`Post ${postId} liked`);
+      // --- Panggil endpoint tunggal dengan POST ---
+      const response = await api.post("/likes/create-delete", {
+        postId: postId, // sesuaikan key dengan backend ('postId' bukan 'post_id')
+        userId: USER_ID, // sesuaikan key dengan backend ('userId' bukan 'user_id')
+      });
+
+      // Cek response dari backend
+      if (response.data.success) {
+        console.log(`Like status toggled for post ${postId}: ${response.data.data.message}`);
+        // UI sudah diupdate secara optimis, tidak perlu update lagi di sini
+        setError(null); // Hapus error sebelumnya jika ada
       } else {
-        // If unliking
-        // The backend might need the like ID, or handle deletion by postId + userId
-        // Assuming deletion by postId and authenticated user for now:
-        await api.delete(`/likes/post/${postId}`); // Adjust endpoint if needed
-        console.log(`Post ${postId} unliked`);
+        // Jika backend mengembalikan success: false tapi request berhasil
+        console.error(`Backend failed to toggle like status for post ${postId}:`, response.data.message || "Unknown backend error");
+        // Kembalikan state ke kondisi semula jika backend gagal
+        setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? originalPost : p)));
+        setError(response.data.message || "Could not update like status. Please try again.");
       }
-      // API call successful, optimistic state is correct. Optionally refetch post details if needed.
-      setError(null); // Clear any previous interaction errors
     } catch (err) {
-      console.error(`Error ${optimisticStatus ? "liking" : "unliking"} post:`, err);
-      // Revert optimistic update on failure
+      console.error("Error toggling like status:", err);
+      // Kembalikan state ke kondisi semula jika terjadi error pada request API
       setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? originalPost : p)));
-      setError(`Could not ${optimisticStatus ? "like" : "unlike"} the post. Please try again.`);
-      // Optionally show a toast notification
+      let errorMsg = "Could not update like status. Please try again.";
+      if (err.response && err.response.data && err.response.data.message) {
+        errorMsg = err.response.data.message; // Tampilkan pesan error dari backend jika ada
+      }
+      setError(errorMsg);
+      // Opsional: tampilkan notifikasi toast
     }
   };
+  // --- End of MODIFIED FUNCTION ---
 
   // --- Delete Post ---
   const handleDeletePost = async () => {
@@ -201,7 +216,6 @@ export default function Home() {
 
   // --- Intersection Observer Setup --- (Keep as is)
   const lastPostElementRef = useCallback(
-    /* ... same code ... */
     (node) => {
       if (loading) return;
       if (observer.current) observer.current.disconnect();
@@ -419,7 +433,7 @@ export default function Home() {
                                         variant="ghost"
                                         size="sm"
                                         className={`flex items-center space-x-1 h-8 pl-1 pr-2 rounded-l-md ${post.postLikeStatus ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-foreground"}`} // Adjusted styling
-                                        onClick={() => handleLikeToggle(post.id, post.postLikeStatus)} // <-- ADD ONCLICK
+                                        onClick={() => handleLikeToggle(post.id, post.postLikeStatus)} // <-- PANGGIL FUNGSI BARU
                                       >
                                         <Heart className={`h-4 w-4 ${post.postLikeStatus ? "fill-current" : ""}`} />
                                       </Button>
@@ -457,7 +471,7 @@ export default function Home() {
                                     variant="ghost"
                                     size="sm"
                                     className="flex items-center space-x-1 h-8 text-muted-foreground hover:text-foreground"
-                                    onClick={() => openCommentModal(post)} // <-- ADD ONCLICK
+                                    onClick={() => openCommentModal(post)} // <-- ONCLICK TETAP SAMA
                                   >
                                     <MessageCircle className="h-4 w-4" />
                                     <span>{post.commentCount || 0}</span>

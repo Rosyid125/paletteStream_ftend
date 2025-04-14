@@ -171,7 +171,7 @@ export default function Profile() {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex flex-col items-center md:items-start">
               <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background shadow-md">
-                <AvatarImage src={userProfile?.avatar || "storage/avatars/noimage.png"} alt="Avatar" />
+                <AvatarImage src={userProfile?.avatar || "storage/storage/avatars/noimage.png"} alt="Avatar" />
                 <AvatarFallback>{userProfile?.username?.charAt(0) || "A"}</AvatarFallback>
               </Avatar>
 

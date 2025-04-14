@@ -8,7 +8,7 @@ import api from "./../api/axiosInstance"; // Adjust path if necessary
 
 // Helper function to format image URLs (can be imported from a shared utils file)
 const formatImageUrl = (imagePath) => {
-  if (!imagePath) return "/avatars/noimage.png"; // Default fallback
+  if (!imagePath) return "/storage/avatars/noimage.png"; // Default fallback
   const cleanedPath = imagePath.replace(/\\/g, "/");
 
   if (cleanedPath.startsWith("http") || cleanedPath.startsWith("/storage")) {

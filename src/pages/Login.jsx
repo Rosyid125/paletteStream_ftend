@@ -77,7 +77,7 @@ export default function LoginPage() {
       });
 
       // Redirect user ke halaman utama setelah login berhasil
-      navigate("/");
+      navigate("/home");
     } catch (error) {
       setErrors({
         general: "Invalid email or password. Please try again.",

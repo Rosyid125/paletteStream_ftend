@@ -112,7 +112,7 @@ export default function RegisterPage() {
           title: "Registration successful",
           description: "Welcome to PaletteStream! Your account has been created.",
         });
-        navigate("/");
+        navigate("/home");
       } else {
         setErrors({
           general: registerResponse.error || "Registration failed. Please try again.",
