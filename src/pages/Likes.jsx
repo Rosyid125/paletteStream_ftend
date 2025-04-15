@@ -1,517 +1,607 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Heart, HeartOff, MessageCircle, Share2, Search, Grid3X3, List, MoreHorizontal, Calendar, Clock, ImageIcon, BookOpen, BookMarked, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock } from "lucide-react"; // Added Clock icon
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ImageCarousel } from "@/components/ImageCarousel";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
-export default function LikesPage() {
-  const [viewMode, setViewMode] = useState("grid");
-  const [sortBy, setSortBy] = useState("recent");
-  const [filterType, setFilterType] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  const [confirmUnlikeOpen, setConfirmUnlikeOpen] = useState(false);
-  const [itemToUnlike, setItemToUnlike] = useState(null);
-  const [likedPosts, setLikedPosts] = useState(LIKED_POSTS);
+// Komponen yang relevan
+import { LikesHoverCard } from "@/components/LikesHoverCard";
+import { CommentModal } from "@/components/CommentModal";
 
-  // Filter posts based on search query, type filter, and time period
-  const filteredPosts = likedPosts.filter((post) => {
-    const matchesSearch = searchQuery === "" || post.title.toLowerCase().includes(searchQuery.toLowerCase()) || post.author.name.toLowerCase().includes(searchQuery.toLowerCase());
+// Instance Axios
+import api from "./../api/axiosInstance";
 
-    const matchesType = filterType === "all" || post.type === filterType;
+// --- Constants ---
+const USER_DATA = JSON.parse(localStorage.getItem("user"));
+const USER_ID = USER_DATA?.id;
+const POSTS_PER_PAGE = 12;
 
-    const matchesTimePeriod =
-      activeTab === "all" || (activeTab === "today" && isToday(new Date(post.likedAt))) || (activeTab === "week" && isThisWeek(new Date(post.likedAt))) || (activeTab === "month" && isThisMonth(new Date(post.likedAt)));
+export default function LikedPosts() {
+  const [posts, setPosts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState(null);
 
-    return matchesSearch && matchesType && matchesTimePeriod;
-  });
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [selectedPostForModal, setSelectedPostForModal] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState(null);
 
-  // Sort posts based on sort option
-  const sortedPosts = [...filteredPosts].sort((a, b) => {
-    if (sortBy === "recent") {
-      return new Date(b.likedAt).getTime() - new Date(a.likedAt).getTime();
-    } else if (sortBy === "oldest") {
-      return new Date(a.likedAt).getTime() - new Date(b.likedAt).getTime();
-    } else if (sortBy === "popular") {
-      return b.stats.likes - a.stats.likes;
-    } else {
-      return 0;
+  const observer = useRef();
+
+  // --- Helper function to format image URLs ---
+  const formatImageUrl = (imagePath) => {
+    if (!imagePath) return "/storage/avatars/noimage.png";
+    const cleanedPath = imagePath.replace(/\\+/g, "/");
+    if (cleanedPath.startsWith("http") || cleanedPath.startsWith("/storage")) {
+      return cleanedPath.startsWith("/storage") && api.defaults.baseURL ? `${api.defaults.baseURL}${cleanedPath}` : cleanedPath;
     }
-  });
-
-  // Handle unliking a post
-  const handleUnlike = (id) => {
-    setLikedPosts(likedPosts.filter((post) => post.id !== id));
+    if (api.defaults.baseURL) {
+      const baseUrl = api.defaults.baseURL.endsWith("/") ? api.defaults.baseURL.slice(0, -1) : api.defaults.baseURL;
+      const relativePath = cleanedPath.startsWith("/") ? cleanedPath.slice(1) : cleanedPath;
+      return `${baseUrl}/${relativePath}`;
+    }
+    return cleanedPath;
   };
 
-  // Helper function to get type color
+  // --- Function Fetch Liked Posts ---
+  const loadMoreLikedPosts = useCallback(
+    async (currentPage, isInitialLoad) => {
+      if (loading || (!hasMore && !isInitialLoad)) return;
+
+      console.log(`Fetching Liked Posts - Page ${currentPage} (Initial: ${isInitialLoad})`);
+      setLoading(true);
+      if (isInitialLoad) {
+        setInitialLoading(true);
+        setError(null);
+        setPosts([]);
+        setPage(1);
+        setHasMore(true);
+      }
+
+      if (!USER_ID) {
+        setError("User not logged in. Cannot fetch liked posts.");
+        setLoading(false);
+        setInitialLoading(false);
+        setHasMore(false);
+        return;
+      }
+
+      try {
+        const response = await api.get(`/posts/liked/${USER_ID}`, {
+          params: { page: currentPage, limit: POSTS_PER_PAGE },
+        });
+        const result = response.data;
+
+        if (result.success && Array.isArray(result.data)) {
+          const fetchedData = result.data;
+          console.log("Fetched Liked Posts Sample:", fetchedData[0]);
+
+          const processedData = fetchedData.map((post) => ({
+            ...post,
+            // Ensure all fields from the sample response are potentially handled
+            userId: post.userId ?? null,
+            username: post.username ?? "Unknown User",
+            avatar: post.avatar ?? null,
+            level: post.level ?? 1,
+            createdAt: post.createdAt ?? null, // Keep createdAt
+            type: post.type ?? "unknown", // Keep type
+            title: post.title ?? "Untitled Post",
+            description: post.description ?? "", // Keep description
+            images: Array.isArray(post.images) ? post.images : [],
+            tags: Array.isArray(post.tags) ? post.tags : [],
+            postLikeStatus: post.postLikeStatus === undefined ? true : post.postLikeStatus, // Default true for liked page
+            bookmarkStatus: post.bookmarkStatus === undefined ? false : post.bookmarkStatus,
+            likeCount: post.likeCount === undefined ? 0 : post.likeCount,
+            commentCount: post.commentCount === undefined ? 0 : post.commentCount,
+          }));
+
+          setPosts((prevPosts) => (isInitialLoad ? processedData : [...prevPosts, ...processedData]));
+          setPage(currentPage + 1);
+          setHasMore(processedData.length === POSTS_PER_PAGE);
+          setError(null);
+        } else {
+          console.error("API error or invalid liked posts data:", result);
+          setHasMore(false);
+          if (isInitialLoad || posts.length === 0) {
+            setError(result.message || "Failed to fetch liked posts.");
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching liked posts:", err);
+        let errorMessage = err.message || "An error occurred while fetching liked posts.";
+        if (err.response) {
+          errorMessage = `Error ${err.response.status}: ${err.response.data?.message || err.message}`;
+          if (err.response.status === 401) errorMessage = "Unauthorized. Please log in again.";
+        } else if (err.request) {
+          errorMessage = "No response from server.";
+        }
+        setError(errorMessage);
+        setHasMore(false);
+      } finally {
+        setLoading(false);
+        if (isInitialLoad) {
+          setInitialLoading(false);
+        }
+      }
+    },
+    [loading, hasMore, posts.length] // Dependencies
+  );
+
+  // --- Like/Unlike Post ---
+  const handleLikeToggle = async (postId, currentStatus) => {
+    if (!USER_ID) {
+      setError("You must be logged in to like/unlike posts.");
+      return;
+    }
+    const postIndex = posts.findIndex((p) => p.id === postId);
+    if (postIndex === -1) return;
+    const originalPost = posts[postIndex];
+    const optimisticStatus = !currentStatus;
+
+    if (optimisticStatus === false) {
+      // Optimistically remove from Liked Posts page when unliked
+      setPosts((prevPosts) => prevPosts.filter((p) => p.id !== postId));
+    } else {
+      // Should ideally not happen on this page, but handle if they like again
+      const optimisticCount = currentStatus ? originalPost.likeCount - 1 : originalPost.likeCount + 1;
+      setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? { ...p, postLikeStatus: optimisticStatus, likeCount: Math.max(0, optimisticCount) } : p)));
+    }
+
+    try {
+      const response = await api.post("/likes/create-delete", { postId, userId: USER_ID });
+      if (!response.data.success) {
+        console.error(`Backend failed to toggle like for post ${postId}:`, response.data.message);
+        // Rollback
+        setPosts((prevPosts) => {
+          if (!prevPosts.some((p) => p.id === postId)) {
+            // If removed optimistically
+            const newPosts = [...prevPosts];
+            newPosts.splice(postIndex, 0, originalPost); // Add back at original position
+            return newPosts;
+          } else {
+            // If only status/count updated
+            return prevPosts.map((p) => (p.id === postId ? originalPost : p));
+          }
+        });
+        setError(response.data.message || "Could not update like status.");
+      } else {
+        console.log(`Like status toggled for post ${postId}: ${response.data.data.message}`);
+        setError(null);
+        // If NOT removing optimistically on unlike, you might need to refresh or update state here based on response
+      }
+    } catch (err) {
+      console.error("Error toggling like status:", err);
+      // Rollback (same logic as above)
+      setPosts((prevPosts) => {
+        if (!prevPosts.some((p) => p.id === postId)) {
+          const newPosts = [...prevPosts];
+          newPosts.splice(postIndex, 0, originalPost);
+          return newPosts;
+        } else {
+          return prevPosts.map((p) => (p.id === postId ? originalPost : p));
+        }
+      });
+      let errorMsg = "Could not update like status.";
+      if (err.response?.data?.message) errorMsg = err.response.data.message;
+      setError(errorMsg);
+    }
+  };
+
+  // --- Bookmark/Unbookmark Post ---
+  const handleBookmarkToggle = async (postId, currentStatus) => {
+    if (!USER_ID) {
+      setError("You must be logged in to bookmark posts.");
+      return;
+    }
+    const postIndex = posts.findIndex((p) => p.id === postId);
+    if (postIndex === -1) return;
+    const originalPost = posts[postIndex];
+    const optimisticStatus = !currentStatus;
+
+    setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? { ...p, bookmarkStatus: optimisticStatus } : p)));
+
+    try {
+      const response = await api.post("/bookmarks/create-delete", { postId, userId: USER_ID });
+      if (!response.data.success) {
+        console.error(`Backend failed to toggle bookmark for post ${postId}:`, response.data.message);
+        setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? originalPost : p))); // Rollback
+        setError(response.data.message || "Could not update bookmark status.");
+      } else {
+        console.log(`Bookmark status toggled for post ${postId}: ${response.data.data.message}`);
+        setError(null);
+      }
+    } catch (err) {
+      console.error("Error toggling bookmark status:", err);
+      setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? originalPost : p))); // Rollback
+      let errorMsg = "Could not update bookmark status.";
+      if (err.response?.data?.message) errorMsg = err.response.data.message;
+      setError(errorMsg);
+    }
+  };
+
+  // --- Delete Post ---
+  const handleDeletePost = async () => {
+    if (!postToDelete) return;
+    const postId = postToDelete; // Keep track of ID for rollback if needed
+    const originalPosts = [...posts]; // Backup original state
+
+    // Optimistic Deletion
+    setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
+    setIsDeleteDialogOpen(false); // Close modal immediately
+    setPostToDelete(null);
+
+    try {
+      const response = await api.delete(`/posts/${postId}`);
+      if (response.data.success) {
+        setError(null); // Success! No need to do anything else.
+        console.log(`Post ${postId} deleted successfully.`);
+      } else {
+        console.error(`Backend failed to delete post ${postId}:`, response.data.message);
+        setError(response.data.message || "Failed to delete post.");
+        setPosts(originalPosts); // Rollback
+      }
+    } catch (err) {
+      console.error("Error deleting post:", err);
+      setError("An error occurred while deleting the post.");
+      setPosts(originalPosts); // Rollback
+    } finally {
+      // Ensure modal state is cleared even if deletion failed and modal was already closed
+      setIsDeleteDialogOpen(false);
+      setPostToDelete(null);
+    }
+  };
+
+  // --- Open Comment Modal ---
+  const openCommentModal = (post) => {
+    setSelectedPostForModal({ id: post.id, title: post.title });
+    setIsCommentModalOpen(true);
+  };
+
+  // --- Callback for Comment Modal ---
+  const handleCommentAdded = (postId) => {
+    setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p)));
+  };
+
+  // --- Intersection Observer Setup ---
+  const lastPostElementRef = useCallback(
+    (node) => {
+      if (loading) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !initialLoading) {
+          console.log("Last liked post visible, loading more...");
+          loadMoreLikedPosts(page, false);
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore, page, initialLoading, loadMoreLikedPosts]
+  );
+
+  // --- Effect for Initial Load Only ---
+  useEffect(() => {
+    console.log("Liked Posts component mounted, loading initial posts...");
+    loadMoreLikedPosts(1, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // --- Helper Functions ---
   const getTypeColor = (type) => {
-    switch (type) {
+    switch (type?.toLowerCase()) {
       case "illustration":
-        return "text-red-500 bg-red-500/10 hover:bg-red-500/20";
+        return "text-primary bg-primary/10 hover:bg-primary/20";
       case "manga":
         return "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20";
       case "novel":
         return "text-purple-500 bg-purple-500/10 hover:bg-purple-500/20";
       default:
-        return "text-primary bg-primary/10 hover:bg-primary/20";
+        return "text-gray-500 bg-gray-500/10 hover:bg-gray-500/20";
     }
   };
 
-  // Helper function to get type icon
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case "illustration":
-        return <ImageIcon className="h-4 w-4" />;
-      case "manga":
-        return <BookOpen className="h-4 w-4" />;
-      case "novel":
-        return <BookMarked className="h-4 w-4" />;
-      default:
-        return <ImageIcon className="h-4 w-4" />;
-    }
-  };
-
-  // Format date for display
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(date);
-  };
-
-  // Date helper functions
-  const isToday = (date) => {
-    const today = new Date();
-    return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-  };
-
-  const isThisWeek = (date) => {
-    const today = new Date();
-    const oneWeekAgo = new Date(today);
-    oneWeekAgo.setDate(today.getDate() - 7);
-    return date >= oneWeekAgo;
-  };
-
-  const isThisMonth = (date) => {
-    const today = new Date();
-    const oneMonthAgo = new Date(today);
-    oneMonthAgo.setMonth(today.getMonth() - 1);
-    return date >= oneMonthAgo;
-  };
-
+  // --- Return JSX ---
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <CardTitle>Liked Posts</CardTitle>
-        <CardDescription>View and manage your liked posts</CardDescription>
-      </div>
-      {/* Liked Posts Content */}
-      {sortedPosts.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center">
-          <Heart className="h-16 w-16 text-muted-foreground mb-4" />
-          <h3 className="text-xl font-medium mb-2">No liked posts found</h3>
-          <p className="text-muted-foreground mb-6">{searchQuery || filterType !== "all" || activeTab !== "all" ? "Try adjusting your filters or search query" : "Start liking posts to see them here"}</p>
-          <Button>Explore Content</Button>
-        </Card>
-      ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedPosts.map((post) => (
-            <Card key={post.id} className="overflow-hidden group h-full flex flex-col">
-              <div className="relative">
-                <img src={post.imageUrl || "/placeholder.svg"} alt={post.title} className="aspect-[4/3] w-full object-cover" />
-                <div className="absolute top-2 right-2">
-                  <Badge variant="outline" className={`${getTypeColor(post.type)} border-transparent text-white`}>
-                    {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
-                  </Badge>
-                </div>
-                <div className="absolute top-2 left-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setItemToUnlike(post.id);
-                          setConfirmUnlikeOpen(true);
-                        }}
-                      >
-                        <HeartOff className="h-4 w-4 mr-2" />
-                        Unlike Post
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <Bookmark className="h-4 w-4 mr-2" />
-                        Bookmark
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Share
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-
-              <CardContent className="p-4 flex-grow">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg">{post.title}</h3>
-                </div>
-
-                <div className="flex items-center mt-2">
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <div className="flex items-center gap-2 cursor-pointer">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                          <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{post.author.name}</span>
-                      </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <div className="flex justify-between space-x-4">
-                        <Avatar>
-                          <AvatarImage src={post.author.avatar} />
-                          <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-semibold">{post.author.name}</h4>
-                          <p className="text-sm">Level {post.author.level} Artist</p>
-                          <div className="flex items-center pt-2">
-                            <Button variant="outline" size="sm" className="mr-2">
-                              View Profile
-                            </Button>
-                            <Button size="sm">Follow</Button>
-                          </div>
-                        </div>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                </div>
-
-                <div className="flex items-center mt-2 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>Liked on {formatDate(post.likedAt)}</span>
-                </div>
-
-                <Separator className="my-3" />
-
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <div className="flex items-center">
-                    <Heart className="h-4 w-4 mr-1 fill-red-500 text-red-500" />
-                    <span>{post.stats.likes}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <MessageCircle className="h-4 w-4 mr-1" />
-                    <span>{post.stats.comments}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Share2 className="h-4 w-4 mr-1" />
-                    <span>{post.stats.shares}</span>
-                  </div>
-                </div>
-              </CardContent>
-
-              <CardFooter className="p-4 pt-0">
-                <div className="flex w-full gap-2">
-                  <Button variant="outline" className="flex-1">
-                    View
-                  </Button>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          onClick={() => {
-                            setItemToUnlike(post.id);
-                            setConfirmUnlikeOpen(true);
-                          }}
-                        >
-                          <HeartOff className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Unlike post</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[600px]">
-              <div className="divide-y">
-                {sortedPosts.map((post) => (
-                  <div key={post.id} className="flex p-4 gap-4 hover:bg-muted/50 transition-colors">
-                    <div className="relative h-20 w-20 flex-shrink-0">
-                      <img src={post.imageUrl || "/placeholder.svg"} alt={post.title} className="h-full w-full object-cover rounded-md" />
-                      <Badge variant="outline" className={`${getTypeColor(post.type)} border-transparent text-white absolute bottom-1 right-1 text-[10px] px-1 py-0`}>
-                        {getTypeIcon(post.type)}
-                      </Badge>
+    <>
+      <div className="container mx-auto p-4 md:p-6">
+        <h1 className="text-2xl font-bold mb-6">My Liked Posts</h1>
+        {error && !loading && (
+          <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
+            <span className="font-medium">Error!</span> {error}
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* === Loading States === */}
+          {initialLoading &&
+            Array.from({ length: POSTS_PER_PAGE }).map((_, index) => (
+              <Card key={`skeleton-${index}`} className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between p-3">
+                  <div className="flex items-center space-x-2">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" /> {/* Skeleton for date */}
                     </div>
+                  </div>
+                  <Skeleton className="h-7 w-7" /> {/* Skeleton for more button */}
+                </CardHeader>
+                <Skeleton className="aspect-square w-full" />
+                <CardContent className="pt-3 pb-2 px-3 space-y-2">
+                  <Skeleton className="h-4 w-1/4" /> {/* Skeleton for type badge */}
+                  <Skeleton className="h-5 w-5/6" /> {/* Skeleton for Title */}
+                  <Skeleton className="h-4 w-full" /> {/* Skeleton for Description line 1 */}
+                  <Skeleton className="h-4 w-3/4" /> {/* Skeleton for Description line 2 */}
+                  <Skeleton className="h-4 w-1/2" /> {/* Skeleton for Tags */}
+                </CardContent>
+                <CardFooter className="flex justify-between border-t pt-2 pb-3 px-3">
+                  <div className="flex space-x-1">
+                    <Skeleton className="h-7 w-16" /> {/* Like button + count */}
+                    <Skeleton className="h-7 w-16" /> {/* Comment button + count */}
+                  </div>
+                  <Skeleton className="h-7 w-7" /> {/* Bookmark button */}
+                </CardFooter>
+              </Card>
+            ))}
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-medium truncate">{post.title}</h3>
-                        <div className="flex items-center gap-1">
-                          <TooltipProvider>
+          {/* === Content Display === */}
+          {!initialLoading &&
+            posts.length > 0 &&
+            posts.map((post, index) => {
+              if (!post) return null;
+              const isLastElement = posts.length === index + 1;
+              return (
+                <TooltipProvider key={`${post.id}-${index}`}>
+                  {" "}
+                  {/* Wrap card in provider for multiple tooltips */}
+                  <Card className="overflow-hidden flex flex-col" ref={isLastElement ? lastPostElementRef : null}>
+                    {/* Card Header with User Info, Date, and Delete Option */}
+                    <CardHeader className="flex flex-row items-center justify-between space-x-2 p-3">
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <div className="flex items-center space-x-2 cursor-pointer overflow-hidden flex-grow">
+                            {" "}
+                            {/* Added flex-grow */}
+                            <Avatar className="h-8 w-8 flex-shrink-0">
+                              {" "}
+                              {/* Added flex-shrink-0 */}
+                              <AvatarImage src={formatImageUrl(post.avatar)} alt={post.username} />
+                              <AvatarFallback>{post.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                            </Avatar>
+                            <div className="overflow-hidden">
+                              <p className="text-sm font-medium truncate">{post.username}</p>
+                              {/* Display createdAt */}
+                              {post.createdAt && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="text-xs text-muted-foreground truncate flex items-center">
+                                      <Clock className="h-3 w-3 mr-1 inline-block" /> {/* Optional icon */}
+                                      {post.createdAt} {/* Display raw date/time string */}
+                                    </p>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Posted on: {post.createdAt}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80">
+                          <div className="flex justify-between space-x-4">
+                            <Avatar>
+                              <AvatarImage src={formatImageUrl(post.avatar)} />
+                              <AvatarFallback>{post.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-semibold">{post.username}</h4>
+                              <p className="text-sm text-muted-foreground">Level {post.level || 1} Artist</p>
+                              {/* Add more details here if needed */}
+                            </div>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+
+                      {/* Delete Dropdown if post belongs to the current user */}
+                      {USER_ID === post.userId && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground flex-shrink-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                setPostToDelete(post.id);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete Post
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </CardHeader>
+
+                    {/* Image Carousel */}
+                    <ImageCarousel images={post.images} title={post.title} aspectRatio="square" />
+
+                    {/* Card Content with Type, Title, Description, and Tags */}
+                    <CardContent className="pt-3 pb-2 px-3 flex-grow space-y-1.5">
+                      {" "}
+                      {/* Added space-y */}
+                      {/* Display Type */}
+                      {post.type && (
+                        <Badge variant="outline" className={`text-xs capitalize font-medium ${getTypeColor(post.type)}`}>
+                          {post.type}
+                        </Badge>
+                      )}
+                      {/* Display Title */}
+                      <h3 className="text-base font-semibold line-clamp-2">{post.title}</h3>
+                      {/* Display Description (Truncated with Tooltip) */}
+                      {post.description && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <p className="text-sm text-muted-foreground line-clamp-2 cursor-default">{post.description}</p>
+                          </TooltipTrigger>
+                          {/* Show tooltip only if description is actually truncated (more complex logic) or always show */}
+                          <TooltipContent side="bottom" align="start" className="max-w-[300px] whitespace-normal">
+                            <p>{post.description}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {/* Display Tags */}
+                      {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {" "}
+                          {/* Added pt-1 */}
+                          {post.tags.slice(0, 3).map((tag, tagIndex) => (
+                            <Badge key={tagIndex} variant="secondary" className="text-xs capitalize">
+                              #{tag}
+                            </Badge>
+                          ))}
+                          {post.tags.length > 3 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => {
-                                    setItemToUnlike(post.id);
-                                    setConfirmUnlikeOpen(true);
-                                  }}
-                                >
-                                  <HeartOff className="h-4 w-4" />
-                                </Button>
+                                <Badge variant="secondary" className="text-xs cursor-default">
+                                  ...
+                                </Badge>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Unlike post</p>
+                                <p>Tags: {post.tags.join(", ")}</p>
                               </TooltipContent>
                             </Tooltip>
-                          </TooltipProvider>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Bookmark className="h-4 w-4 mr-2" />
-                                Bookmark
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Share2 className="h-4 w-4 mr-2" />
-                                Share
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          )}
                         </div>
+                      )}
+                    </CardContent>
+
+                    {/* Card Footer - Action Buttons */}
+                    <CardFooter className="flex justify-between items-center border-t pt-2 pb-3 px-3">
+                      <div className="flex space-x-1">
+                        {/* Like Button */}
+                        <HoverCard openDelay={200} closeDelay={100}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`flex items-center space-x-1 h-7 px-1 rounded-l-md ${post.postLikeStatus ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-foreground"}`}
+                                  onClick={() => handleLikeToggle(post.id, post.postLikeStatus)}
+                                  disabled={!USER_ID}
+                                >
+                                  <Heart className={`h-4 w-4 ${post.postLikeStatus ? "fill-current" : ""}`} />
+                                </Button>
+                                <HoverCardTrigger asChild>
+                                  <span
+                                    className={`cursor-pointer text-xs font-medium h-7 flex items-center pr-1.5 pl-1 border-l border-transparent hover:bg-accent rounded-r-md ${
+                                      post.postLikeStatus ? "text-red-500" : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    {post.likeCount || 0}
+                                  </span>
+                                </HoverCardTrigger>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{!USER_ID ? "Login to interact" : post.postLikeStatus ? "Unlike" : "Like"}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <HoverCardContent className="w-auto p-0" side="top" align="start">
+                            {post.id && <LikesHoverCard postId={post.id} />}
+                          </HoverCardContent>
+                        </HoverCard>
+
+                        {/* Comment Button */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="sm" className="flex items-center space-x-1 h-7 px-1.5 text-muted-foreground hover:text-foreground" onClick={() => openCommentModal(post)}>
+                              <MessageCircle className="h-4 w-4" />
+                              <span className="text-xs">{post.commentCount || 0}</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View or add comments</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
 
-                      <div className="flex items-center mt-1">
-                        <Avatar className="h-4 w-4 mr-1">
-                          <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                          <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs">{post.author.name}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          <span>{formatDate(post.likedAt)}</span>
-                        </div>
-
-                        <div className="flex gap-3">
-                          <div className="flex items-center text-xs">
-                            <Heart className="h-3 w-3 mr-1 fill-red-500 text-red-500" />
-                            <span>{post.stats.likes}</span>
-                          </div>
-                          <div className="flex items-center text-xs">
-                            <MessageCircle className="h-3 w-3 mr-1" />
-                            <span>{post.stats.comments}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                      {/* Bookmark Button */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-7 w-7 ${post.bookmarkStatus ? "text-blue-500 hover:text-blue-600" : "text-muted-foreground hover:text-foreground"}`}
+                            onClick={() => handleBookmarkToggle(post.id, post.bookmarkStatus)}
+                            disabled={!USER_ID}
+                          >
+                            <Bookmark className={`h-4 w-4 ${post.bookmarkStatus ? "fill-current" : ""}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{!USER_ID ? "Login to bookmark" : post.bookmarkStatus ? "Remove bookmark" : "Bookmark"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </CardFooter>
+                  </Card>
+                </TooltipProvider>
+              );
+            })}
+        </div>{" "}
+        {/* End Grid */}
+        {/* === End of Content States === */}
+        {loading && !initialLoading && <div className="text-center py-6 text-muted-foreground col-span-full">Loading more...</div>}
+        {!initialLoading && !loading && posts.length === 0 && !error && (
+          <div className="text-center py-10 col-span-full">
+            <p className="text-muted-foreground">You haven't liked any posts yet.</p>
+          </div>
+        )}
+        {!loading && !hasMore && posts.length > 0 && <div className="text-center py-6 text-muted-foreground col-span-full">End of liked posts ✨</div>}
+      </div>{" "}
+      {/* End Container */}
+      {/* --- Modals --- */}
+      {isCommentModalOpen && selectedPostForModal && (
+        <CommentModal
+          postId={selectedPostForModal.id}
+          postTitle={selectedPostForModal.title}
+          isOpen={isCommentModalOpen}
+          onClose={() => {
+            setIsCommentModalOpen(false);
+            setSelectedPostForModal(null);
+          }}
+          onCommentAdded={handleCommentAdded}
+          currentUser={USER_DATA ? { id: USER_DATA.id, username: USER_DATA.username, avatar: USER_DATA.avatar, level: USER_DATA.level || 1 } : null}
+        />
       )}
-
-      {/* Confirmation Dialog */}
-      <Dialog open={confirmUnlikeOpen} onOpenChange={setConfirmUnlikeOpen}>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Unlike Post</DialogTitle>
-            <DialogDescription>Are you sure you want to unlike this post? It will be removed from your liked posts.</DialogDescription>
+            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogDescription>This action cannot be undone. This will permanently delete the post.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button
-              onClick={() => {
-                if (itemToUnlike !== null) {
-                  handleUnlike(itemToUnlike);
-                  setConfirmUnlikeOpen(false);
-                  setItemToUnlike(null);
-                }
-              }}
-            >
-              Unlike
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeletePost}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
-
-// Sample data for liked posts
-const LIKED_POSTS = [
-  {
-    id: 1,
-    title: "Ethereal Forest",
-    type: "illustration",
-    imageUrl: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop",
-    author: {
-      name: "Liam Parker",
-      avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=100&auto=format&fit=crop",
-      level: 16,
-    },
-    stats: {
-      likes: 2547,
-      comments: 342,
-      shares: 128,
-    },
-    likedAt: "2023-05-15T14:30:00Z",
-  },
-  {
-    id: 2,
-    title: "Cyberpunk City",
-    type: "illustration",
-    imageUrl: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=1000&auto=format&fit=crop",
-    author: {
-      name: "Zoe Chen",
-      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop",
-      level: 23,
-    },
-    stats: {
-      likes: 2103,
-      comments: 276,
-      shares: 95,
-    },
-    likedAt: "2023-05-20T09:15:00Z",
-  },
-  {
-    id: 3,
-    title: "Moonlit Wanderer",
-    type: "manga",
-    imageUrl: "https://images.unsplash.com/photo-1579547945413-497e1b99dac0?q=80&w=1000&auto=format&fit=crop",
-    author: {
-      name: "Hiroshi Tanaka",
-      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=100&auto=format&fit=crop",
-      level: 28,
-    },
-    stats: {
-      likes: 1876,
-      comments: 231,
-      shares: 87,
-    },
-    likedAt: "2023-06-02T18:45:00Z",
-  },
-  {
-    id: 4,
-    title: "Ocean Dreams",
-    type: "illustration",
-    imageUrl: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1000&auto=format&fit=crop",
-    author: {
-      name: "Emma Waters",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop",
-      level: 19,
-    },
-    stats: {
-      likes: 1654,
-      comments: 198,
-      shares: 76,
-    },
-    likedAt: "2023-06-10T11:20:00Z",
-  },
-  {
-    id: 5,
-    title: "The Last Guardian",
-    type: "novel",
-    imageUrl: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=1000&auto=format&fit=crop",
-    author: {
-      name: "Marcus Reed",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
-      level: 21,
-    },
-    stats: {
-      likes: 1432,
-      comments: 187,
-      shares: 65,
-    },
-    likedAt: "2023-06-15T15:10:00Z",
-  },
-  {
-    id: 6,
-    title: "Sakura Dreams",
-    type: "illustration",
-    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=1000&auto=format&fit=crop",
-    author: {
-      name: "Yuki Sato",
-      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop",
-      level: 25,
-    },
-    stats: {
-      likes: 1321,
-      comments: 165,
-      shares: 54,
-    },
-    likedAt: "2023-06-22T08:30:00Z",
-  },
-  {
-    id: 7,
-    title: "Dragon's Realm",
-    type: "manga",
-    imageUrl: "https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?q=80&w=1000&auto=format&fit=crop",
-    author: {
-      name: "Jin Lee",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
-      level: 22,
-    },
-    stats: {
-      likes: 1287,
-      comments: 154,
-      shares: 48,
-    },
-    likedAt: "2023-06-25T14:20:00Z",
-  },
-  {
-    id: 8,
-    title: "Whispers in the Wind",
-    type: "novel",
-    imageUrl: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1000&auto=format&fit=crop",
-    author: {
-      name: "Elena Frost",
-      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop",
-      level: 18,
-    },
-    stats: {
-      likes: 1198,
-      comments: 143,
-      shares: 42,
-    },
-    likedAt: "2023-07-01T10:15:00Z",
-  },
-];
