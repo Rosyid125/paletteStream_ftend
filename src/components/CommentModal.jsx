@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, CornerDownRight } from "lucide-react";
+// Import Trash2 icon for delete button
+import { MessageSquare, CornerDownRight, Trash2 } from "lucide-react";
 import api from "./../api/axiosInstance"; // Adjust path if necessary
 import { Textarea } from "@/components/ui/textarea";
 
@@ -45,6 +46,8 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
   const [newComment, setNewComment] = useState("");
   const [newReply, setNewReply] = useState({});
   const [showReplyInput, setShowReplyInput] = useState({});
+  // State to track which comment/reply is being deleted (optional, for loading state on button)
+  const [deletingId, setDeletingId] = useState(null);
 
   const commentObserver = useRef();
   const replyObservers = useRef({});
@@ -59,7 +62,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         setComments([]);
         setCommentPage(1);
         setHasMoreComments(true);
-        setError(null);
+        setError(null); // Reset error on initial load
       }
 
       try {
@@ -71,7 +74,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
           setComments((prev) => (isInitial ? fetchedComments : [...prev, ...fetchedComments]));
           setCommentPage(pageToLoad + 1);
           setHasMoreComments(fetchedComments.length === COMMENTS_PER_PAGE);
-          setError(null);
+          setError(null); // Clear error on success
         } else {
           setError("Could not load comments.");
           setHasMoreComments(false);
@@ -84,7 +87,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         setLoadingComments(false);
       }
     },
-    [postId, loadingComments, hasMoreComments]
+    [postId, loadingComments, hasMoreComments] // Removed error from dependencies as it's handled internally
   );
 
   // --- Fetching Replies --- (Tetap sama)
@@ -113,11 +116,12 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       }
     } catch (err) {
       console.error(`Error fetching replies for comment ${commentId}:`, err);
+      // Consider setting a specific error for this comment's replies
       setHasMoreReplies((prev) => ({ ...prev, [commentId]: false }));
     } finally {
       setLoadingReplies((prev) => ({ ...prev, [commentId]: false }));
     }
-  }, []);
+  }, []); // Dependencies remain the same
 
   // --- Toggle Reply Visibility and Load Initial --- (Tetap sama)
   const toggleReplies = (commentId) => {
@@ -137,16 +141,15 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     setShowReplyInput((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
   };
 
-  // --- Posting New Comment --- (MODIFIED for optimistic update)
+  // --- Posting New Comment --- (Tetap sama - with optimistic updates)
   const handlePostComment = useCallback(async () => {
     if (!newComment.trim() || !currentUser?.id || postingComment) return;
     setPostingComment(true);
-    setError(null);
+    setError(null); // Clear previous errors
 
-    let postedCommentData = null; // Store comment data from the first API call
+    let postedCommentData = null;
 
     try {
-      // 1. Post the comment
       const postResponse = await api.post("/comments/create", {
         post_id: postId,
         user_id: currentUser.id,
@@ -156,57 +159,49 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       if (!postResponse.data.success || !postResponse.data.data) {
         throw new Error(postResponse.data.message || "Failed to post comment.");
       }
-      postedCommentData = postResponse.data.data; // Save the basic comment data
+      postedCommentData = postResponse.data.data;
 
-      // 2. Fetch the user's mini-profile for accurate optimistic update data
       const profileResponse = await api.get(`/profiles/mini-profile/${currentUser.id}`);
 
       if (!profileResponse.data.success || !profileResponse.data.data) {
-        // If profile fetch fails, log warning but maybe proceed with less accurate data?
-        // Or throw an error? Let's throw an error for consistency.
         console.warn("Comment posted, but failed to fetch mini-profile for optimistic update.");
         throw new Error("Failed to fetch user profile after posting comment.");
-        // Alternative: proceed with potentially stale currentUser data if profile fetch fails
-        // const userProfileData = currentUser; // Fallback
       }
 
-      const userProfileData = profileResponse.data.data; // Get fresh user data
+      const userProfileData = profileResponse.data.data;
 
-      // 3. Construct the optimistic comment using fresh profile data
       const addedComment = {
-        ...postedCommentData, // Use data returned by comment creation (id, content, etc.)
-        username: userProfileData.username, // Override/add with fresh data
-        avatar: userProfileData.avatar, // Override/add with fresh data
-        level: userProfileData.level, // Override/add with fresh data
-        // Use local time for immediate feedback, server time might differ slightly
+        ...postedCommentData,
+        username: userProfileData.username,
+        avatar: userProfileData.avatar,
+        level: userProfileData.level,
+        // Ensure user_id is present for delete check
+        user_id: currentUser.id, // Explicitly add from currentUser if not returned by create API
         created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        replies_count: 0, // New comments have 0 replies
+        replies_count: 0,
       };
 
-      // 4. Update UI optimistically
       setComments((prev) => [addedComment, ...prev]);
       setNewComment("");
       if (onCommentAdded) onCommentAdded(postId);
     } catch (err) {
       console.error("Error posting comment or fetching profile:", err);
       let errorMsg = "An error occurred while posting the comment.";
-      if (err.response && err.response.data && err.response.data.message) {
+      if (err.response?.data?.message) {
         errorMsg = `Failed to post comment: ${err.response.data.message}`;
       } else if (err.message) {
         errorMsg = `Failed to post comment: ${err.message}`;
       }
-      // If comment posted but profile failed, maybe a more specific message?
       if (postedCommentData && err.message.includes("user profile")) {
         errorMsg = "Comment was posted, but there was an issue updating the display immediately.";
-        // Optionally: Trigger a full refresh of comments later or just show error.
       }
-      setError(errorMsg);
+      setError(errorMsg); // Set error state
     } finally {
       setPostingComment(false);
     }
-  }, [newComment, currentUser, postId, onCommentAdded, postingComment]); // Dependencies remain largely the same
+  }, [newComment, currentUser, postId, onCommentAdded, postingComment]);
 
-  // --- Posting New Reply --- (MODIFIED for optimistic update)
+  // --- Posting New Reply --- (Tetap sama - with optimistic updates)
   const handlePostReply = useCallback(
     async (commentId) => {
       const replyContent = newReply[commentId]?.trim();
@@ -216,7 +211,6 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       let postedReplyData = null;
 
       try {
-        // 1. Post the reply
         const postResponse = await api.post("/comments/comment-replies/create", {
           post_comment_id: commentId,
           user_id: currentUser.id,
@@ -226,30 +220,27 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         if (!postResponse.data.success || !postResponse.data.data) {
           throw new Error(postResponse.data.message || "Failed to post reply.");
         }
-        postedReplyData = postResponse.data.data; // Save basic reply data
+        postedReplyData = postResponse.data.data;
 
-        // 2. Fetch user's mini-profile
         const profileResponse = await api.get(`/profiles/mini-profile/${currentUser.id}`);
 
         if (!profileResponse.data.success || !profileResponse.data.data) {
           console.warn("Reply posted, but failed to fetch mini-profile for optimistic update.");
           throw new Error("Failed to fetch user profile after posting reply.");
-          // Alternative: Fallback to currentUser
-          // const userProfileData = currentUser;
         }
 
-        const userProfileData = profileResponse.data.data; // Fresh user data
+        const userProfileData = profileResponse.data.data;
 
-        // 3. Construct optimistic reply
         const addedReply = {
-          ...postedReplyData, // Use data from reply creation
-          username: userProfileData.username, // Override/add fresh data
-          avatar: userProfileData.avatar, // Override/add fresh data
-          level: userProfileData.level, // Override/add fresh data
+          ...postedReplyData,
+          username: userProfileData.username,
+          avatar: userProfileData.avatar,
+          level: userProfileData.level,
+          // Ensure user_id is present for delete check
+          user_id: currentUser.id, // Explicitly add from currentUser if not returned by create API
           created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
 
-        // 4. Update UI optimistically
         setReplies((prev) => ({
           ...prev,
           [commentId]: [...(prev[commentId] || []), addedReply],
@@ -257,28 +248,128 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         setNewReply((prev) => ({ ...prev, [commentId]: "" }));
         setShowReplyInput((prev) => ({ ...prev, [commentId]: false }));
 
-        // Update reply count on the parent comment
         setComments((prevComments) => prevComments.map((c) => (c.id === commentId ? { ...c, replies_count: (c.replies_count || 0) + 1 } : c)));
+        setError(null); // Clear error on success
       } catch (err) {
         console.error(`Error posting reply to comment ${commentId} or fetching profile:`, err);
-        // Optionally, provide feedback to the user in the UI (e.g., using setError or a temporary message near the reply input)
         let errorMsg = "An error occurred while posting the reply.";
-        if (err.response && err.response.data && err.response.data.message) {
+        if (err.response?.data?.message) {
           errorMsg = `Failed to post reply: ${err.response.data.message}`;
         } else if (err.message) {
           errorMsg = `Failed to post reply: ${err.message}`;
         }
         if (postedReplyData && err.message.includes("user profile")) {
           errorMsg = "Reply was posted, but there was an issue updating the display immediately.";
-          // Consider adding a small error display near the reply input for this case
         }
-        // For now, just log it, but you might want UI feedback
-        console.error(errorMsg); // You could potentially set a specific error state for this reply input
+        // Set a general error or potentially a specific one near the input
+        setError(errorMsg);
+        console.error(errorMsg);
       } finally {
         setPostingReply((prev) => ({ ...prev, [commentId]: false }));
       }
     },
-    [newReply, currentUser, postingReply] // Dependencies remain largely the same
+    [newReply, currentUser, postingReply] // Added error state dependency
+  );
+
+  // --- Deleting Comment --- (NEW FUNCTION)
+  const handleDeleteComment = useCallback(
+    async (commentId) => {
+      // Optional: Add confirmation
+      if (!window.confirm("Are you sure you want to delete this comment? This action cannot be undone.")) {
+        return;
+      }
+
+      setDeletingId(commentId); // Indicate deletion is in progress
+      setError(null); // Clear previous errors
+
+      // Find the comment for potential rollback (optional but good practice)
+      const commentToDelete = comments.find((c) => c.id === commentId);
+      const originalComments = [...comments]; // Store original state
+
+      // Optimistic Update: Remove comment from UI immediately
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+
+      try {
+        const response = await api.delete(`/comments/delete/${commentId}`);
+
+        if (!response.data.success) {
+          // Handle API error even if it returns 2xx but success: false
+          throw new Error(response.data.message || "Server indicated failure.");
+        }
+        // Success! Comment is already removed optimistically.
+        console.log(`Comment ${commentId} deleted successfully.`);
+        // You could potentially update a total comment count elsewhere if needed
+        // If onCommentDeleted prop existed: onCommentDeleted(postId);
+      } catch (err) {
+        console.error(`Error deleting comment ${commentId}:`, err);
+        let errorMsg = "An error occurred while deleting the comment.";
+        if (err.response?.data?.message) {
+          errorMsg = `Failed to delete comment: ${err.response.data.message}`;
+        } else if (err.message) {
+          errorMsg = `Failed to delete comment: ${err.message}`;
+        }
+        setError(errorMsg);
+
+        // Rollback optimistic update on failure
+        setComments(originalComments);
+      } finally {
+        setDeletingId(null); // Reset deleting state
+      }
+    },
+    [comments] // Dependency: comments array for finding and filtering
+  );
+
+  // --- Deleting Reply --- (NEW FUNCTION)
+  const handleDeleteReply = useCallback(
+    async (commentId, replyId) => {
+      // Optional: Add confirmation
+      if (!window.confirm("Are you sure you want to delete this reply? This action cannot be undone.")) {
+        return;
+      }
+
+      setDeletingId(replyId); // Indicate deletion is in progress using replyId
+      setError(null); // Clear previous errors
+
+      // Store original state for potential rollback
+      const originalRepliesForComment = [...(replies[commentId] || [])];
+      const originalComments = [...comments];
+      const parentComment = comments.find((c) => c.id === commentId);
+
+      // Optimistic Update: Remove reply and decrement count
+      setReplies((prev) => ({
+        ...prev,
+        [commentId]: (prev[commentId] || []).filter((r) => r.id !== replyId),
+      }));
+      setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, replies_count: Math.max(0, (c.replies_count || 1) - 1) } : c)));
+
+      try {
+        // IMPORTANT: Use replyId in the endpoint
+        const response = await api.delete(`/comments/comment-replies/delete/${replyId}`);
+
+        if (!response.data.success) {
+          // Handle API error even if it returns 2xx but success: false
+          throw new Error(response.data.message || "Server indicated failure.");
+        }
+        // Success! Reply is already removed optimistically.
+        console.log(`Reply ${replyId} deleted successfully.`);
+      } catch (err) {
+        console.error(`Error deleting reply ${replyId} (under comment ${commentId}):`, err);
+        let errorMsg = "An error occurred while deleting the reply.";
+        if (err.response?.data?.message) {
+          errorMsg = `Failed to delete reply: ${err.response.data.message}`;
+        } else if (err.message) {
+          errorMsg = `Failed to delete reply: ${err.message}`;
+        }
+        setError(errorMsg);
+
+        // Rollback optimistic update on failure
+        setReplies((prev) => ({ ...prev, [commentId]: originalRepliesForComment }));
+        setComments(originalComments); // Restore original comments array (with original reply count)
+      } finally {
+        setDeletingId(null); // Reset deleting state
+      }
+    },
+    [replies, comments] // Dependency: replies object and comments array
   );
 
   // --- Intersection Observer for Comments --- (Tetap sama)
@@ -288,7 +379,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       if (commentObserver.current) commentObserver.current.disconnect();
       commentObserver.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasMoreComments && !loadingComments) {
-          console.log("Comment sentinel visible, loading more comments...");
+          // console.log("Comment sentinel visible, loading more comments...");
           loadComments(commentPage);
         }
       });
@@ -297,13 +388,43 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     [loadingComments, hasMoreComments, commentPage, loadComments]
   );
 
-  // --- Intersection Observer for Replies (Modified logic inside map) ---
-  // Note: The ref callback itself doesn't need changes here, but how it's used inside the map is crucial.
+  // --- Intersection Observer for Replies (Tetap sama) ---
+  const createReplyRefCallback = useCallback(
+    (commentId) => (node) => {
+      const isLoading = loadingReplies[commentId] || false;
+      const hasMore = hasMoreReplies[commentId] !== undefined ? hasMoreReplies[commentId] : true;
+      const currentPage = replyPage[commentId] || 1; // Next page to load is current page number + 1
+
+      if (isLoading) return; // Don't attach observer if already loading
+
+      // Disconnect previous observer for this commentId if it exists
+      if (replyObservers.current[commentId]) {
+        replyObservers.current[commentId].disconnect();
+      }
+
+      if (node) {
+        replyObservers.current[commentId] = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting && hasMore && !loadingReplies[commentId]) {
+            // console.log(`Reply sentinel visible for comment ${commentId}, loading more replies...`);
+            loadReplies(commentId, currentPage); // Load the next page
+          }
+        });
+        replyObservers.current[commentId].observe(node);
+      } else {
+        // Clean up if the node is removed
+        if (replyObservers.current[commentId]) {
+          replyObservers.current[commentId].disconnect();
+          delete replyObservers.current[commentId];
+        }
+      }
+    },
+    [loadingReplies, hasMoreReplies, replyPage, loadReplies] // Include dependencies
+  );
 
   // --- Effect for Initial Load & Cleanup --- (Tetap sama)
   useEffect(() => {
     if (isOpen && postId) {
-      console.log("Comment modal opened, loading initial comments.");
+      // console.log("Comment modal opened, loading initial comments.");
       loadComments(1, true);
     } else {
       // Reset all state on close
@@ -322,14 +443,13 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       setShowReplyInput({});
       setPostingComment(false);
       setPostingReply({});
+      setDeletingId(null); // Reset deleting state
       if (commentObserver.current) commentObserver.current.disconnect();
       Object.values(replyObservers.current).forEach((obs) => obs?.disconnect());
       replyObservers.current = {};
     }
-    // Only re-run if isOpen or postId changes significantly
-    // loadComments has its own dependency management with useCallback
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, postId]); // Keep dependencies minimal for this effect
+  }, [isOpen, postId]); // Keep dependencies minimal
 
   // --- Handler for Enter key on Comment Input --- (Tetap sama)
   const handleCommentKeyDown = (event) => {
@@ -347,18 +467,20 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     }
   };
 
-  // --- Return JSX --- (No changes needed in JSX structure itself)
+  // --- Return JSX --- (MODIFIED to include Delete buttons)
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle>Comments on "{postTitle}"</DialogTitle>
+          {/* Display general errors here */}
+          {error && <DialogDescription className="text-sm text-red-600 pt-2">{error}</DialogDescription>}
         </DialogHeader>
 
         {/* Comment List Area */}
         <ScrollArea className="flex-grow p-6 pt-0 overflow-y-auto">
           <div className="space-y-4">
-            {error && <p className="text-sm text-red-600 text-center py-4">{error}</p>}
+            {/* Error display moved to header, but could be kept here too */}
 
             {/* Skeletons */}
             {loadingComments &&
@@ -381,18 +503,17 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
             {/* Display Comments */}
             {comments.map((comment, index) => {
               const isLastComment = comments.length === index + 1;
+              // Check if the current user owns this comment
+              const canDeleteComment = currentUser && currentUser.id === comment.user_id;
 
               return (
-                // Key and Ref assignment remains the same
                 <div key={comment.id || `comment-${index}`} ref={isLastComment ? lastCommentElementRef : null}>
                   <div className="flex space-x-3 py-3">
-                    {/* Avatar and User Info display remains the same */}
                     <Avatar className="h-10 w-10 flex-shrink-0">
                       <AvatarImage src={formatImageUrl(comment.avatar)} alt={comment.username} />
                       <AvatarFallback>{comment.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                     </Avatar>
                     <div className="flex-grow">
-                      {/* Comment content and actions display remains the same */}
                       <div className="flex items-baseline space-x-2">
                         <span className="font-semibold text-sm">{comment.username}</span>
                         <span className="text-xs text-muted-foreground">• Lvl {comment.level || 1}</span>
@@ -406,6 +527,19 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                         <button onClick={() => toggleReplies(comment.id)} className="hover:text-primary font-medium" aria-expanded={!!visibleReplies[comment.id]}>
                           {visibleReplies[comment.id] ? "Hide" : "View"} Replies ({comment.replies_count || 0}){loadingReplies[comment.id] ? "..." : ""}
                         </button>
+                        {/* --- DELETE COMMENT BUTTON --- */}
+                        {canDeleteComment && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 text-xs text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            disabled={deletingId === comment.id} // Disable while deleting this specific comment
+                            aria-label={`Delete comment by ${comment.username}`}
+                          >
+                            {deletingId === comment.id ? <span className="px-1">Deleting...</span> : <Trash2 className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
                       </div>
                       {/* Reply Input Area remains the same */}
                       {showReplyInput[comment.id] && (
@@ -439,76 +573,57 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                           </div>
                         </div>
                       )}
-                      {/* Replies Section remains the same */}
+                      {/* Replies Section */}
                       {visibleReplies[comment.id] && (
                         <div className="mt-3 pl-8 border-l-2 border-muted ml-5" aria-live="polite">
-                          {/* Display Replies (structure remains the same) */}
-                          {(replies[comment.id] || []).map((reply, replyIndex, arr) => (
-                            <div
-                              key={reply.id || `reply-${comment.id}-${replyIndex}`} // Use reply.id if available
-                              className="flex space-x-3 py-2"
-                              ref={
-                                // Intersection Observer Ref logic remains the same
-                                replyIndex === arr.length - 1
-                                  ? (node) => {
-                                      const currentCommentId = comment.id;
-                                      const isLoading = loadingReplies[currentCommentId] || false;
-                                      // Ensure hasMoreReplies has a default boolean value
-                                      const hasMore = hasMoreReplies[currentCommentId] !== undefined ? hasMoreReplies[currentCommentId] : true;
-                                      const currentPage = replyPage[currentCommentId] || 1; // Start from 1 if undefined
+                          {/* Display Replies */}
+                          {(replies[comment.id] || []).map((reply, replyIndex, arr) => {
+                            // Check if the current user owns this reply
+                            const canDeleteReply = currentUser && currentUser.id === reply.user_id;
+                            const isLastReply = replyIndex === arr.length - 1;
 
-                                      if (isLoading) return; // Don't attach observer if already loading
-
-                                      // Disconnect previous observer for this commentId if it exists
-                                      if (replyObservers.current[currentCommentId]) {
-                                        replyObservers.current[currentCommentId].disconnect();
-                                      }
-
-                                      if (node) {
-                                        // If the node exists (last element is rendered)
-                                        replyObservers.current[currentCommentId] = new IntersectionObserver((entries) => {
-                                          // Check intersection, if more exist, and not currently loading
-                                          if (entries[0].isIntersecting && hasMore && !loadingReplies[currentCommentId]) {
-                                            console.log(`Reply sentinel visible for comment ${currentCommentId}, loading more replies...`);
-                                            // Load the *next* page
-                                            loadReplies(currentCommentId, currentPage);
-                                          }
-                                        });
-                                        // Observe the node
-                                        replyObservers.current[currentCommentId].observe(node);
-                                      } else {
-                                        // Clean up if the node is removed
-                                        if (replyObservers.current[currentCommentId]) {
-                                          replyObservers.current[currentCommentId].disconnect();
-                                          delete replyObservers.current[currentCommentId];
-                                        }
-                                      }
-                                    }
-                                  : null // Only attach ref to the last item
-                              }
-                            >
-                              {/* Reply Avatar/Content display remains the same */}
-                              <Avatar className="h-8 w-8 flex-shrink-0">
-                                <AvatarImage src={formatImageUrl(reply.avatar)} alt={reply.username} />
-                                <AvatarFallback>{reply.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-grow">
-                                <div className="flex items-baseline space-x-2">
-                                  <span className="font-semibold text-xs">{reply.username}</span>
-                                  <span className="text-xs text-muted-foreground">• Lvl {reply.level || 1}</span>
-                                </div>
-                                <p className="text-sm mt-0.5 whitespace-pre-wrap">{reply.content}</p>
-                                <div className="flex items-center space-x-3 mt-1 text-xs text-muted-foreground">
-                                  <span>{reply.created_at instanceof Date ? reply.created_at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : reply.created_at}</span>
+                            return (
+                              <div
+                                key={reply.id || `reply-${comment.id}-${replyIndex}`}
+                                className="flex space-x-3 py-2"
+                                ref={isLastReply ? createReplyRefCallback(comment.id) : null} // Use the factory function
+                              >
+                                <Avatar className="h-8 w-8 flex-shrink-0">
+                                  <AvatarImage src={formatImageUrl(reply.avatar)} alt={reply.username} />
+                                  <AvatarFallback>{reply.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-grow">
+                                  <div className="flex items-baseline space-x-2">
+                                    <span className="font-semibold text-xs">{reply.username}</span>
+                                    <span className="text-xs text-muted-foreground">• Lvl {reply.level || 1}</span>
+                                  </div>
+                                  <p className="text-sm mt-0.5 whitespace-pre-wrap">{reply.content}</p>
+                                  <div className="flex items-center space-x-3 mt-1 text-xs text-muted-foreground">
+                                    <span>{reply.created_at instanceof Date ? reply.created_at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : reply.created_at}</span>
+                                    {/* --- DELETE REPLY BUTTON --- */}
+                                    {canDeleteReply && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-auto p-0 text-xs text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
+                                        // Pass both commentId and replyId
+                                        onClick={() => handleDeleteReply(comment.id, reply.id)}
+                                        disabled={deletingId === reply.id} // Disable while deleting this specific reply
+                                        aria-label={`Delete reply by ${reply.username}`}
+                                      >
+                                        {deletingId === reply.id ? <span className="px-1">Deleting...</span> : <Trash2 className="h-3 w-3" />}
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                           {/* Loading/Button Replies structure remains the same */}
                           {loadingReplies[comment.id] && <p className="text-xs text-muted-foreground text-center py-2">Loading replies...</p>}
-                          {/* Load More Button logic uses state */}
                           {!loadingReplies[comment.id] && hasMoreReplies[comment.id] && (
-                            <Button variant="link" size="sm" className="w-full h-6 text-xs mt-1" onClick={() => loadReplies(comment.id, replyPage[comment.id] || 1)}>
+                            // Load more button now uses the current page state correctly
+                            <Button variant="link" size="sm" className="w-full h-6 text-xs mt-1" onClick={() => loadReplies(comment.id, replyPage[comment.id])}>
                               Load More Replies
                             </Button>
                           )}
@@ -541,6 +656,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                 rows={3}
                 className="resize-none"
                 aria-label="New comment input"
+                disabled={postingComment} // Optionally disable while posting
               />
               <Button onClick={handlePostComment} disabled={postingComment || !newComment.trim()} className="w-full sm:w-auto float-right">
                 {postingComment ? "Posting..." : "Post Comment"}
@@ -553,19 +669,18 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
   );
 }
 
-// PropTypes (Tetap sama)
+// PropTypes (Tetap sama, pastikan currentUser dilewatkan dengan benar)
 CommentModal.propTypes = {
-  postId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired, // Allow string or number
+  postId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   postTitle: PropTypes.string,
   currentUser: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired, // Allow string or number
+    // Pastikan id ada dan tipenya sesuai
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     username: PropTypes.string,
     avatar: PropTypes.string,
-    // level might not be directly available here anymore,
-    // but keeping it doesn't hurt if it's still passed for initial display
     level: PropTypes.number,
-  }),
+  }), // currentUser can be null/undefined if not logged in
   onCommentAdded: PropTypes.func,
 };

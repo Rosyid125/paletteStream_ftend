@@ -3,13 +3,13 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock, BookmarkMinus } from "lucide-react"; // Added Clock, replaced Bookmark with BookmarkMinus in some contexts conceptually
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock, Loader2 } from "lucide-react"; // Added Loader2, ensure Trash2, MoreHorizontal are present
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageCarousel } from "@/components/ImageCarousel";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"; // Import DialogClose
 
 // Komponen yang relevan
 import { LikesHoverCard } from "@/components/LikesHoverCard";
@@ -33,8 +33,9 @@ export default function BookmarkedPosts() {
 
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
+  // --- State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState(null);
+  const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
 
   const observer = useRef();
 
@@ -60,7 +61,7 @@ export default function BookmarkedPosts() {
   // --- Function Fetch Bookmarked Posts ---
   const loadMoreBookmarkedPosts = useCallback(
     async (currentPage, isInitialLoad) => {
-      if (loading || (!hasMore && !isInitialLoad)) return;
+      if ((loading && !isInitialLoad) || (!hasMore && !isInitialLoad)) return;
 
       console.log(`Fetching Bookmarked Posts - Page ${currentPage} (Initial: ${isInitialLoad})`);
       setLoading(true);
@@ -94,7 +95,9 @@ export default function BookmarkedPosts() {
           // Proses data mirip dengan LikedPosts, pastikan field ada
           const processedData = fetchedData.map((post) => ({
             ...post,
-            userId: post.userId ?? null,
+            // --- Ensure all necessary fields exist and have default values ---
+            id: post.id, // Essential for keys and actions
+            userId: post.userId ?? null, // Essential for ownership check
             username: post.username ?? "Unknown User",
             avatar: post.avatar ?? null,
             level: post.level ?? 1,
@@ -103,12 +106,13 @@ export default function BookmarkedPosts() {
             type: post.type ?? "unknown",
             title: post.title ?? "Untitled Post",
             description: post.description ?? "",
-            images: Array.isArray(post.images) ? post.images.map((img) => formatImageUrl(img)) : [], // Format URL gambar
+            // Ensure images are processed correctly
+            images: Array.isArray(post.images) ? post.images.map((img) => formatImageUrl(img)) : [],
             tags: Array.isArray(post.tags) ? post.tags : [],
             postLikeStatus: post.postLikeStatus === undefined ? false : post.postLikeStatus,
-            bookmarkStatus: post.bookmarkStatus === undefined ? true : post.bookmarkStatus, // Default true untuk halaman bookmark
-            likeCount: post.likeCount === undefined ? 0 : post.likeCount,
-            commentCount: post.commentCount === undefined ? 0 : post.commentCount,
+            bookmarkStatus: post.bookmarkStatus === undefined ? true : post.bookmarkStatus, // Default true for halaman bookmark
+            likeCount: post.likeCount === undefined ? 0 : Number(post.likeCount) || 0,
+            commentCount: post.commentCount === undefined ? 0 : Number(post.commentCount) || 0,
           }));
 
           setPosts((prevPosts) => (isInitialLoad ? processedData : [...prevPosts, ...processedData]));
@@ -247,41 +251,54 @@ export default function BookmarkedPosts() {
     }
   };
 
-  // --- Delete Post (Tetap sama) ---
+  // --- *** UPDATED: Delete Post Function *** ---
   const handleDeletePost = async () => {
-    if (!postToDelete) return;
+    if (!postToDelete) return; // Exit if no post is selected
     const postId = postToDelete;
-    const originalPosts = [...posts]; // Backup
+    const originalPosts = [...posts]; // Backup original posts for potential rollback
 
-    // Optimistic Deletion
+    // Optimistic Deletion: Remove the post from the UI immediately
     setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
-    setIsDeleteDialogOpen(false);
-    setPostToDelete(null);
+    setIsDeleteDialogOpen(false); // Close the dialog
+    setPostToDelete(null); // Reset the post ID to delete
 
     try {
-      const response = await api.delete(`/posts/${postId}`);
+      // Use the specified endpoint structure: DELETE /api/posts/delete/{postId}
+      const response = await api.delete(`/posts/delete/${postId}`);
+
       if (response.data.success) {
-        setError(null);
+        setError(null); // Clear any previous errors
         console.log(`Post ${postId} deleted successfully.`);
+        // Post is already removed from UI optimistically, no further action needed
       } else {
+        // Deletion failed on the backend, rollback UI
         console.error(`Backend failed to delete post ${postId}:`, response.data.message);
         setError(response.data.message || "Failed to delete post.");
-        setPosts(originalPosts); // Rollback
+        setPosts(originalPosts); // Restore the original posts list
       }
     } catch (err) {
+      // Network or other error occurred, rollback UI
       console.error("Error deleting post:", err);
-      setError("An error occurred while deleting the post.");
-      setPosts(originalPosts); // Rollback
+      setError(err.response?.data?.message || "An error occurred while deleting the post.");
+      setPosts(originalPosts); // Restore the original posts list
     } finally {
+      // Ensure dialog is closed and state is reset even if already done
       setIsDeleteDialogOpen(false);
       setPostToDelete(null);
     }
   };
+  // --- *** End of Delete Post Function *** ---
 
   // --- Open Comment Modal (Tetap sama) ---
   const openCommentModal = (post) => {
-    setSelectedPostForModal({ id: post.id, title: post.title });
-    setIsCommentModalOpen(true);
+    // Ensure post and post.id are valid before opening
+    if (post && typeof post.id !== "undefined") {
+      setSelectedPostForModal({ id: post.id, title: post.title });
+      setIsCommentModalOpen(true);
+    } else {
+      console.warn("Attempted to open comment modal for invalid post:", post);
+      setError("Could not open comments for this post.");
+    }
   };
 
   // --- Callback for Comment Modal (Tetap sama) ---
@@ -335,6 +352,8 @@ export default function BookmarkedPosts() {
         {error && !loading && (
           <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
             <span className="font-medium">Error!</span> {error}
+            {/* Optional: Clear error button */}
+            {/* <button onClick={() => setError(null)} className="ml-2 font-semibold underline">Dismiss</button> */}
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -375,12 +394,16 @@ export default function BookmarkedPosts() {
           {!initialLoading &&
             posts.length > 0 &&
             posts.map((post, index) => {
-              if (!post) return null;
+              // --- Add checks for essential post data ---
+              if (!post || typeof post.id === "undefined" || typeof post.userId === "undefined") {
+                console.warn("Skipping rendering invalid post data:", post);
+                return null; // Don't render if essential data is missing
+              }
               const isLastElement = posts.length === index + 1;
               return (
                 <TooltipProvider key={`${post.id}-${index}`}>
                   <Card className="overflow-hidden flex flex-col" ref={isLastElement ? lastPostElementRef : null}>
-                    {/* Card Header tetap sama */}
+                    {/* Card Header */}
                     <CardHeader className="flex flex-row items-center justify-between space-x-2 p-3">
                       <HoverCard>
                         <HoverCardTrigger asChild>
@@ -396,7 +419,7 @@ export default function BookmarkedPosts() {
                                   <TooltipTrigger asChild>
                                     <p className="text-xs text-muted-foreground truncate flex items-center">
                                       <Clock className="h-3 w-3 mr-1 inline-block" />
-                                      {/* Anda bisa format tanggal ini jika mau */}
+                                      {/* Format date nicely */}
                                       {post.createdAt}
                                     </p>
                                   </TooltipTrigger>
@@ -408,10 +431,23 @@ export default function BookmarkedPosts() {
                             </div>
                           </div>
                         </HoverCardTrigger>
-                        <HoverCardContent className="w-80">{/* Konten HoverCard User tetap sama */}</HoverCardContent>
+                        {/* HoverCard Content for User Profile Preview */}
+                        <HoverCardContent className="w-80">
+                          <div className="flex justify-between space-x-4">
+                            <Avatar>
+                              <AvatarImage src={formatImageUrl(post.avatar)} />
+                              <AvatarFallback>{post.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-semibold">@{post.username}</h4>
+                              <p className="text-sm text-muted-foreground">Level {post.level || 1} Artist</p>
+                              {/* Add more user details if available */}
+                            </div>
+                          </div>
+                        </HoverCardContent>
                       </HoverCard>
 
-                      {/* Delete Dropdown jika post milik user tetap sama */}
+                      {/* --- *** Delete Dropdown (Conditional Render) *** --- */}
                       {USER_ID === post.userId && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -420,16 +456,18 @@ export default function BookmarkedPosts() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {/* --- *** Delete Post Menu Item *** --- */}
                             <DropdownMenuItem
-                              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
                               onSelect={(e) => {
-                                e.preventDefault();
-                                setPostToDelete(post.id);
-                                setIsDeleteDialogOpen(true);
+                                e.preventDefault(); // Prevent menu closing immediately
+                                setPostToDelete(post.id); // Set the ID of the post to delete
+                                setIsDeleteDialogOpen(true); // Open the confirmation dialog
                               }}
                             >
                               <Trash2 className="mr-2 h-4 w-4" /> Delete Post
                             </DropdownMenuItem>
+                            {/* Add other options like 'Edit Post' here later if needed */}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
@@ -543,9 +581,6 @@ export default function BookmarkedPosts() {
                           >
                             {/* Ikon tetap Bookmark, tapi bisa juga pakai BookmarkMinus jika status true untuk unbookmark */}
                             <Bookmark className={`h-4 w-4 ${post.bookmarkStatus ? "fill-current" : ""}`} />
-                            {/* Alternatif jika ingin ikon berubah:
-                               {post.bookmarkStatus ? <BookmarkMinus className="h-4 w-4"/> : <Bookmark className="h-4 w-4"/> }
-                             */}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -561,10 +596,15 @@ export default function BookmarkedPosts() {
         </div>{" "}
         {/* End Grid */}
         {/* === End of Content States === */}
-        {loading && !initialLoading && <div className="text-center py-6 text-muted-foreground col-span-full">Loading more bookmarks...</div>}
+        {loading && !initialLoading && (
+          <div className="col-span-full flex justify-center items-center py-6 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading more bookmarks...
+          </div>
+        )}
         {/* Ganti pesan empty state */}
         {!initialLoading && !loading && posts.length === 0 && !error && (
           <div className="text-center py-10 col-span-full">
+            <Bookmark className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">You haven't bookmarked any posts yet.</p>
             {/* Tambahkan tombol atau link untuk explore jika perlu */}
             {/* <Button variant="outline" className="mt-4">Explore Posts</Button> */}
@@ -586,22 +626,25 @@ export default function BookmarkedPosts() {
             setSelectedPostForModal(null);
           }}
           onCommentAdded={handleCommentAdded}
-          currentUser={USER_DATA ? { id: USER_DATA.id, username: USER_DATA.username, avatar: USER_DATA.avatar, level: USER_DATA.level || 1 } : null}
+          // Format avatar URL for current user in modal
+          currentUser={USER_DATA ? { id: USER_DATA.id, username: USER_DATA.username, avatar: formatImageUrl(USER_DATA.avatar), level: USER_DATA.level || 1 } : null}
         />
       )}
-      {/* Delete Confirmation Dialog (Tetap sama) */}
+      {/* --- *** Delete Confirmation Dialog *** --- */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Are you sure?</DialogTitle>
-            <DialogDescription>This action cannot be undone. This will permanently delete the post.</DialogDescription>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription>This action cannot be undone. This will permanently delete the post and all associated data.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
+            {/* Use DialogClose for the cancel button */}
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            {/* Call handleDeletePost when the delete button is clicked */}
             <Button variant="destructive" onClick={handleDeletePost}>
-              Delete
+              Delete Post
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,15 +1,16 @@
+// --- Import necessary components and hooks ---
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock } from "lucide-react"; // Added Clock icon
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock, Loader2 } from "lucide-react"; // Added Loader2, ensured Trash2, MoreHorizontal are present
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageCarousel } from "@/components/ImageCarousel";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"; // Import DropdownMenu components
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"; // Import Dialog components
 
 // Komponen yang relevan
 import { LikesHoverCard } from "@/components/LikesHoverCard";
@@ -33,8 +34,9 @@ export default function LikedPosts() {
 
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
+  // --- State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState(null);
+  const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
 
   const observer = useRef();
 
@@ -56,7 +58,7 @@ export default function LikedPosts() {
   // --- Function Fetch Liked Posts ---
   const loadMoreLikedPosts = useCallback(
     async (currentPage, isInitialLoad) => {
-      if (loading || (!hasMore && !isInitialLoad)) return;
+      if ((loading && !isInitialLoad) || (!hasMore && !isInitialLoad)) return;
 
       console.log(`Fetching Liked Posts - Page ${currentPage} (Initial: ${isInitialLoad})`);
       setLoading(true);
@@ -89,7 +91,8 @@ export default function LikedPosts() {
           const processedData = fetchedData.map((post) => ({
             ...post,
             // Ensure all fields from the sample response are potentially handled
-            userId: post.userId ?? null,
+            id: post.id, // Essential for keys and actions
+            userId: post.userId ?? null, // Essential for ownership check
             username: post.username ?? "Unknown User",
             avatar: post.avatar ?? null,
             level: post.level ?? 1,
@@ -97,12 +100,12 @@ export default function LikedPosts() {
             type: post.type ?? "unknown", // Keep type
             title: post.title ?? "Untitled Post",
             description: post.description ?? "", // Keep description
-            images: Array.isArray(post.images) ? post.images : [],
+            images: Array.isArray(post.images) ? post.images.map((img) => formatImageUrl(img)) : [], // Format image URLs
             tags: Array.isArray(post.tags) ? post.tags : [],
             postLikeStatus: post.postLikeStatus === undefined ? true : post.postLikeStatus, // Default true for liked page
             bookmarkStatus: post.bookmarkStatus === undefined ? false : post.bookmarkStatus,
-            likeCount: post.likeCount === undefined ? 0 : post.likeCount,
-            commentCount: post.commentCount === undefined ? 0 : post.commentCount,
+            likeCount: post.likeCount === undefined ? 0 : Number(post.likeCount) || 0,
+            commentCount: post.commentCount === undefined ? 0 : Number(post.commentCount) || 0,
           }));
 
           setPosts((prevPosts) => (isInitialLoad ? processedData : [...prevPosts, ...processedData]));
@@ -163,13 +166,14 @@ export default function LikedPosts() {
         console.error(`Backend failed to toggle like for post ${postId}:`, response.data.message);
         // Rollback
         setPosts((prevPosts) => {
-          if (!prevPosts.some((p) => p.id === postId)) {
+          if (!prevPosts.some((p) => p.id === postId) && !optimisticStatus) {
+            // Check if it was optimistically removed
             // If removed optimistically
             const newPosts = [...prevPosts];
             newPosts.splice(postIndex, 0, originalPost); // Add back at original position
             return newPosts;
           } else {
-            // If only status/count updated
+            // If only status/count updated or if it was never removed
             return prevPosts.map((p) => (p.id === postId ? originalPost : p));
           }
         });
@@ -183,7 +187,7 @@ export default function LikedPosts() {
       console.error("Error toggling like status:", err);
       // Rollback (same logic as above)
       setPosts((prevPosts) => {
-        if (!prevPosts.some((p) => p.id === postId)) {
+        if (!prevPosts.some((p) => p.id === postId) && !optimisticStatus) {
           const newPosts = [...prevPosts];
           newPosts.splice(postIndex, 0, originalPost);
           return newPosts;
@@ -229,42 +233,54 @@ export default function LikedPosts() {
     }
   };
 
-  // --- Delete Post ---
+  // --- *** UPDATED: Delete Post Function *** ---
   const handleDeletePost = async () => {
-    if (!postToDelete) return;
-    const postId = postToDelete; // Keep track of ID for rollback if needed
-    const originalPosts = [...posts]; // Backup original state
+    if (!postToDelete) return; // Exit if no post is selected
+    const postId = postToDelete;
+    const originalPosts = [...posts]; // Backup original posts for potential rollback
 
-    // Optimistic Deletion
+    // Optimistic Deletion: Remove the post from the UI immediately
     setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
-    setIsDeleteDialogOpen(false); // Close modal immediately
-    setPostToDelete(null);
+    setIsDeleteDialogOpen(false); // Close the dialog
+    setPostToDelete(null); // Reset the post ID to delete
 
     try {
-      const response = await api.delete(`/posts/${postId}`);
+      // Use the specified endpoint structure: DELETE /api/posts/delete/{postId}
+      const response = await api.delete(`/posts/delete/${postId}`);
+
       if (response.data.success) {
-        setError(null); // Success! No need to do anything else.
+        setError(null); // Clear any previous errors
         console.log(`Post ${postId} deleted successfully.`);
+        // Post is already removed from UI optimistically, no further action needed
       } else {
+        // Deletion failed on the backend, rollback UI
         console.error(`Backend failed to delete post ${postId}:`, response.data.message);
         setError(response.data.message || "Failed to delete post.");
-        setPosts(originalPosts); // Rollback
+        setPosts(originalPosts); // Restore the original posts list
       }
     } catch (err) {
+      // Network or other error occurred, rollback UI
       console.error("Error deleting post:", err);
-      setError("An error occurred while deleting the post.");
-      setPosts(originalPosts); // Rollback
+      setError(err.response?.data?.message || "An error occurred while deleting the post.");
+      setPosts(originalPosts); // Restore the original posts list
     } finally {
-      // Ensure modal state is cleared even if deletion failed and modal was already closed
+      // Ensure dialog is closed and state is reset even if already done
       setIsDeleteDialogOpen(false);
       setPostToDelete(null);
     }
   };
+  // --- *** End of Delete Post Function *** ---
 
   // --- Open Comment Modal ---
   const openCommentModal = (post) => {
-    setSelectedPostForModal({ id: post.id, title: post.title });
-    setIsCommentModalOpen(true);
+    // Ensure post and post.id are valid before opening
+    if (post && typeof post.id !== "undefined") {
+      setSelectedPostForModal({ id: post.id, title: post.title });
+      setIsCommentModalOpen(true);
+    } else {
+      console.warn("Attempted to open comment modal for invalid post:", post);
+      setError("Could not open comments for this post.");
+    }
   };
 
   // --- Callback for Comment Modal ---
@@ -317,6 +333,8 @@ export default function LikedPosts() {
         {error && !loading && (
           <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
             <span className="font-medium">Error!</span> {error}
+            {/* Optional: Clear error button */}
+            {/* <button onClick={() => setError(null)} className="ml-2 font-semibold underline">Dismiss</button> */}
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -356,7 +374,11 @@ export default function LikedPosts() {
           {!initialLoading &&
             posts.length > 0 &&
             posts.map((post, index) => {
-              if (!post) return null;
+              // --- Add checks for essential post data ---
+              if (!post || typeof post.id === "undefined" || typeof post.userId === "undefined") {
+                console.warn("Skipping rendering invalid post data:", post);
+                return null; // Don't render if essential data is missing
+              }
               const isLastElement = posts.length === index + 1;
               return (
                 <TooltipProvider key={`${post.id}-${index}`}>
@@ -384,17 +406,19 @@ export default function LikedPosts() {
                                   <TooltipTrigger asChild>
                                     <p className="text-xs text-muted-foreground truncate flex items-center">
                                       <Clock className="h-3 w-3 mr-1 inline-block" /> {/* Optional icon */}
-                                      {post.createdAt} {/* Display raw date/time string */}
+                                      {/* Format date nicely */}
+                                      {new Date(post.createdAt).toLocaleDateString()}
                                     </p>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Posted on: {post.createdAt}</p>
+                                    <p>Posted on: {new Date(post.createdAt).toLocaleString()}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               )}
                             </div>
                           </div>
                         </HoverCardTrigger>
+                        {/* HoverCard Content for User Profile Preview */}
                         <HoverCardContent className="w-80">
                           <div className="flex justify-between space-x-4">
                             <Avatar>
@@ -402,15 +426,15 @@ export default function LikedPosts() {
                               <AvatarFallback>{post.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                             </Avatar>
                             <div className="space-y-1">
-                              <h4 className="text-sm font-semibold">{post.username}</h4>
+                              <h4 className="text-sm font-semibold">@{post.username}</h4>
                               <p className="text-sm text-muted-foreground">Level {post.level || 1} Artist</p>
-                              {/* Add more details here if needed */}
+                              {/* Add more user details if available */}
                             </div>
                           </div>
                         </HoverCardContent>
                       </HoverCard>
 
-                      {/* Delete Dropdown if post belongs to the current user */}
+                      {/* --- *** Delete Dropdown (Conditional Render) *** --- */}
                       {USER_ID === post.userId && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -419,16 +443,18 @@ export default function LikedPosts() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {/* --- *** Delete Post Menu Item *** --- */}
                             <DropdownMenuItem
-                              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
                               onSelect={(e) => {
-                                e.preventDefault();
-                                setPostToDelete(post.id);
-                                setIsDeleteDialogOpen(true);
+                                e.preventDefault(); // Prevent menu closing immediately
+                                setPostToDelete(post.id); // Set the ID of the post to delete
+                                setIsDeleteDialogOpen(true); // Open the confirmation dialog
                               }}
                             >
                               <Trash2 className="mr-2 h-4 w-4" /> Delete Post
                             </DropdownMenuItem>
+                            {/* Add other options like 'Edit Post' here later if needed */}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
@@ -563,10 +589,17 @@ export default function LikedPosts() {
         </div>{" "}
         {/* End Grid */}
         {/* === End of Content States === */}
-        {loading && !initialLoading && <div className="text-center py-6 text-muted-foreground col-span-full">Loading more...</div>}
+        {loading && !initialLoading && (
+          <div className="col-span-full flex justify-center items-center py-6 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading more...
+          </div>
+        )}
         {!initialLoading && !loading && posts.length === 0 && !error && (
           <div className="text-center py-10 col-span-full">
+            <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">You haven't liked any posts yet.</p>
+            {/* Optional button to explore */}
+            {/* <Button variant="outline" className="mt-4" onClick={() => navigate('/')}>Explore Posts</Button> */}
           </div>
         )}
         {!loading && !hasMore && posts.length > 0 && <div className="text-center py-6 text-muted-foreground col-span-full">End of liked posts ✨</div>}
@@ -583,21 +616,25 @@ export default function LikedPosts() {
             setSelectedPostForModal(null);
           }}
           onCommentAdded={handleCommentAdded}
-          currentUser={USER_DATA ? { id: USER_DATA.id, username: USER_DATA.username, avatar: USER_DATA.avatar, level: USER_DATA.level || 1 } : null}
+          // Format avatar URL for current user in modal
+          currentUser={USER_DATA ? { id: USER_DATA.id, username: USER_DATA.username, avatar: formatImageUrl(USER_DATA.avatar), level: USER_DATA.level || 1 } : null}
         />
       )}
+      {/* --- *** Delete Confirmation Dialog *** --- */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Are you sure?</DialogTitle>
-            <DialogDescription>This action cannot be undone. This will permanently delete the post.</DialogDescription>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription>This action cannot be undone. This will permanently delete the post and all associated data.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
+            {/* Use DialogClose for the cancel button */}
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            {/* Call handleDeletePost when the delete button is clicked */}
             <Button variant="destructive" onClick={handleDeletePost}>
-              Delete
+              Delete Post
             </Button>
           </DialogFooter>
         </DialogContent>

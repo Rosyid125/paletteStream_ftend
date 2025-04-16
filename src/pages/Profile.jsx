@@ -1,3 +1,4 @@
+// --- Import necessary components and hooks ---
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,18 +27,18 @@ import {
   Linkedin,
   Twitter,
   UserPlus,
-  UserMinus,
+  UserMinus, // Import UserMinus
   Loader2,
-  MoreHorizontal,
-  Trash2,
+  MoreHorizontal, // Import MoreHorizontal
+  Trash2, // Import Trash2
 } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageCarousel } from "@/components/ImageCarousel";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"; // Import DropdownMenu components
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"; // Import Dialog components
 
 import { Link, useNavigate, useParams } from "react-router-dom";
 import api from "../api/axiosInstance";
@@ -80,9 +81,9 @@ const getFullStorageUrl = (path) => {
   let relativePath = normalizedPath;
   if (normalizedPath.startsWith("storage/")) {
     relativePath = `/${normalizedPath}`;
-  } else if (!normalizedPath.startsWith("/storage/")) {
+  } else if (!normalizedPath.startsWith("/api")) {
     // Assuming paths like 'uploads/....jpg' should be prefixed
-    relativePath = `/storage/${normalizedPath.startsWith("/") ? normalizedPath.slice(1) : normalizedPath}`;
+    relativePath = `/api/${normalizedPath.startsWith("/") ? normalizedPath.slice(1) : normalizedPath}`;
   }
 
   // Get base URL from axios instance or window location
@@ -125,9 +126,8 @@ export default function Profile() {
   const [error, setError] = useState(null); // State for profile errors
 
   // State for Follow logic
-  const [currentUserIdState, setCurrentUserIdState] = useState(null); // Renamed to avoid conflict
   const [isCurrentUserProfile, setIsCurrentUserProfile] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false); // Does the *logged-in user* follow the *profile user*?
   const [followLoading, setFollowLoading] = useState(false); // Loading state for follow button
 
   // State for User Artworks (Posts) - adapted for lazy loading
@@ -148,13 +148,9 @@ export default function Profile() {
   // --- State for Modals (from Home.jsx) ---
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
+  // --- NEW: State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState(null);
-
-  // --- Effect to set current user ID state ---
-  useEffect(() => {
-    setCurrentUserIdState(CURRENT_USER_ID); // Set state from constant
-  }, []);
+  const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
 
   // --- Function to fetch user profile data ---
   const fetchUserProfile = async () => {
@@ -173,11 +169,15 @@ export default function Profile() {
     setArtworksError(null);
     setCurrentPage(1);
     setHasMoreArtworks(true);
-    setArtworksLoading(false); // Ensure artworks loading isn't stuck if profile load fails early
+    setArtworksLoading(false);
     setLoadingMoreArtworks(false);
+    setIsFollowing(false); // Reset follow status
 
     try {
-      const response = await api.get(`/profiles/profile/${userId}`);
+      // Include viewerId to get follow status from the backend
+      const response = await api.get(`/profiles/profile/${userId}`, {
+        params: { viewerId: CURRENT_USER_ID ?? 0 }, // Pass viewerId=0 if not logged in
+      });
 
       if (response.data && response.data.success) {
         const profileData = response.data.data;
@@ -188,13 +188,21 @@ export default function Profile() {
           posts: Number(profileData.posts) || 0,
           likes: Number(profileData.likes) || 0,
           comments: Number(profileData.comments) || 0,
-          challanges: Number(profileData.challanges ?? profileData.challenges) || 0,
-          challangeWins: Number(profileData.challangeWins ?? profileData.challengeWins) || 0,
+          challanges: Number(profileData.challanges ?? profileData.challenges) || 0, // Handle typo
+          challangeWins: Number(profileData.challangeWins ?? profileData.challengeWins) || 0, // Handle typo
           followers: Number(profileData.followers) || 0,
           followings: Number(profileData.followings) || 0,
           level: Number(profileData.level) || 1,
           exp: Number(profileData.exp) || 0,
           id: Number(profileData.id),
+          // Get follow status from the response (assuming field name is userFollowStatus)
+          userFollowStatus: profileData.userFollowStatus ?? false,
+          platform_links: Array.isArray(profileData.platform_links) ? profileData.platform_links : [], // Ensure it's an array
+          location: profileData.location || null, // Add location
+          // Add other fields like first_name, last_name if they exist
+          first_name: profileData.first_name || null,
+          last_name: profileData.last_name || null,
+          username: profileData.username || "Unknown", // Ensure username exists
         };
         setUserProfile(correctedProfileData);
 
@@ -206,7 +214,8 @@ export default function Profile() {
           challengesWon: correctedProfileData.challangeWins,
         });
 
-        setIsFollowing(profileData.userFollowStatus ?? false);
+        // Set follow status based on the fetched data
+        setIsFollowing(correctedProfileData.userFollowStatus);
         setIsCurrentUserProfile(CURRENT_USER_ID === correctedProfileData.id);
       } else {
         console.error("API request successful but data format unexpected or success=false:", response.data);
@@ -233,8 +242,6 @@ export default function Profile() {
       // Set appropriate loading state based on whether it's the first page or not
       if (pageToFetch === 1) {
         setArtworksLoading(true);
-        // Reset state only for initial load, not for load more
-        // setUserArtworks([]); // Moved reset to fetchUserProfile
       } else {
         setLoadingMoreArtworks(true);
       }
@@ -254,30 +261,34 @@ export default function Profile() {
             postLikeStatus: post.postLikeStatus === undefined ? false : post.postLikeStatus,
             likeCount: post.likeCount === undefined ? 0 : Number(post.likeCount) || 0,
             commentCount: post.commentCount === undefined ? 0 : Number(post.commentCount) || 0,
-            userId: Number(post.userId),
-            id: Number(post.id),
-            level: Number(post.level) || 1,
+            userId: Number(post.userId), // Ensure userId is a number
+            id: Number(post.id), // Ensure id is a number
+            level: Number(post.level) || 1, // Ensure level is a number
             images: Array.isArray(post.images) ? post.images : [],
             tags: Array.isArray(post.tags) ? post.tags : [],
+            createdAt: post.createdAt,
+            // Ensure avatar and username are present (fallback if needed)
+            avatar: post.avatar || userProfile?.avatar || null, // Use post avatar, fallback to profile avatar
+            username: post.username || userProfile?.username || "Unknown User", // Use post username, fallback to profile username
+            type: post.type || "Unknown",
+            title: post.title || "Untitled",
+            description: post.description || "No description.",
           }));
 
-          // Append new data if fetching subsequent pages, replace if it's the first page
           setUserArtworks((prevArtworks) => (pageToFetch === 1 ? processedData : [...prevArtworks, ...processedData]));
-
-          // Update pagination state
-          setCurrentPage(pageToFetch + 1); // Set the *next* page number to fetch
-          setHasMoreArtworks(processedData.length === ARTWORKS_PAGE_LIMIT); // Check if a full page was returned
+          setCurrentPage(pageToFetch + 1);
+          setHasMoreArtworks(processedData.length === ARTWORKS_PAGE_LIMIT);
         } else {
           console.error("Artworks API request successful but data format unexpected or success=false:", response.data);
           setArtworksError(response.data?.message || "Failed to fetch artworks.");
-          if (pageToFetch === 1) setUserArtworks([]); // Clear on initial load failure
-          setHasMoreArtworks(false); // Assume no more if there's an error
+          if (pageToFetch === 1) setUserArtworks([]);
+          setHasMoreArtworks(false);
         }
       } catch (error) {
         console.error(`Error fetching user artworks (page ${pageToFetch}):`, error);
         setArtworksError(error.response?.data?.message || error.message || "An error occurred while fetching artworks.");
-        if (pageToFetch === 1) setUserArtworks([]); // Clear on initial load failure
-        setHasMoreArtworks(false); // Assume no more if there's an error
+        if (pageToFetch === 1) setUserArtworks([]);
+        setHasMoreArtworks(false);
       } finally {
         if (pageToFetch === 1) {
           setArtworksLoading(false);
@@ -286,34 +297,34 @@ export default function Profile() {
         }
       }
     },
-    [userId, CURRENT_USER_ID]
-  ); // Dependencies for the fetch function itself
+    [userId, CURRENT_USER_ID, userProfile] // Add userProfile dependency here
+  );
 
   // --- Effect to fetch profile when userId changes ---
   useEffect(() => {
     if (userId) {
-      fetchUserProfile(); // This now also resets artwork state
+      fetchUserProfile(); // Fetch profile (which includes follow status)
     } else {
       console.error("User ID parameter is missing or invalid.");
       setError("User ID parameter is missing or invalid.");
       setLoading(false);
     }
     setActiveTab("artworks"); // Default to artworks tab on profile change
-  }, [userId]); // Depend only on userId (numeric)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Re-fetch profile if the userId param changes
 
   // --- Effect to fetch initial artworks when the artworks tab is active AND profile is loaded ---
   useEffect(() => {
-    // Only fetch if tab is active, profile is loaded (userProfile exists),
-    // not currently loading profile, no profile error, and artworks haven't been loaded yet (userArtworks is empty)
-    if (activeTab === "artworks" && userProfile && !loading && !error && userArtworks.length === 0 && hasMoreArtworks) {
+    // Only fetch if tab is artworks, profile is loaded, not loading, no error, artworks haven't been fetched yet, and there might be more
+    if (activeTab === "artworks" && userProfile && !loading && !error && userArtworks.length === 0 && hasMoreArtworks && !artworksLoading) {
       fetchArtworksPage(1); // Fetch the first page
     }
-    // We depend on userProfile to ensure profile data is ready before fetching artworks
-    // We depend on userArtworks.length === 0 to prevent re-fetching if tab is switched back and forth
-  }, [activeTab, userProfile, loading, error, userArtworks.length, hasMoreArtworks, fetchArtworksPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, userProfile, loading, error, userArtworks.length, hasMoreArtworks, artworksLoading, fetchArtworksPage]);
 
   // --- Effect to set dummy data for other tabs (runs once) ---
   useEffect(() => {
+    // Simulating fetching these details
     setBadges([
       { id: 1, name: "Early Bird", description: "Joined the platform early.", date: "2023-01-15", icon: "🐦" },
       { id: 2, name: "Art Lover", description: "Liked 50 artworks.", date: "2023-03-20", icon: "❤️" },
@@ -334,35 +345,58 @@ export default function Profile() {
 
   // --- Event Handlers ---
 
-  // Follow/Unfollow Handler
+  // Follow/Unfollow Handler using the new endpoint
   const handleFollowToggle = async () => {
+    // Guard clauses: must have a profile, not loading, not current user's profile, must be logged in
     if (!userProfile || followLoading || isCurrentUserProfile || !CURRENT_USER_ID) return;
 
     setFollowLoading(true);
     const targetUserId = userProfile.id;
-    const followEndpoint = isFollowing ? "/profiles/unfollow" : "/profiles/follow";
+    const followEndpoint = `/follows/create-delete/${targetUserId}`; // New endpoint structure
     const originalFollowStatus = isFollowing;
     const originalFollowerCount = userProfile.followers;
 
+    // Optimistic UI update
     setIsFollowing(!originalFollowStatus);
     setUserProfile((prev) => ({
       ...prev,
+      // Increment/decrement follower count for the *profile user*
       followers: Math.max(0, (prev.followers ?? 0) + (originalFollowStatus ? -1 : 1)),
     }));
 
     try {
-      await api.post(followEndpoint, {
-        follower_id: CURRENT_USER_ID,
-        following_id: targetUserId,
-      });
+      // Assuming the backend uses POST for this toggle endpoint and handles auth via token
+      const response = await api.post(followEndpoint);
+
+      // Check response message to confirm action (optional but good practice)
+      if (response.data && response.data.message) {
+        console.log(`Follow toggle successful: ${response.data.message}`);
+        // If message indicates success ('User follow created' or 'User follow deleted'), keep optimistic state.
+        // You could add more robust checking here if needed.
+        if (
+          (originalFollowStatus && response.data.message === "User follow created") || // Expected unfollow, got follow? Revert.
+          (!originalFollowStatus && response.data.message === "User follow deleted") // Expected follow, got unfollow? Revert.
+        ) {
+          console.warn("Backend response message mismatch with expected action. Reverting UI.");
+          setIsFollowing(originalFollowStatus);
+          setUserProfile((prev) => ({
+            ...prev,
+            followers: originalFollowerCount,
+          }));
+        }
+      } else {
+        console.warn("Follow toggle API response lacked expected message format:", response.data);
+        // Optionally revert if the response format is totally wrong
+      }
     } catch (error) {
-      console.error(`Error ${originalFollowStatus ? "unfollowing" : "following"} user:`, error);
+      console.error(`Error toggling follow status for user ${targetUserId}:`, error);
+      // Rollback optimistic update on error
       setIsFollowing(originalFollowStatus);
       setUserProfile((prev) => ({
         ...prev,
         followers: originalFollowerCount,
       }));
-      alert(`Failed to ${originalFollowStatus ? "unfollow" : "follow"} user. Please try again.`);
+      setArtworksError(`Failed to ${originalFollowStatus ? "unfollow" : "follow"} user: ${error.response?.data?.message || "Please try again."}`); // Use artworksError state
     } finally {
       setFollowLoading(false);
     }
@@ -467,37 +501,47 @@ export default function Profile() {
     setUserArtworks((prevArtworks) => prevArtworks.map((p) => (p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p)));
   };
 
+  // --- *** UPDATED: Delete Post Function for Profile Page *** ---
   const handleDeletePost = async () => {
-    if (!postToDelete || !CURRENT_USER_ID) return;
+    if (!postToDelete || !CURRENT_USER_ID) return; // Exit if no post selected or user not logged in
 
+    // Optional: Verify ownership again just before deleting
     const postOwnerId = userArtworks.find((p) => p.id === postToDelete)?.userId;
     if (postOwnerId !== CURRENT_USER_ID) {
-      setArtworksError("You can only delete your own posts.");
+      setArtworksError("Verification failed: You can only delete your own posts.");
       setIsDeleteDialogOpen(false);
       setPostToDelete(null);
       return;
     }
 
-    // Add loading state to delete button? Optional.
     try {
-      const response = await api.delete(`/posts/${postToDelete}`);
+      // Use the specified endpoint structure: DELETE /api/posts/delete/{postId}
+      const response = await api.delete(`/posts/delete/${postToDelete}`);
+
       if (response.data.success) {
+        // Remove the post from the userArtworks state
         setUserArtworks((prevArtworks) => prevArtworks.filter((post) => post.id !== postToDelete));
+
         // Decrement total posts count in profile stats optimistically
         setUserProfile((prev) => ({ ...prev, posts: Math.max(0, (prev?.posts || 0) - 1) }));
         setUserStats((prev) => ({ ...prev, totalUploads: Math.max(0, (prev?.totalUploads || 0) - 1) }));
-        setArtworksError(null);
+
+        setArtworksError(null); // Clear any previous errors
+        console.log(`Post ${postToDelete} deleted successfully from profile.`);
       } else {
         setArtworksError(response.data.message || "Failed to delete post.");
+        console.error("Failed to delete post:", response.data.message);
       }
     } catch (err) {
       console.error("Error deleting post:", err);
-      setArtworksError("An error occurred while deleting the post.");
+      setArtworksError(err.response?.data?.message || "An error occurred while deleting the post.");
     } finally {
+      // Always close the dialog and reset the state
       setIsDeleteDialogOpen(false);
       setPostToDelete(null);
     }
   };
+  // --- *** End of Delete Post Function *** ---
 
   // --- Helper functions for styling ---
   const getTypeColor = (type) => {
@@ -543,8 +587,7 @@ export default function Profile() {
         <p className="text-red-600">Error: {error}</p>
         <p className="mt-2 text-muted-foreground">Could not load profile data for user ID: {userIdParam}. Please check the ID or try again later.</p>
         <Button onClick={() => navigate("/")} className="mt-4">
-          {" "}
-          Go Home{" "}
+          Go Home
         </Button>
       </div>
     );
@@ -556,8 +599,7 @@ export default function Profile() {
       <div className="text-center p-10">
         <p className="text-muted-foreground">Profile not found for user ID: {userIdParam}.</p>
         <Button onClick={() => navigate("/")} className="mt-4">
-          {" "}
-          Go Home{" "}
+          Go Home
         </Button>
       </div>
     );
@@ -566,9 +608,8 @@ export default function Profile() {
   // --- Success State - Render Profile ---
   const avatarUrl = getFullStorageUrl(userProfile.avatar);
   const userBio = userProfile.bio;
-  console.log("User Profile Data:", userProfile); // Debugging line to check profile data
   const displayName = [userProfile.first_name, userProfile.last_name].filter(Boolean).join(" ") || userProfile.username;
-  const xpPercentage = Math.min(100, Math.max(0, ((userProfile.exp || 0) / 100) * 100));
+  const xpPercentage = Math.min(100, Math.max(0, ((userProfile.exp || 0) / 100) * 100)); // Assuming 100 XP per level
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -591,38 +632,42 @@ export default function Profile() {
                   <Badge variant="outline" className="bg-indigo-100 text-indigo-700 border-indigo-300 font-medium">
                     Level {userProfile.level || 1}
                   </Badge>
+                  {/* Optional: Add other badges like 'Digital Artist' if available */}
                   {/* <Badge variant="secondary">Digital Artist</Badge> */}
                 </div>
 
-                {/* Action Buttons */}
-                {!isCurrentUserProfile && CURRENT_USER_ID !== null && (
-                  <div className="flex mt-4 space-x-3 justify-center md:justify-start">
-                    <Button onClick={handleFollowToggle} size="sm" variant={isFollowing ? "outline" : "default"} disabled={followLoading} className="min-w-[100px]">
-                      {followLoading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : isFollowing ? (
-                        <>
-                          {" "}
-                          <UserMinus className="mr-2 h-4 w-4" /> Unfollow{" "}
-                        </>
-                      ) : (
-                        <>
-                          {" "}
-                          <UserPlus className="mr-2 h-4 w-4" /> Follow{" "}
-                        </>
-                      )}
-                    </Button>
-                    <Button variant="outline" onClick={handleMessageClick} size="sm">
-                      {" "}
-                      Message{" "}
-                    </Button>
-                  </div>
-                )}
-                {isCurrentUserProfile && (
+                {/* Action Buttons: Follow/Unfollow/Message or Edit Profile */}
+                {CURRENT_USER_ID !== null &&
+                  !isCurrentUserProfile && ( // Show only if logged in AND it's another user's profile
+                    <div className="flex mt-4 space-x-3 justify-center md:justify-start">
+                      <Button
+                        onClick={handleFollowToggle}
+                        size="sm"
+                        variant={isFollowing ? "outline" : "default"}
+                        disabled={followLoading}
+                        className="min-w-[100px]" // Give button minimum width
+                      >
+                        {followLoading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : isFollowing ? (
+                          <>
+                            <UserMinus className="mr-2 h-4 w-4" /> Unfollow
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="mr-2 h-4 w-4" /> Follow
+                          </>
+                        )}
+                      </Button>
+                      <Button variant="outline" onClick={handleMessageClick} size="sm">
+                        Message
+                      </Button>
+                    </div>
+                  )}
+                {isCurrentUserProfile && ( // Show only if it's the logged-in user's profile
                   <div className="flex mt-4 justify-center md:justify-start">
                     <Button onClick={() => navigate("/settings/profile")} size="sm">
-                      {" "}
-                      Edit Profile{" "}
+                      Edit Profile
                     </Button>
                   </div>
                 )}
@@ -653,8 +698,7 @@ export default function Profile() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {" "}
-                            <p>{link}</p>{" "}
+                            <p>{link}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -675,8 +719,7 @@ export default function Profile() {
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {" "}
-                      <p>People following {userProfile.username}</p>{" "}
+                      <p>People following {userProfile.username}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -690,8 +733,7 @@ export default function Profile() {
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {" "}
-                      <p>People {userProfile.username} follows</p>{" "}
+                      <p>People {userProfile.username} follows</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -770,31 +812,27 @@ export default function Profile() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="artworks" className="flex items-center justify-center gap-2">
-            {" "}
-            <Image className="h-4 w-4" /> Artworks{" "}
+            <Image className="h-4 w-4" /> Artworks
           </TabsTrigger>
           <TabsTrigger value="badges" className="flex items-center justify-center gap-2">
-            {" "}
-            <Award className="h-4 w-4" /> Badges{" "}
+            <Award className="h-4 w-4" /> Badges
           </TabsTrigger>
           <TabsTrigger value="achievements" className="flex items-center justify-center gap-2">
-            {" "}
-            <Star className="h-4 w-4" /> Achievements{" "}
+            <Star className="h-4 w-4" /> Achievements
           </TabsTrigger>
           <TabsTrigger value="challenges" className="flex items-center justify-center gap-2">
-            {" "}
-            <Trophy className="h-4 w-4" /> Challenges{" "}
+            <Trophy className="h-4 w-4" /> Challenges
           </TabsTrigger>
         </TabsList>
 
         {/* --- Artworks Tab Content (Fetched Data - Lazy Loading) --- */}
         <TabsContent value="artworks" className="mt-6 space-y-6">
-          {" "}
-          {/* Added space-y-6 */}
           {/* Display Error if exists */}
           {artworksError && (
             <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
               <span className="font-medium">Error!</span> {artworksError}
+              {/* Optional: Button to clear error */}
+              {/* <button onClick={() => setArtworksError(null)} className="ml-2 font-semibold underline">Dismiss</button> */}
             </div>
           )}
           {artworksLoading ? (
@@ -807,8 +845,7 @@ export default function Profile() {
                       <div className="flex items-center space-x-2">
                         <Skeleton className="h-10 w-10 rounded-full" />
                         <div>
-                          {" "}
-                          <Skeleton className="h-4 w-20 mb-1" /> <Skeleton className="h-3 w-16" />{" "}
+                          <Skeleton className="h-4 w-20 mb-1" /> <Skeleton className="h-3 w-16" />
                         </div>
                       </div>
                       <Skeleton className="h-6 w-16 rounded-md" />
@@ -821,8 +858,7 @@ export default function Profile() {
                   </CardContent>
                   <CardFooter className="flex justify-between border-t pt-4">
                     <div className="flex space-x-4">
-                      {" "}
-                      <Skeleton className="h-8 w-16" /> <Skeleton className="h-8 w-16" />{" "}
+                      <Skeleton className="h-8 w-16" /> <Skeleton className="h-8 w-16" />
                     </div>
                     <Skeleton className="h-8 w-8" />
                   </CardFooter>
@@ -848,33 +884,34 @@ export default function Profile() {
                           <div>
                             <p className="font-medium text-sm">{artwork.username}</p>
                             <p className="text-xs text-muted-foreground">Level {artwork.level || 1}</p>
-                            <p className="text-xs text-muted-foreground">{artwork.createdAt}</p>
+                            <p className="text-xs text-muted-foreground">{artwork.createdAt}</p> {/* Display formatted date */}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge variant="outline" className={`${getTypeColor(artwork.type)} capitalize`}>
-                            {" "}
-                            {artwork.type || "Unknown"}{" "}
+                            {artwork.type || "Unknown"}
                           </Badge>
+                          {/* --- *** Show dropdown only if the post belongs to the current logged-in user *** --- */}
                           {CURRENT_USER_ID === artwork.userId && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                                  {" "}
-                                  <MoreHorizontal className="h-4 w-4" />{" "}
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {/* --- *** NEW: Delete Post Menu Item *** --- */}
                                 <DropdownMenuItem
-                                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                  className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
                                   onSelect={(e) => {
-                                    e.preventDefault();
-                                    setPostToDelete(artwork.id);
-                                    setIsDeleteDialogOpen(true);
+                                    e.preventDefault(); // Prevent closing dropdown immediately
+                                    setPostToDelete(artwork.id); // Set the ID of the post to delete
+                                    setIsDeleteDialogOpen(true); // Open the confirmation dialog
                                   }}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" /> Delete Post
                                 </DropdownMenuItem>
+                                {/* Add other options like 'Edit Post' here later if needed */}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
@@ -893,8 +930,7 @@ export default function Profile() {
                         <div className="flex flex-wrap gap-1 mt-2">
                           {artwork.tags.map((tag, tagIndex) => (
                             <Badge key={tagIndex} variant="secondary" className="text-xs capitalize">
-                              {" "}
-                              #{tag}{" "}
+                              #{tag}
                             </Badge>
                           ))}
                         </div>
@@ -916,7 +952,7 @@ export default function Profile() {
                                     size="sm"
                                     className={`flex items-center space-x-1 h-8 pl-1 pr-2 rounded-l-md ${artwork.postLikeStatus ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-foreground"}`}
                                     onClick={() => handleLikeToggle(artwork.id, artwork.postLikeStatus)}
-                                    disabled={!CURRENT_USER_ID}
+                                    disabled={!CURRENT_USER_ID} // Disable if not logged in
                                   >
                                     <Heart className={`h-4 w-4 ${artwork.postLikeStatus ? "fill-current" : ""}`} />
                                   </Button>
@@ -932,12 +968,12 @@ export default function Profile() {
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                {" "}
-                                <p>{!CURRENT_USER_ID ? "Login to like" : artwork.postLikeStatus ? "Unlike" : "Like"} this post</p>{" "}
+                                <p>{!CURRENT_USER_ID ? "Login to like" : artwork.postLikeStatus ? "Unlike" : "Like"} this post</p>
                               </TooltipContent>
                             </Tooltip>{" "}
                           </TooltipProvider>
                           <HoverCardContent className="w-auto p-0" side="top" align="start">
+                            {/* Render LikesHoverCard only if postId is valid */}
                             {artwork.id && <LikesHoverCard postId={artwork.id} />}
                           </HoverCardContent>
                         </HoverCard>
@@ -967,14 +1003,13 @@ export default function Profile() {
                               size="sm"
                               className={`h-8 ${artwork.bookmarkStatus ? "text-blue-500 hover:text-blue-600" : "text-muted-foreground hover:text-foreground"}`}
                               onClick={() => handleBookmarkToggle(artwork.id, artwork.bookmarkStatus)}
-                              disabled={!CURRENT_USER_ID}
+                              disabled={!CURRENT_USER_ID} // Disable if not logged in
                             >
                               <Bookmark className={`h-4 w-4 ${artwork.bookmarkStatus ? "fill-current" : ""}`} />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {" "}
-                            <p>{!CURRENT_USER_ID ? "Login to bookmark" : artwork.bookmarkStatus ? "Remove from bookmarks" : "Save to bookmarks"}</p>{" "}
+                            <p>{!CURRENT_USER_ID ? "Login to bookmark" : artwork.bookmarkStatus ? "Remove from bookmarks" : "Save to bookmarks"}</p>
                           </TooltipContent>
                         </Tooltip>{" "}
                       </TooltipProvider>
@@ -993,8 +1028,7 @@ export default function Profile() {
                   >
                     {loadingMoreArtworks ? (
                       <>
-                        {" "}
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...{" "}
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
                       </>
                     ) : (
                       "Load More Artworks"
@@ -1002,10 +1036,12 @@ export default function Profile() {
                   </Button>
                 </div>
               )}
+              {/* Optional: Message when all artworks are loaded */}
+              {!hasMoreArtworks && userArtworks.length > 0 && !loadingMoreArtworks && <p className="text-center text-sm text-muted-foreground py-4">You've reached the end of the artworks.</p>}
             </>
           ) : (
             // Message if no artworks found and not loading initially
-            <Card className="col-span-full flex items-center justify-center h-40">
+            <Card className="col-span-full flex items-center justify-center h-40 border-dashed">
               <CardDescription>{userProfile.username} hasn't uploaded any artworks yet.</CardDescription>
             </Card>
           )}
@@ -1083,8 +1119,7 @@ export default function Profile() {
                 <CardDescription>Participation and results in past challenges.</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={handleViewAllChallengesClick}>
-                {" "}
-                View All{" "}
+                View All
               </Button>
             </CardHeader>
             <CardContent>
@@ -1105,8 +1140,7 @@ export default function Profile() {
                           <p className="text-xs text-muted-foreground">Artwork: {chal.artwork}</p>
                         </div>
                         <Badge variant="outline" className={`${getResultColor(chal.result)} text-xs`}>
-                          {" "}
-                          {chal.result}{" "}
+                          {chal.result}
                         </Badge>
                       </div>
                     ))}
@@ -1121,6 +1155,7 @@ export default function Profile() {
       </Tabs>
 
       {/* --- Modals Rendered Outside Main Layout Flow (from Home.jsx) --- */}
+      {/* Comment Modal */}
       {isCommentModalOpen && selectedPostForModal && (
         <CommentModal
           postId={selectedPostForModal.id}
@@ -1131,23 +1166,24 @@ export default function Profile() {
             setSelectedPostForModal(null);
           }}
           onCommentAdded={handleCommentAdded}
-          currentUser={CURRENT_USER_DATA ? { id: CURRENT_USER_DATA.id, username: CURRENT_USER_DATA.username, avatar: CURRENT_USER_DATA.avatar, level: CURRENT_USER_DATA.level || 1 } : null}
+          currentUser={CURRENT_USER_DATA ? { id: CURRENT_USER_DATA.id, username: CURRENT_USER_DATA.username, avatar: getFullStorageUrl(CURRENT_USER_DATA.avatar), level: CURRENT_USER_DATA.level || 1 } : null}
         />
       )}
+      {/* --- *** NEW: Delete Confirmation Dialog *** --- */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Are you sure?</DialogTitle>
-            <DialogDescription>This action cannot be undone. This will permanently delete the post and all associated data.</DialogDescription>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription>This action cannot be undone. This will permanently delete the post and all associated data (likes, comments, bookmarks).</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              {" "}
-              Cancel{" "}
-            </Button>
+            {/* Use DialogClose for the cancel button */}
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            {/* Call handleDeletePost when the delete button is clicked */}
             <Button variant="destructive" onClick={handleDeletePost}>
-              {" "}
-              Delete{" "}
+              Delete Post
             </Button>
           </DialogFooter>
         </DialogContent>
