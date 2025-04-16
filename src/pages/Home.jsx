@@ -423,7 +423,7 @@ export default function Home() {
                                 <p className="font-medium text-sm">{post.username}</p>
                                 <p className="text-xs text-muted-foreground">Level {post.level || 1}</p>
                                 {/* Tampilkan waktu relatif jika memungkinkan */}
-                                <p className="text-xs text-muted-foreground">{new Date(post.createdAt).toLocaleDateString()}</p>
+                                <p className="text-xs text-muted-foreground">{post.createdAt}</p>
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">

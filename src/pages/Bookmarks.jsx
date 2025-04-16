@@ -401,8 +401,7 @@ export default function BookmarkedPosts() {
                                     </p>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Posted on: {new Date(post.createdAt).toLocaleString()}</p>
-                                    {/* Jika ada bookmarkedAt: <p>Bookmarked on: {new Date(post.bookmarkedAt).toLocaleString()}</p> */}
+                                    <p>Posted on: {post.createdAt}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               )}
