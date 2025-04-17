@@ -103,32 +103,16 @@ export default function RegisterPage() {
       };
 
       const { registerResponse, loginResponse } = await register(registrationData);
-      console.log("registerResponse", registerResponse);
-      console.log("loginResponse", loginResponse);
 
-      if (registerResponse.message === "User registered successfully" && loginResponse.message === "Login successful") {
-        console.log("Registration successful");
-        toast({
-          title: "Registration successful",
-          description: "Welcome to PaletteStream! Your account has been created.",
-        });
-        navigate("/home");
-      } else {
-        setErrors({
-          general: registerResponse.error || "Registration failed. Please try again.",
-        });
-      }
+      toast({
+        title: "Registration successful",
+        description: "Welcome to PaletteStream! Your account has been created.",
+      });
+      navigate("/home");
     } catch (error) {
-      console.error("Registration error:", error); // Log the error for debugging
-
-      // Display more specific error messages from the API if available
-      if (error.response.data.error === "Email already registered.") {
-        setErrors({ general: "This email is already registered." });
-      } else {
-        setErrors({
-          general: error.message || "Registration failed. Please try again.",
-        });
-      }
+      setErrors({
+        general: error.response.data.message || "Registration failed. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }

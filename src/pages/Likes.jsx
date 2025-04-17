@@ -407,11 +407,11 @@ export default function LikedPosts() {
                                     <p className="text-xs text-muted-foreground truncate flex items-center">
                                       <Clock className="h-3 w-3 mr-1 inline-block" /> {/* Optional icon */}
                                       {/* Format date nicely */}
-                                      {new Date(post.createdAt).toLocaleDateString()}
+                                      {post.createdAt}
                                     </p>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Posted on: {new Date(post.createdAt).toLocaleString()}</p>
+                                    <p>Posted on: {post.createdAt}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               )}

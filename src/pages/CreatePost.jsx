@@ -184,7 +184,7 @@ export default function CreatePost() {
         // Pastikan response sukses sebelum melanjutkan
         if (response.status === 200) {
           toast("Post created successfully!");
-          navigate("/");
+          navigate("/home");
         }
       } catch (error) {
         console.error("Error creating post:", error);

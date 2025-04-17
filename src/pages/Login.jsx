@@ -80,7 +80,7 @@ export default function LoginPage() {
       navigate("/home");
     } catch (error) {
       setErrors({
-        general: "Invalid email or password. Please try again.",
+        general: error.response.data.message || "Registration failed. Please try again.",
       });
     } finally {
       setIsLoading(false);
