@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Progress } from "@/components/ui/progress"; // <-- Keep Progress component
 import { Separator } from "@/components/ui/separator";
 import {
   Image,
@@ -181,6 +181,13 @@ export default function Profile() {
 
       if (response.data && response.data.success) {
         const profileData = response.data.data;
+
+        // *** UPDATED: Define thresholds with fallbacks ***
+        const currentLevel = Number(profileData.level) || 1;
+        const currentThreshold = Number(profileData.current_treshold) ?? 0; // Assume 0 if missing or for level 1
+        // Fallback for next_treshold: Use current + a default step (e.g., 100) if missing
+        const nextThreshold = Number(profileData.next_treshold) ?? currentThreshold + 100;
+
         const correctedProfileData = {
           ...profileData,
           avatar: profileData.avatar || null,
@@ -192,17 +199,19 @@ export default function Profile() {
           challangeWins: Number(profileData.challangeWins ?? profileData.challengeWins) || 0, // Handle typo
           followers: Number(profileData.followers) || 0,
           followings: Number(profileData.followings) || 0,
-          level: Number(profileData.level) || 1,
+          level: currentLevel,
           exp: Number(profileData.exp) || 0,
           id: Number(profileData.id),
-          // Get follow status from the response (assuming field name is userFollowStatus)
+          // Get follow status from the response
           userFollowStatus: profileData.userFollowStatus ?? false,
           platform_links: Array.isArray(profileData.platform_links) ? profileData.platform_links : [], // Ensure it's an array
           location: profileData.location || null, // Add location
-          // Add other fields like first_name, last_name if they exist
           first_name: profileData.first_name || null,
           last_name: profileData.last_name || null,
           username: profileData.username || "Unknown", // Ensure username exists
+          // *** NEW: Store both thresholds ***
+          current_treshold: currentThreshold,
+          next_treshold: nextThreshold,
         };
         setUserProfile(correctedProfileData);
 
@@ -609,7 +618,22 @@ export default function Profile() {
   const avatarUrl = getFullStorageUrl(userProfile.avatar);
   const userBio = userProfile.bio;
   const displayName = [userProfile.first_name, userProfile.last_name].filter(Boolean).join(" ") || userProfile.username;
-  const xpPercentage = Math.min(100, Math.max(0, ((userProfile.exp || 0) / 100) * 100)); // Assuming 100 XP per level
+
+  // *** UPDATED: Calculate Level Progress based on current/next thresholds ***
+  const currentExp = userProfile.exp || 0;
+  const currentThreshold = userProfile.current_treshold ?? 0; // Already handled fallback in fetch
+  const nextThreshold = userProfile.next_treshold ?? currentThreshold + 100; // Already handled fallback in fetch
+
+  // Calculate XP gained *within* the current level's range
+  const xpInCurrentLevel = Math.max(0, currentExp - currentThreshold);
+  // Calculate the total XP required *for* the current level
+  const xpRangeForLevel = Math.max(1, nextThreshold - currentThreshold); // Use Math.max(1, ...) to prevent division by zero
+
+  // Calculate the percentage progress within the current level
+  const levelProgressPercentage = Math.min(100, Math.max(0, (xpInCurrentLevel / xpRangeForLevel) * 100));
+
+  // Calculate XP needed to reach the next level threshold
+  const xpNeededForNextLevel = Math.max(0, nextThreshold - currentExp);
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -749,11 +773,16 @@ export default function Profile() {
               <div className="space-y-2 pt-2">
                 <div className="flex justify-between items-center mb-1">
                   <h3 className="text-sm font-medium text-muted-foreground">Level Progress</h3>
-                  <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{userProfile.exp || 0} / 100 XP</span>
+                  {/* *** UPDATED: Display total current XP / total XP needed for next level *** */}
+                  <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                    {currentExp} / {nextThreshold} XP
+                  </span>
                 </div>
-                <Progress value={xpPercentage} className="h-2 bg-muted" />
+                {/* *** UPDATED: Use calculated levelProgressPercentage for the bar *** */}
+                <Progress value={levelProgressPercentage} className="h-2 bg-muted" />
+                {/* *** UPDATED: Display XP needed to reach the next threshold *** */}
                 <p className="text-xs text-muted-foreground text-right">
-                  {100 - (userProfile.exp || 0)} XP to Level {(userProfile.level || 1) + 1}
+                  {xpNeededForNextLevel} XP to Level {(userProfile.level || 1) + 1}
                 </p>
               </div>
             </div>
