@@ -10,7 +10,7 @@ const ProtectedRoute = ({ children }) => {
 
   const LoadingSpinner = () => (
     <motion.div className="fixed inset-0 flex justify-center items-center" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-      <Coins className="w-10 h-10 text-red-600" />
+      <Coins className="w-10 h-10 text-green-500" />
     </motion.div>
   );
 

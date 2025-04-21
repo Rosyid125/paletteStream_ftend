@@ -157,153 +157,152 @@ export default function Navbar() {
 
         {/* Right side Actions (Mobile Menu trigger might go here) */}
         <div className="flex items-center gap-1 md:gap-2 ml-auto">
-          {/* Create Post Button - Conditionally render based on userId */}
-          {userId && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" className="flex items-center">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  <span className="hidden md:inline">Create Post</span>
-                  <span className="md:hidden">Post</span> {/* Shorter text for mobile */}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuGroup>
-                  {/* Use template literals for dynamic user IDs */}
-                  <Link to={`/post/illustration/${userId}`}>
-                    <DropdownMenuItem>
-                      <Image className="mr-2 h-4 w-4 text-primary" />
-                      <span>Illustration</span>
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link to={`/post/manga/${userId}`}>
-                    <DropdownMenuItem>
-                      <BookOpen className="mr-2 h-4 w-4 text-blue-500" />
-                      <span>Manga</span>
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link to={`/post/novel/${userId}`}>
-                    <DropdownMenuItem>
-                      <BookMarked className="mr-2 h-4 w-4 text-purple-500" />
-                      <span>Novel</span>
-                    </DropdownMenuItem>
-                  </Link>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {/* --- Conditional Rendering for logged-in user actions --- */}
-          {userId &&
-            !isLoading &&
-            miniProfile && ( // Show only if logged in, loaded, and profile exists
-              <>
-                {/* Notifications (Using static data for now) */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="relative">
-                        <Bell className="h-5 w-5" />
-                        {staticCounters.notifications > 0 && (
-                          <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{staticCounters.notifications}</Badge>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>You have {staticCounters.notifications} notifications</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                {/* Messages (Using static data for now) */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="relative">
-                        <MessageSquare className="h-5 w-5" />
-                        {staticCounters.messages > 0 && (
-                          <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] text-white hover:bg-blue-600 dark:hover:bg-blue-800">{staticCounters.messages}</Badge>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>You have {staticCounters.messages} messages</p> {/* Typo corrected: messages */}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                {/* User Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="icon" variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <Avatar className="h-8 w-8 border-2 border-muted">
-                        <AvatarImage src={avatarUrl} alt={miniProfile?.username || "User"} />
-                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    {/* Dropdown Header with User Info */}
-                    <div className="flex items-center justify-start gap-2 p-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={avatarUrl} alt={miniProfile.username} />
-                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col space-y-0.5 leading-none">
-                        <p className="truncate text-sm font-medium">{miniProfile.username || `${miniProfile.first_name} ${miniProfile.last_name}`.trim() || "User"}</p>
-                        <p className="truncate text-xs text-muted-foreground">@{miniProfile.username || "username"}</p>
-                      </div>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      {/* Corrected: Use Link component with 'to' prop */}
-                      <Link to={`/profile/${userId}`}>
-                        <DropdownMenuItem>
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Profile</span>
-                        </DropdownMenuItem>
-                      </Link>
-                      <Link to="/bookmarks">
-                        <DropdownMenuItem>
-                          <Bookmark className="mr-2 h-4 w-4" />
-                          <span>Saved Artworks</span>
-                        </DropdownMenuItem>
-                      </Link>
-                      <Link to="/likes">
-                        <DropdownMenuItem>
-                          <Heart className="mr-2 h-4 w-4" />
-                          <span>Liked Artworks</span>
-                        </DropdownMenuItem>
-                      </Link>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      {/* Prevent item selection default behavior for the switch */}
-                      <DropdownMenuItem className="flex cursor-default items-center justify-between hover:bg-transparent focus:bg-transparent" onSelect={(e) => e.preventDefault()}>
-                        <span className="text-sm">Dark mode</span>
-                        <Switch id="dark-mode-switch-navbar" checked={isDark} onCheckedChange={handleToggleTheme} aria-label="Toggle dark mode" />
+          {/* Conditionally render based on userId */}
+          {userId ? (
+            <>
+              {/* Create Post Button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" className="flex items-center">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    <span className="hidden md:inline">Create Post</span>
+                    <span className="md:hidden">Post</span> {/* Shorter text for mobile */}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuGroup>
+                    {/* Use template literals for dynamic user IDs */}
+                    <Link to={`/post/illustration/${userId}`}>
+                      <DropdownMenuItem>
+                        <Image className="mr-2 h-4 w-4 text-primary" />
+                        <span>Illustration</span>
                       </DropdownMenuItem>
-                      {/* Corrected: Use Link component with 'to' prop */}
-                      <Link to="/help">
-                        <DropdownMenuItem>
-                          <HelpCircle className="mr-2 h-4 w-4" />
-                          <span>Help & Support</span>
-                        </DropdownMenuItem>
-                      </Link>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer text-red-600 focus:bg-red-100 focus:text-red-700 dark:focus:bg-red-900/50 dark:focus:text-red-500" onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            )}
+                    </Link>
+                    <Link to={`/post/manga/${userId}`}>
+                      <DropdownMenuItem>
+                        <BookOpen className="mr-2 h-4 w-4 text-blue-500" />
+                        <span>Manga</span>
+                      </DropdownMenuItem>
+                    </Link>
+                    <Link to={`/post/novel/${userId}`}>
+                      <DropdownMenuItem>
+                        <BookMarked className="mr-2 h-4 w-4 text-purple-500" />
+                        <span>Novel</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          {/* --- Show Login/Register Buttons if not logged in --- */}
-          {!userId &&
-            !isLoading && ( // Show only if not logged in and not loading
+              {/*  User is Logged In and Profile is Loaded  */}
+              {!isLoading && miniProfile && (
+                <>
+                  {/* Notifications (Using static data for now) */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="relative">
+                          <Bell className="h-5 w-5" />
+                          {staticCounters.notifications > 0 && (
+                            <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{staticCounters.notifications}</Badge>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>You have {staticCounters.notifications} notifications</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  {/* Messages (Using static data for now) */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="relative">
+                          <MessageSquare className="h-5 w-5" />
+                          {staticCounters.messages > 0 && (
+                            <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] text-white hover:bg-blue-600 dark:hover:bg-blue-800">{staticCounters.messages}</Badge>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>You have {staticCounters.messages} messages</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  {/* User Menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" className="relative h-8 w-8 rounded-full">
+                        <Avatar className="h-8 w-8 border-2 border-muted">
+                          <AvatarImage src={avatarUrl} alt={miniProfile?.username || "User"} />
+                          <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      {/* Dropdown Header with User Info */}
+                      <div className="flex items-center justify-start gap-2 p-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={avatarUrl} alt={miniProfile.username} />
+                          <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col space-y-0.5 leading-none">
+                          <p className="truncate text-sm font-medium">{miniProfile.username || `${miniProfile.first_name} ${miniProfile.last_name}`.trim() || "User"}</p>
+                          <p className="truncate text-xs text-muted-foreground">@{miniProfile.username || "username"}</p>
+                        </div>
+                      </div>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        {/* Corrected: Use Link component with 'to' prop */}
+                        <Link to={`/profile/${userId}`}>
+                          <DropdownMenuItem>
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Profile</span>
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link to="/bookmarks">
+                          <DropdownMenuItem>
+                            <Bookmark className="mr-2 h-4 w-4" />
+                            <span>Saved Artworks</span>
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link to="/likes">
+                          <DropdownMenuItem>
+                            <Heart className="mr-2 h-4 w-4" />
+                            <span>Liked Artworks</span>
+                          </DropdownMenuItem>
+                        </Link>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        {/* Prevent item selection default behavior for the switch */}
+                        <DropdownMenuItem className="flex cursor-default items-center justify-between hover:bg-transparent focus:bg-transparent" onSelect={(e) => e.preventDefault()}>
+                          <span className="text-sm">Dark mode</span>
+                          <Switch id="dark-mode-switch-navbar" checked={isDark} onCheckedChange={handleToggleTheme} aria-label="Toggle dark mode" />
+                        </DropdownMenuItem>
+                        {/* Corrected: Use Link component with 'to' prop */}
+                        <Link to="/help">
+                          <DropdownMenuItem>
+                            <HelpCircle className="mr-2 h-4 w-4" />
+                            <span>Help & Support</span>
+                          </DropdownMenuItem>
+                        </Link>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="cursor-pointer text-red-600 focus:bg-red-100 focus:text-red-700 dark:focus:bg-red-900/50 dark:focus:text-red-500" onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
+            </>
+          ) : (
+            /* User is not logged in */
+            !isLoading && (
               <div className="flex items-center gap-2">
                 <Link to="/login">
                   <Button variant="outline" size="sm">
@@ -314,33 +313,34 @@ export default function Navbar() {
                   <Button size="sm">Register</Button>
                 </Link>
               </div>
-            )}
+            )
+          )}
 
           {/* --- Loading Indicator (Optional) --- */}
-          {isLoading &&
-            userId && ( // Show spinner only when fetching user data
-              <div className="h-8 w-8 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div> {/* Simple Spinner */}
-              </div>
-            )}
+          {isLoading && userId && (
+            // Show spinner only when fetching user data and user is logged in
+            <div className="h-8 w-8 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+            </div>
+          )}
 
           {/* --- Mobile Menu Button (Add logic if needed) --- */}
           {/* <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMobileMenu}>
-             <Menu className="h-6 w-6" />
-             <span className="sr-only">Toggle Menu</span>
-           </Button> */}
+            <Menu className="h-6 w-6" />
+            <span className="sr-only">Toggle Menu</span>
+          </Button> */}
         </div>
       </div>
 
       {/* --- Mobile Menu Dropdown (Example Structure - Implement if needed) --- */}
       {/* {isMobileMenuOpen && (
         <div className="container mx-auto px-4 pb-4 md:hidden">
-           <Separator className="my-2" />
-           <div className="flex flex-col space-y-2">
-              <Link to="/" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Home</Button></Link>
-              <Link to="/discover" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Discover</Button></Link>
-              <Link to="/challenges" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Challenges</Button></Link>
-              {/* Add more mobile links */}
+          <Separator className="my-2" />
+          <div className="flex flex-col space-y-2">
+            <Link to="/" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Home</Button></Link>
+            <Link to="/discover" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Discover</Button></Link>
+            <Link to="/challenges" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Challenges</Button></Link>
+            {/* Add more mobile links */}
       {/* </div>
         </div>
       )} */}

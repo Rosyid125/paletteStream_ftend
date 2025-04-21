@@ -201,7 +201,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     }
   }, [newComment, currentUser, postId, onCommentAdded, postingComment]);
 
-  // --- Posting New Reply --- (Tetap sama - with optimistic updates)
+  // --- Posting New Reply --- (MODIFIED to prevent duplicate optimistic adds)
   const handlePostReply = useCallback(
     async (commentId) => {
       const replyContent = newReply[commentId]?.trim();
@@ -220,7 +220,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         if (!postResponse.data.success || !postResponse.data.data) {
           throw new Error(postResponse.data.message || "Failed to post reply.");
         }
-        postedReplyData = postResponse.data.data;
+        postedReplyData = postResponse.data.data; // Should contain the new reply's ID
 
         const profileResponse = await api.get(`/profiles/mini-profile/${currentUser.id}`);
 
@@ -232,22 +232,34 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         const userProfileData = profileResponse.data.data;
 
         const addedReply = {
-          ...postedReplyData,
+          ...postedReplyData, // Contains the REAL ID from the backend
           username: userProfileData.username,
           avatar: userProfileData.avatar,
           level: userProfileData.level,
-          // Ensure user_id is present for delete check
           user_id: currentUser.id, // Explicitly add from currentUser if not returned by create API
           created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
 
-        setReplies((prev) => ({
-          ...prev,
-          [commentId]: [...(prev[commentId] || []), addedReply],
-        }));
+        // ***** START: MODIFICATION TO PREVENT DUPLICATE *****
+        setReplies((prev) => {
+          const currentReplies = prev[commentId] || [];
+          // Check if this specific reply ID already exists in the current state for this comment
+          if (currentReplies.some((reply) => reply.id === addedReply.id)) {
+            console.warn(`Optimistic reply add: Reply ${addedReply.id} already found in state for comment ${commentId}. Skipping duplicate add.`);
+            return prev; // Return the previous state unchanged
+          }
+          // If the reply doesn't exist, add it
+          return {
+            ...prev,
+            [commentId]: [...currentReplies, addedReply],
+          };
+        });
+        // ***** END: MODIFICATION TO PREVENT DUPLICATE *****
+
         setNewReply((prev) => ({ ...prev, [commentId]: "" }));
         setShowReplyInput((prev) => ({ ...prev, [commentId]: false }));
 
+        // Update comment count (still needed)
         setComments((prevComments) => prevComments.map((c) => (c.id === commentId ? { ...c, replies_count: (c.replies_count || 0) + 1 } : c)));
         setError(null); // Clear error on success
       } catch (err) {
@@ -268,10 +280,13 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         setPostingReply((prev) => ({ ...prev, [commentId]: false }));
       }
     },
-    [newReply, currentUser, postingReply] // Added error state dependency
+    // Keep dependencies minimal, state setters don't usually need to be dependencies
+    [newReply, currentUser, postingReply, setComments, setReplies, setNewReply, setShowReplyInput, setError, setPostingReply]
+    // Note: Explicitly added state setters as dependencies here for clarity, though technically `useCallback` captures them.
+    // If you face infinite loops or excessive re-renders, review these dependencies.
   );
 
-  // --- Deleting Comment --- (NEW FUNCTION)
+  // --- Deleting Comment --- (Tetap sama)
   const handleDeleteComment = useCallback(
     async (commentId) => {
       // Optional: Add confirmation
@@ -283,7 +298,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       setError(null); // Clear previous errors
 
       // Find the comment for potential rollback (optional but good practice)
-      const commentToDelete = comments.find((c) => c.id === commentId);
+      // const commentToDelete = comments.find((c) => c.id === commentId);
       const originalComments = [...comments]; // Store original state
 
       // Optimistic Update: Remove comment from UI immediately
@@ -319,7 +334,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     [comments] // Dependency: comments array for finding and filtering
   );
 
-  // --- Deleting Reply --- (NEW FUNCTION)
+  // --- Deleting Reply --- (Tetap sama)
   const handleDeleteReply = useCallback(
     async (commentId, replyId) => {
       // Optional: Add confirmation
@@ -333,7 +348,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       // Store original state for potential rollback
       const originalRepliesForComment = [...(replies[commentId] || [])];
       const originalComments = [...comments];
-      const parentComment = comments.find((c) => c.id === commentId);
+      // const parentComment = comments.find((c) => c.id === commentId);
 
       // Optimistic Update: Remove reply and decrement count
       setReplies((prev) => ({
@@ -467,7 +482,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     }
   };
 
-  // --- Return JSX --- (MODIFIED to include Delete buttons)
+  // --- Return JSX --- (Tetap sama - Delete buttons already included)
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
@@ -623,7 +638,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                           {loadingReplies[comment.id] && <p className="text-xs text-muted-foreground text-center py-2">Loading replies...</p>}
                           {!loadingReplies[comment.id] && hasMoreReplies[comment.id] && (
                             // Load more button now uses the current page state correctly
-                            <Button variant="link" size="sm" className="w-full h-6 text-xs mt-1" onClick={() => loadReplies(comment.id, replyPage[comment.id])}>
+                            <Button variant="link" size="sm" className="w-full h-6 text-xs mt-1" onClick={() => loadReplies(comment.id, replyPage[commentId])}>
                               Load More Replies
                             </Button>
                           )}
