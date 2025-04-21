@@ -56,6 +56,7 @@ export default function Home() {
   const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
   // --- State for User ID ---
   const [userId, setUserId] = useState(null);
+  const [userData, setUserData] = useState(null); // State to store user data if needed
 
   const observer = useRef();
 
@@ -65,15 +66,17 @@ export default function Home() {
     if (storedUserData) {
       try {
         const parsedData = JSON.parse(storedUserData);
+        setUserData(parsedData); // Set user data if needed
         setUserId(parsedData?.id);
       } catch (error) {
         console.error("Failed to parse user data from localStorage:", error);
         // Handle error, maybe clear invalid data
         localStorage.removeItem("user");
+        setUserData(null);
         setUserId(null);
       }
     } else {
-      setCurrentUserData(null);
+      setUserData(null);
       setUserId(null);
     }
   }, []); // Kosongkan dependency array agar hanya dijalankan saat mount
@@ -925,7 +928,7 @@ export default function Home() {
             setSelectedPostForModal(null);
           }}
           onCommentAdded={handleCommentAdded}
-          currentUser={USER_DATA ? { id: USER_DATA.id, username: USER_DATA.username, avatar: formatImageUrl(USER_DATA.avatar), level: USER_DATA.level || 1 } : null}
+          currentUser={userData ? { id: userData.id, username: userData.username, avatar: formatImageUrl(userData.avatar), level: userData.level || 1 } : null}
         />
       )}
 
