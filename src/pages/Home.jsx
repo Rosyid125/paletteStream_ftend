@@ -24,8 +24,6 @@ import { CommentModal } from "@/components/CommentModal";
 import api from "./../api/axiosInstance"; // Pastikan path ini benar
 
 // --- Constants ---
-const USER_DATA = JSON.parse(localStorage.getItem("user")); // Get full user object
-const USER_ID = USER_DATA?.id;
 const POSTS_PER_PAGE = 9;
 const RECOMMENDED_USERS_LIMIT = 5; // *** NEW: Limit for recommended users per page ***
 
@@ -56,8 +54,56 @@ export default function Home() {
   // --- NEW: State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
+  // --- State for User ID ---
+  const [userId, setUserId] = useState(null);
 
   const observer = useRef();
+
+  // --- *** Gunakan useEffect untuk membaca localStorage saat komponen mount/lokasi berubah *** ---
+  useEffect(() => {
+    const storedUserData = localStorage.getItem("user");
+    if (storedUserData) {
+      try {
+        const parsedData = JSON.parse(storedUserData);
+        setUserId(parsedData?.id);
+      } catch (error) {
+        console.error("Failed to parse user data from localStorage:", error);
+        // Handle error, maybe clear invalid data
+        localStorage.removeItem("user");
+        setUserId(null);
+      }
+    } else {
+      setCurrentUserData(null);
+      setUserId(null);
+    }
+  }, []); // Kosongkan dependency array agar hanya dijalankan saat mount
+
+  // --- useEffect ini menangani pemuatan data SETELAH userId ditentukan ---
+  useEffect(() => {
+    // Hanya muat data jika userId ada (pengguna login)
+    if (userId) {
+      console.log(`userId is now set to: ${userId}. Loading initial posts and recommendations.`);
+      loadMorePosts(1, true); // Panggil saat pertama kali userId siap
+      loadRecommendedUsers(1); // Panggil saat pertama kali userId siap
+    } else {
+      // Tangani kasus pengguna tidak login setelah cek localStorage
+      console.log("userId is null after check. Setting initial states for logged-out user.");
+      // Reset posts untuk tampilan logout
+      setPosts([]);
+      setInitialLoading(false);
+      setLoading(false);
+      setHasMore(false);
+      setError(null);
+
+      // Atur state recommended users untuk tampilan logout
+      setRecommendedUsers([]);
+      setRecommendedUsersLoading(false);
+      // --- Set pesan error di sini jika pengguna tidak login ---
+      setRecommendedUsersError("Login to see recommendations.");
+      setRecommendedUsersHasMore(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // --- Helper function to format image URLs ---
   const formatImageUrl = (imagePath) => {
@@ -90,7 +136,7 @@ export default function Home() {
       }
 
       try {
-        if (!USER_ID) {
+        if (!userId) {
           setLoading(false);
           setInitialLoading(false);
           setHasMore(false);
@@ -98,7 +144,7 @@ export default function Home() {
           return;
         }
 
-        const response = await api.get(`/posts/home/${USER_ID}`, {
+        const response = await api.get(`/posts/home/${userId}`, {
           params: { page: currentPage, limit: POSTS_PER_PAGE },
         });
         const result = response.data;
@@ -145,21 +191,12 @@ export default function Home() {
         }
       }
     },
-    [loading, hasMore, posts.length] // USER_ID is implicitly constant here
+    [loading, hasMore, posts.length] // userId is implicitly constant here
   );
 
   // --- *** Function Fetch Recommended Users with Pagination *** ---
   const loadRecommendedUsers = useCallback(
     async (pageToFetch) => {
-      if (!USER_ID) {
-        if (pageToFetch === 1) {
-          setRecommendedUsersLoading(false);
-          setRecommendedUsersError("Login to see recommendations.");
-          setRecommendedUsersHasMore(false); // No more to load if not logged in
-        }
-        return; // Don't fetch if not logged in
-      }
-
       console.log(`Fetching recommended users page ${pageToFetch}`);
       setRecommendedUsersError(null); // Clear previous errors
 
@@ -177,7 +214,7 @@ export default function Home() {
         const response = await api.get("/users", {
           params: { page: pageToFetch, limit: RECOMMENDED_USERS_LIMIT },
           // If endpoint needs currentUserId for follow status:
-          // params: { page: pageToFetch, limit: RECOMMENDED_USERS_LIMIT, currentUserId: USER_ID }
+          // params: { page: pageToFetch, limit: RECOMMENDED_USERS_LIMIT, currentUserId: userId }
         });
 
         // Check response structure. Adjust if data is nested (e.g., response.data.data)
@@ -185,7 +222,7 @@ export default function Home() {
 
         if (fetchedUsers.length > 0) {
           const filteredUsers = fetchedUsers
-            .filter((user) => user.id !== USER_ID) // Filter out the current user
+            .filter((user) => user.id !== userId) // Filter out the current user
             .map((user) => ({
               ...user,
               avatar: formatImageUrl(user.avatar), // Format avatar
@@ -219,14 +256,14 @@ export default function Home() {
         }
       }
     },
-    // Dependencies: USER_ID is constant, RECOMMENDED_USERS_LIMIT is constant
-    // No changing dependencies needed unless USER_ID could change without remount
+    // Dependencies: userId is constant, RECOMMENDED_USERS_LIMIT is constant
+    // No changing dependencies needed unless userId could change without remount
     []
   );
 
   // --- Like/Unlike Post ---
   const handleLikeToggle = async (postId, currentStatus) => {
-    if (!USER_ID) {
+    if (!userId) {
       setError("You must be logged in to like posts.");
       return;
     }
@@ -237,7 +274,7 @@ export default function Home() {
     const optimisticCount = currentStatus ? originalPost.likeCount - 1 : originalPost.likeCount + 1;
     setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? { ...p, postLikeStatus: optimisticStatus, likeCount: Math.max(0, optimisticCount) } : p)));
     try {
-      const response = await api.post("/likes/create-delete", { postId: postId, userId: USER_ID });
+      const response = await api.post("/likes/create-delete", { postId: postId, userId: userId });
       if (response.data.success) {
         setError(null);
       } else {
@@ -252,7 +289,7 @@ export default function Home() {
 
   // --- Bookmark/Unbookmark Post ---
   const handleBookmarkToggle = async (postId, currentStatus) => {
-    if (!USER_ID) {
+    if (!userId) {
       setError("You must be logged in to bookmark posts.");
       return;
     }
@@ -262,7 +299,7 @@ export default function Home() {
     const optimisticStatus = !currentStatus;
     setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? { ...p, bookmarkStatus: optimisticStatus } : p)));
     try {
-      const response = await api.post("/bookmarks/create-delete", { postId: postId, userId: USER_ID });
+      const response = await api.post("/bookmarks/create-delete", { postId: postId, userId: userId });
       if (response.data.success) {
         setError(null);
       } else {
@@ -277,7 +314,7 @@ export default function Home() {
 
   // --- Follow/Unfollow User ---
   const handleFollowToggle = async (targetUserId, currentFollowStatus) => {
-    if (!USER_ID) {
+    if (!userId) {
       setRecommendedUsersError("You must be logged in to follow users.");
       return;
     }
@@ -362,14 +399,6 @@ export default function Home() {
     },
     [loading, hasMore, page, initialLoading, loadMorePosts]
   );
-
-  // --- Effect for Initial Load (Posts and Recommended Users page 1) ---
-  useEffect(() => {
-    console.log("Component mounted, loading initial data...");
-    loadMorePosts(1, true); // Load posts page 1
-    loadRecommendedUsers(1); // *** MODIFIED: Load recommended users page 1 ***
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadRecommendedUsers]); // Add loadRecommendedUsers dependency
 
   // --- Helper Functions ---
   const getTypeColor = (type) => {
@@ -510,7 +539,7 @@ export default function Home() {
                                 {post.type || "Unknown"}
                               </Badge>
                               {/* --- *** Conditionally render DropdownMenu only if the logged-in user owns the post *** --- */}
-                              {USER_ID === post.userId && (
+                              {userId === post.userId && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
@@ -566,7 +595,7 @@ export default function Home() {
                                         size="sm"
                                         className={`flex items-center space-x-1 h-8 pl-1 pr-2 rounded-l-md ${post.postLikeStatus ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-foreground"}`}
                                         onClick={() => handleLikeToggle(post.id, post.postLikeStatus)}
-                                        disabled={!USER_ID}
+                                        disabled={!userId}
                                       >
                                         <Heart className={`h-4 w-4 ${post.postLikeStatus ? "fill-current" : ""}`} />
                                       </Button>
@@ -582,7 +611,7 @@ export default function Home() {
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>{!USER_ID ? "Login to like" : post.postLikeStatus ? "Unlike" : "Like"} this post</p>
+                                    <p>{!userId ? "Login to like" : post.postLikeStatus ? "Unlike" : "Like"} this post</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -616,13 +645,13 @@ export default function Home() {
                                   size="sm"
                                   className={`h-8 ${post.bookmarkStatus ? "text-blue-500 hover:text-blue-600" : "text-muted-foreground hover:text-foreground"}`}
                                   onClick={() => handleBookmarkToggle(post.id, post.bookmarkStatus)}
-                                  disabled={!USER_ID}
+                                  disabled={!userId}
                                 >
                                   <Bookmark className={`h-4 w-4 ${post.bookmarkStatus ? "fill-current" : ""}`} />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{!USER_ID ? "Login to bookmark" : post.bookmarkStatus ? "Remove from bookmarks" : "Save to bookmarks"}</p>
+                                <p>{!userId ? "Login to bookmark" : post.bookmarkStatus ? "Remove from bookmarks" : "Save to bookmarks"}</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -633,7 +662,7 @@ export default function Home() {
 
                 {/* === End of Post Content States === */}
                 {loading && !initialLoading && <div className="text-center py-4 text-muted-foreground">Loading more posts...</div>}
-                {!initialLoading && !loading && posts.length === 0 && !error && !USER_ID && (
+                {!initialLoading && !loading && posts.length === 0 && !error && !userId && (
                   <div className="text-center py-10">
                     <p className="text-muted-foreground">Please log in to see posts from users you follow.</p>
                     <Button onClick={() => navigate("/login")} className="mt-2">
@@ -641,7 +670,7 @@ export default function Home() {
                     </Button>
                   </div>
                 )}
-                {!initialLoading && !loading && posts.length === 0 && !error && USER_ID && (
+                {!initialLoading && !loading && posts.length === 0 && !error && userId && (
                   <div className="text-center py-10">
                     <p className="text-muted-foreground">No posts found yet. Follow some artists or explore to see their work here!</p>
                   </div>
@@ -826,7 +855,7 @@ export default function Home() {
                                 <Button variant="outline" size="xs" onClick={() => navigate(`/profile/${user.id}`)}>
                                   Profile
                                 </Button>
-                                <Button size="xs" variant={user.follow_status ? "secondary" : "default"} onClick={() => handleFollowToggle(user.id, user.follow_status)} disabled={followingInProgress === user.id || !USER_ID}>
+                                <Button size="xs" variant={user.follow_status ? "secondary" : "default"} onClick={() => handleFollowToggle(user.id, user.follow_status)} disabled={followingInProgress === user.id || !userId}>
                                   {followingInProgress === user.id ? "..." : user.follow_status ? "Unfollow" : "Follow"}
                                 </Button>
                               </div>
@@ -841,7 +870,7 @@ export default function Home() {
                         <p className="text-xs text-muted-foreground"> Lvl {user.level || 1} </p>
                       </div>
                     </div>
-                    <Button variant={user.follow_status ? "secondary" : "outline"} size="sm" className="h-7 px-2" onClick={() => handleFollowToggle(user.id, user.follow_status)} disabled={followingInProgress === user.id || !USER_ID}>
+                    <Button variant={user.follow_status ? "secondary" : "outline"} size="sm" className="h-7 px-2" onClick={() => handleFollowToggle(user.id, user.follow_status)} disabled={followingInProgress === user.id || !userId}>
                       {followingInProgress === user.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" /> // Loading indicator
                       ) : user.follow_status ? (

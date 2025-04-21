@@ -135,7 +135,7 @@ const Sidebar = React.forwardRef(({ side = "left", variant = "sidebar", collapsi
         >
           <div className="flex h-full w-full flex-col">
             {/* Add the DialogTitle with VisuallyHidden for accessibility */}
-            <DialogTitle className="m-2">sidebar isMobile fix bug</DialogTitle>
+            <DialogTitle className="m-2"></DialogTitle>
 
             {/* Children or any other content inside the dialog */}
             {children}

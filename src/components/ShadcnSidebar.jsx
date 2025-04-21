@@ -8,78 +8,6 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import api from "./../api/axiosInstance"; // Ensure this path is correct
 
-// Get current userid from local storage
-const user = JSON.parse(localStorage.getItem("user"));
-const userId = user ? user.id : null;
-
-// Menu items with separate groups
-const items = [
-  {
-    title: "Home",
-    url: "/home",
-    icon: Home,
-    group: "Main",
-    color: "text-primary",
-  },
-  {
-    title: "Discover",
-    url: "/discover",
-    icon: Compass,
-    group: "Main",
-    color: "text-blue-500",
-  },
-  {
-    title: "Challenges",
-    url: "/challenges",
-    icon: Award,
-    group: "Main",
-    color: "text-amber-500",
-  },
-  {
-    title: "Top Artists",
-    url: "/top-artists",
-    icon: Users,
-    group: "Leaderboard",
-    color: "text-green-500",
-  },
-  {
-    title: "Top Artworks",
-    url: "/top-artworks",
-    icon: FileText,
-    group: "Leaderboard",
-    color: "text-blue-500",
-  },
-  {
-    title: "Weekly Winners",
-    url: "/weekly-winners",
-    icon: Trophy,
-    group: "Leaderboard",
-    color: "text-yellow-500",
-  },
-  {
-    title: "Profile",
-    url: `/profile/${userId}`, // Dynamically set profile URL
-    icon: Avatar, // Using Avatar component itself as icon placeholder
-    group: "User's",
-    color: "text-purple-500",
-    isAvatar: true, // Flag to render Avatar component instead of Lucide icon
-  },
-  {
-    title: "Bookmarked",
-    url: "/bookmarks",
-    icon: BookMarked,
-    group: "User's",
-    color: "text-amber-500",
-  },
-  {
-    title: "Liked",
-    url: "/likes",
-    icon: Heart,
-    group: "User's",
-    color: "text-green-500",
-  },
-];
-
 // --- Added Helper function to format image URLs ---
 const formatImageUrl = (imagePath) => {
   // Default fallback if imagePath is null, undefined, or empty string
@@ -117,10 +45,24 @@ export default function ShadcnSidebar() {
   const [miniProfile, setMiniProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userId, setUserId] = useState(null); // State to hold userId
 
   useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    let userIdFromStorage = null;
+    if (storedUser) {
+      try {
+        userIdFromStorage = JSON.parse(storedUser)?.id;
+      } catch (e) {
+        console.error("Failed to parse user from localStorage in Sidebar:", e);
+        localStorage.removeItem("user"); // Clear invalid data
+      }
+    }
+
+    setUserId(userIdFromStorage); // Set userId state
+
     const fetchMiniProfile = async () => {
-      if (!userId) {
+      if (!userIdFromStorage) {
         console.warn("User ID not found in local storage. Cannot fetch profile.");
         setIsLoading(false);
         setError("User not identified.");
@@ -131,7 +73,7 @@ export default function ShadcnSidebar() {
       setError(null);
 
       try {
-        const response = await api.get(`/profiles/mini-profile/${userId}`);
+        const response = await api.get(`/profiles/mini-profile/${userIdFromStorage}`);
         if (response.data && response.data.success && response.data.data) {
           setMiniProfile(response.data.data);
         } else {
@@ -151,6 +93,74 @@ export default function ShadcnSidebar() {
 
     fetchMiniProfile();
   }, []); // Runs once on mount
+
+  // Menu items with separate groups
+  const items = [
+    {
+      title: "Home",
+      url: "/home",
+      icon: Home,
+      group: "Main",
+      color: "text-primary",
+    },
+    {
+      title: "Discover",
+      url: "/discover",
+      icon: Compass,
+      group: "Main",
+      color: "text-blue-500",
+    },
+    {
+      title: "Challenges",
+      url: "/challenges",
+      icon: Award,
+      group: "Main",
+      color: "text-amber-500",
+    },
+    {
+      title: "Top Artists",
+      url: "/top-artists",
+      icon: Users,
+      group: "Leaderboard",
+      color: "text-green-500",
+    },
+    {
+      title: "Top Artworks",
+      url: "/top-artworks",
+      icon: FileText,
+      group: "Leaderboard",
+      color: "text-blue-500",
+    },
+    {
+      title: "Weekly Winners",
+      url: "/weekly-winners",
+      icon: Trophy,
+      group: "Leaderboard",
+      color: "text-yellow-500",
+    },
+    {
+      title: "Profile",
+      url: `/profile/${userId}`, // Dynamically set profile URL
+      icon: Avatar, // Using Avatar component itself as icon placeholder
+      group: "User's",
+      color: "text-purple-500",
+      isAvatar: true, // Flag to render Avatar component instead of Lucide icon
+    },
+    {
+      title: "Bookmarked",
+      url: "/bookmarks",
+      icon: BookMarked,
+      group: "User's",
+      color: "text-amber-500",
+    },
+    {
+      title: "Liked",
+      url: "/likes",
+      icon: Heart,
+      group: "User's",
+      color: "text-green-500",
+    },
+  ];
 
   const groupedItems = items.reduce((acc, item) => {
     if (item.title === "Profile" && item.url !== `/profile/${userId}`) {

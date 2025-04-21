@@ -33,7 +33,7 @@ const formatImageUrl = (imagePath) => {
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   // Removed searchFocused state as it wasn't used
-  const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")).id : null;
+  const [userId, setUserId] = useState(null); // State for user ID (if needed later)
   const [isDark, setIsDark] = useState(theme === "dark");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu (if needed later)
 
@@ -51,6 +51,17 @@ export default function Navbar() {
     messages: 2,
   };
   // --- End Static Data ---
+
+  useEffect(() => {
+    // setUserId from localStorage or context (if using a global state management)
+    const storedUser = localStorage.getItem("user"); // Example: get user from local storage
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUserId(parsedUser.id); // Assuming user object has an id property
+    } else {
+      setUserId(null); // No user found, set to null
+    }
+  }, []); // Run once on mount
 
   // Fetch mini profile data on component mount if userId exists
   useEffect(() => {
@@ -283,10 +294,10 @@ export default function Navbar() {
                           <Switch id="dark-mode-switch-navbar" checked={isDark} onCheckedChange={handleToggleTheme} aria-label="Toggle dark mode" />
                         </DropdownMenuItem>
                         {/* Corrected: Use Link component with 'to' prop */}
-                        <Link to="/help">
+                        <Link to="/landing">
                           <DropdownMenuItem>
                             <HelpCircle className="mr-2 h-4 w-4" />
-                            <span>Help & Support</span>
+                            <span>About (Landing)</span>
                           </DropdownMenuItem>
                         </Link>
                       </DropdownMenuGroup>
