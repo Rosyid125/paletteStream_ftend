@@ -1,30 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom"; // Use useSearchParams
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Heart, X, MessageCircle, Bookmark, Loader2 } from "lucide-react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageCarousel } from "@/components/ImageCarousel";
 import { CommentModal } from "@/components/CommentModal";
 import { LikesHoverCard } from "@/components/LikesHoverCard";
+import { Tag, Heart, MessageCircle, Bookmark, Loader2 } from "lucide-react"; // Using Tag icon
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import api from "../api/axiosInstance";
+import { toast } from "sonner";
 
 // --- Constants ---
-const ARTWORKS_PAGE_LIMIT = 9;
+const RESULTS_PAGE_LIMIT = 9; // Default limit
 
 // --- Helper function to construct full URL for storage paths ---
 const getFullStorageUrl = (path) => {
   if (!path || typeof path !== "string") return "/placeholder.svg";
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const normalizedPath = path.replace(/\\/g, "/");
   let relativePath = normalizedPath;
   if (normalizedPath.startsWith("storage/")) {
@@ -38,7 +34,7 @@ const getFullStorageUrl = (path) => {
     const url = new URL(relativePath, baseUrl + separator);
     return url.href;
   } catch (e) {
-    console.error("Error constructing image URL:", e, `Base: ${baseUrl}`, `Path: ${relativePath}`);
+    console.error("Error constructing image URL:", e);
     return "/placeholder.svg";
   }
 };
@@ -58,28 +54,34 @@ const getTypeColor = (type) => {
 };
 
 // --- Component Start ---
-export default function Discover() {
+export default function TagsResult() {
   const navigate = useNavigate();
-  const [artworks, setArtworks] = useState([]);
-  const [page, setPage] = useState(1);
-  const [limit] = useState(ARTWORKS_PAGE_LIMIT);
+  const [searchParams] = useSearchParams();
+
+  // --- State for Tags Query ---
+  // Read all 'query' parameters from the URL into an array
+  const [tagsQuery, setTagsQuery] = useState([]);
+
+  // State for fetched data and UI control
+  const [results, setResults] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1); // Next page to fetch
+  const [limit] = useState(RESULTS_PAGE_LIMIT); // Use constant or read from URL if needed
   const [hasMore, setHasMore] = useState(true);
-  const [loadingArtworks, setLoadingArtworks] = useState(false);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // State for interactions
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
   const [CURRENT_USER_ID, setUserId] = useState(null);
   const [CURRENT_USER_DATA, setUserData] = useState(null);
-  const observer = useRef();
-  const [searchType, setSearchType] = useState("post");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [currentTagInput, setCurrentTagInput] = useState("");
-  const [selectedType, setSelectedType] = useState("");
-  const popularTags = ["fantasy", "digital", "portrait", "landscape", "character", "anime", "scifi", "traditional", "concept", "fanart"];
-  const artworkTypes = ["illustration", "manga", "novel"];
 
+  // Ref for Intersection Observer
+  const observer = useRef();
+
+  // Get logged-in user data
   useEffect(() => {
     const storedUserData = localStorage.getItem("user");
     if (storedUserData) {
@@ -88,7 +90,7 @@ export default function Discover() {
         setUserData(parsedData);
         setUserId(parsedData?.id);
       } catch (error) {
-        console.error("Failed to parse user data from localStorage:", error);
+        console.error("Failed to parse user data:", error);
         setUserData(null);
         setUserId(null);
       }
@@ -98,15 +100,53 @@ export default function Discover() {
     }
   }, []);
 
-  const fetchArtworks = useCallback(
-    async (pageNum) => {
-      if (loadingArtworks || (pageNum > 1 && !hasMore)) return;
-      setLoadingArtworks(true);
+  // --- Effect to update tagsQuery state when URL search params change ---
+  useEffect(() => {
+    const tagsFromUrl = searchParams.getAll("query") || [];
+    setTagsQuery(tagsFromUrl);
+    // Reset pagination and results when tags change
+    setResults([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    setInitialLoadComplete(false);
+    setLoading(true); // Start loading indicator
+    // Fetch will be triggered by the next effect that depends on tagsQuery
+  }, [searchParams]);
+
+  // --- Fetching Logic ---
+  const fetchResults = useCallback(
+    async (pageNum, tagsArray) => {
+      // Don't fetch if tags array is empty
+      if (!tagsArray || tagsArray.length === 0) {
+        setResults([]);
+        setHasMore(false);
+        setInitialLoadComplete(true);
+        setLoading(false);
+        setLoadingMore(false);
+        setError(null); // Clear any previous error
+        return;
+      }
+
+      if (pageNum === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       setError(null);
-      console.log(`Fetching randomized artworks page: ${pageNum}`);
+
+      console.log(`Fetching tags results page: ${pageNum}, tags: ${tagsArray.join(", ")}`);
+
       try {
-        const params = { page: pageNum, limit: limit, viewerId: CURRENT_USER_ID ?? 0 };
-        const response = await api.get("/posts/randomized", { params });
+        // --- Pass tags array directly to params ---
+        // Axios should correctly serialize this as repeated query parameters
+        const params = {
+          query: tagsArray, // Pass the array here
+          page: pageNum,
+          limit: limit,
+          viewerId: CURRENT_USER_ID ?? 0,
+        };
+        const response = await api.get("/posts/tags", { params }); // Endpoint for tags
+
         if (response.data?.success && Array.isArray(response.data.data)) {
           const fetchedData = response.data.data;
           const processedData = fetchedData.map((post) => ({
@@ -127,237 +167,103 @@ export default function Discover() {
             title: post.title || "Untitled",
             description: post.description || "",
           }));
-          setArtworks((prev) => (pageNum === 1 ? processedData : [...prev, ...processedData]));
-          setPage(pageNum + 1);
+          setResults((prevResults) => (pageNum === 1 ? processedData : [...prevResults, ...processedData]));
+          setCurrentPage(pageNum + 1);
           setHasMore(processedData.length === limit);
         } else {
-          setError(response.data?.message || "Failed fetch");
-          if (pageNum === 1) setArtworks([]);
+          setError(response.data?.message || "Failed to fetch results.");
+          if (pageNum === 1) setResults([]);
           setHasMore(false);
         }
       } catch (err) {
         setError(err.response?.data?.message || err.message || "An error occurred.");
-        if (pageNum === 1) setArtworks([]);
+        if (pageNum === 1) setResults([]);
         setHasMore(false);
       } finally {
-        setLoadingArtworks(false);
-        if (pageNum === 1) setInitialLoadComplete(true);
+        if (pageNum === 1) {
+          setLoading(false);
+          setInitialLoadComplete(true);
+        } else {
+          setLoadingMore(false);
+        }
       }
     },
-    [limit, CURRENT_USER_ID, loadingArtworks, hasMore]
+    [limit, CURRENT_USER_ID] // Dependencies
   );
 
+  // --- Effect for Initial Load based on tagsQuery ---
   useEffect(() => {
-    fetchArtworks(1);
-  }, []);
+    // Fetch page 1 only when tagsQuery is populated and not empty
+    if (tagsQuery.length > 0) {
+      fetchResults(1, tagsQuery);
+    } else {
+      // Handle case where URL has no tags or they were removed
+      setLoading(false); // Stop loading indicator
+      setInitialLoadComplete(true); // Mark load as complete
+      setHasMore(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tagsQuery]); // Re-run ONLY when the tagsQuery array changes
 
-  const lastArtworkElementRef = useCallback(
+  // --- Intersection Observer Setup ---
+  const lastResultRef = useCallback(
     (node) => {
-      if (loadingArtworks) return;
+      if (loading || loadingMore) return;
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasMore) {
-          fetchArtworks(page);
+          console.log("Intersection observer triggered fetch for next page (tags)");
+          // Fetch the *next* page using the current tags
+          fetchResults(currentPage, tagsQuery);
         }
       });
       if (node) observer.current.observe(node);
     },
-    [loadingArtworks, hasMore, fetchArtworks, page]
+    [loading, loadingMore, hasMore, fetchResults, currentPage, tagsQuery] // Dependencies
   );
 
-  const handleSearchTypeChange = (value) => {
-    setSearchType(value);
-    setSearchQuery("");
-    setSelectedTags([]);
-    setCurrentTagInput("");
-    setSelectedType("");
-  };
-  const addTag = (tagToAdd) => {
-    const cleanedTag = tagToAdd.trim().toLowerCase();
-    if (cleanedTag && !selectedTags.includes(cleanedTag)) {
-      setSelectedTags([...selectedTags, cleanedTag]);
-    }
-    setCurrentTagInput("");
-  };
-  const removeTag = (tagToRemove) => {
-    setSelectedTags(selectedTags.filter((tag) => tag !== tagToRemove));
-  };
-  const handleTagInputChange = (e) => {
-    setCurrentTagInput(e.target.value);
-  };
-  const handleTagInputKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTag(currentTagInput);
-    } else if (e.key === "Enter") {
-      handleSearchSubmit();
-    }
-  };
-  const handleQueryInputKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleSearchSubmit();
-    }
-  };
-
-  // --- *** UPDATED handleSearchSubmit Function *** ---
-  const handleSearchSubmit = () => {
-    let targetPath = ""; // Will be set in switch
-    let queryString = ""; // Will be built based on type
-
-    switch (searchType) {
-      case "artist":
-        if (!searchQuery.trim()) {
-          console.log("Artist search query empty.");
-          return; // Early exit if input invalid
-        }
-        targetPath = "/users/name"; // Specific path for artist search
-        // Use URLSearchParams for standard key-value pairs
-        queryString = new URLSearchParams({
-          query: searchQuery.trim(),
-          page: 1,
-          limit: 10, // Specific limit for artists
-        }).toString();
-        break;
-
-      case "post":
-        if (!searchQuery.trim()) {
-          console.log("Post search query empty.");
-          return;
-        }
-        targetPath = "/posts/title-desc"; // Specific path for post title/desc search
-        queryString = new URLSearchParams({
-          query: searchQuery.trim(),
-          page: 1,
-          limit: 9, // Specific limit for posts
-        }).toString();
-        break;
-
-      case "tags":
-        if (selectedTags.length === 0) {
-          console.log("No tags selected.");
-          return;
-        }
-        targetPath = "/posts/tags"; // Specific path for tags search
-        // Manual build for repeated 'query' keys as required
-        const tagParams = selectedTags.map((tag) => `query=${encodeURIComponent(tag)}`).join("&");
-        queryString = `page=1&limit=9&${tagParams}`; // Add page/limit first, then tag queries
-        break;
-
-      case "type":
-        if (!selectedType) {
-          console.log("No type selected.");
-          return;
-        }
-        targetPath = "/posts/type"; // Specific path for type search
-        queryString = new URLSearchParams({
-          query: selectedType,
-          page: 1,
-          limit: 9, // Specific limit for type search
-        }).toString();
-        break;
-
-      default:
-        console.warn("Unknown search type:", searchType);
-        return; // Exit if type is somehow invalid
-    }
-
-    // Construct the final URL and navigate
-    // We are navigating away from Discover page to a dedicated search results page
-    const url = `${targetPath}?${queryString}`;
-    console.log("Navigating to:", url);
-    navigate(url);
-  };
-  // --- *** END of UPDATED handleSearchSubmit Function *** ---
-
-  const renderSearchInput = () => {
-    switch (searchType) {
-      case "artist":
-        return <Input placeholder="Search by artist name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleQueryInputKeyDown} />;
-      case "post":
-        return <Input placeholder="Search by title or description..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleQueryInputKeyDown} />;
-      case "tags":
-        return (
-          <div className="space-y-2">
-            {" "}
-            <div className="border rounded-md p-2 min-h-[40px] flex flex-wrap gap-1 items-center">
-              {" "}
-              {selectedTags.length === 0 && <span className="text-sm text-muted-foreground px-1">Selected tags appear here</span>}{" "}
-              {selectedTags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                  {" "}
-                  {tag}{" "}
-                  <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-muted-foreground/20" onClick={() => removeTag(tag)} aria-label={`Remove tag ${tag}`}>
-                    {" "}
-                    <X className="h-3 w-3" />{" "}
-                  </Button>{" "}
-                </Badge>
-              ))}{" "}
-            </div>{" "}
-            <Input placeholder="Type a tag and press Enter or comma..." value={currentTagInput} onChange={handleTagInputChange} onKeyDown={handleTagInputKeyDown} />{" "}
-          </div>
-        );
-      case "type":
-        return (
-          <Select value={selectedType} onValueChange={setSelectedType}>
-            {" "}
-            <SelectTrigger>
-              {" "}
-              <SelectValue placeholder="Select artwork type..." />{" "}
-            </SelectTrigger>{" "}
-            <SelectContent>
-              {" "}
-              {artworkTypes.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {" "}
-                  {type.charAt(0).toUpperCase() + type.slice(1)}{" "}
-                </SelectItem>
-              ))}{" "}
-            </SelectContent>{" "}
-          </Select>
-        );
-      default:
-        return null;
-    }
-  };
+  // --- Interaction Handlers (Copied) ---
   const handleLikeToggle = async (postId, currentStatus) => {
     if (!CURRENT_USER_ID) {
-      setError("You must be logged in to like posts.");
+      toast.warning("Login required");
       return;
     }
-    const postIndex = artworks.findIndex((p) => p.id === postId);
+    const postIndex = results.findIndex((p) => p.id === postId);
     if (postIndex === -1) return;
-    const originalPost = artworks[postIndex];
+    const originalPost = results[postIndex];
     const optimisticStatus = !currentStatus;
     const optimisticCount = currentStatus ? originalPost.likeCount - 1 : originalPost.likeCount + 1;
-    setArtworks((prev) => prev.map((p) => (p.id === postId ? { ...p, postLikeStatus: optimisticStatus, likeCount: Math.max(0, optimisticCount) } : p)));
+    setResults((prev) => prev.map((p) => (p.id === postId ? { ...p, postLikeStatus: optimisticStatus, likeCount: Math.max(0, optimisticCount) } : p)));
     setError(null);
     try {
       const response = await api.post("/likes/create-delete", { postId, userId: CURRENT_USER_ID });
       if (!response.data.success) throw new Error(response.data.message || "BE error");
     } catch (err) {
       console.error("Like error:", err);
-      setArtworks((prev) => prev.map((p) => (p.id === postId ? originalPost : p)));
+      setResults((prev) => prev.map((p) => (p.id === postId ? originalPost : p)));
       setError(err.message || "Like failed");
+      toast.error("Like failed");
     }
   };
   const handleBookmarkToggle = async (postId, currentStatus) => {
     if (!CURRENT_USER_ID) {
-      setError("You must be logged in to bookmark posts.");
+      toast.warning("Login required");
       return;
     }
-    const postIndex = artworks.findIndex((p) => p.id === postId);
+    const postIndex = results.findIndex((p) => p.id === postId);
     if (postIndex === -1) return;
-    const originalPost = artworks[postIndex];
+    const originalPost = results[postIndex];
     const optimisticStatus = !currentStatus;
-    setArtworks((prev) => prev.map((p) => (p.id === postId ? { ...p, bookmarkStatus: optimisticStatus } : p)));
+    setResults((prev) => prev.map((p) => (p.id === postId ? { ...p, bookmarkStatus: optimisticStatus } : p)));
     setError(null);
     try {
       const response = await api.post("/bookmarks/create-delete", { postId, userId: CURRENT_USER_ID });
       if (!response.data.success) throw new Error(response.data.message || "BE error");
     } catch (err) {
       console.error("Bookmark error:", err);
-      setArtworks((prev) => prev.map((p) => (p.id === postId ? originalPost : p)));
+      setResults((prev) => prev.map((p) => (p.id === postId ? originalPost : p)));
       setError(err.message || "Bookmark failed");
+      toast.error("Bookmark failed");
     }
   };
   const openCommentModal = (post) => {
@@ -365,8 +271,10 @@ export default function Discover() {
     setIsCommentModalOpen(true);
   };
   const handleCommentAdded = (postId) => {
-    setArtworks((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p)));
+    setResults((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p)));
   };
+
+  // --- Render Loading Skeleton ---
   const renderSkeleton = (key) => (
     <Card key={key} className="overflow-hidden">
       {" "}
@@ -401,63 +309,34 @@ export default function Discover() {
     </Card>
   );
 
+  // --- Main Render ---
   return (
-    <div className="grid grid-cols-1 space-y-6 p-4 md:p-6">
-      {/* Search Card */}
-      <Card className="border-t-4 border-t-primary">
-        <CardHeader className="pb-2">
-          {" "}
-          <CardTitle>Discover Artworks</CardTitle> <CardDescription>Find new artworks or search for specific content</CardDescription>{" "}
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 md:flex-row md:items-start">
-            <div className="w-full md:w-40 flex-shrink-0">
-              {" "}
-              <Select value={searchType} onValueChange={handleSearchTypeChange}>
-                {" "}
-                <SelectTrigger>
-                  {" "}
-                  <SelectValue placeholder="Search By..." />{" "}
-                </SelectTrigger>{" "}
-                <SelectContent>
-                  {" "}
-                  <SelectItem value="post">Post (Title/Desc)</SelectItem> <SelectItem value="artist">Artist Name</SelectItem> <SelectItem value="tags">Tags</SelectItem> <SelectItem value="type">Type</SelectItem>{" "}
-                </SelectContent>{" "}
-              </Select>{" "}
-            </div>
-            <div className="flex-1 min-w-0"> {renderSearchInput()} </div>
-            <Button onClick={handleSearchSubmit} className="w-full md:w-auto">
-              {" "}
-              <Search className="mr-2 h-4 w-4" /> Search{" "}
-            </Button>
+    <div className="container mx-auto space-y-6 p-4 md:p-6">
+      {/* Header Section */}
+      <Card className="border-t-4 border-t-green-500">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Tag className="h-5 w-5 text-green-500" /> {/* Tag Icon */}
+            <CardTitle>Tag Search Results</CardTitle>
           </div>
-          <div className="mt-4">
-            {" "}
-            <h3 className="text-sm font-medium mb-2">Popular Tags</h3>{" "}
-            <ScrollArea className="w-full whitespace-nowrap pb-2">
-              {" "}
-              <div className="flex gap-2">
-                {" "}
-                {popularTags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant={searchType === "tags" ? "secondary" : "outline"}
-                    className={`cursor-${searchType === "tags" ? "pointer" : "not-allowed"} ${searchType === "tags" ? "hover:bg-secondary/80" : "opacity-60"} transition-colors`}
-                    onClick={() => searchType === "tags" && addTag(tag)}
-                    title={searchType !== "tags" ? "Select 'Tags' in 'Search By' to use" : `Add tag: ${tag}`}
-                  >
-                    {" "}
-                    #{tag}{" "}
+          <CardDescription>
+            Showing posts tagged with:
+            {tagsQuery.length > 0 ? (
+              <span className="ml-2 space-x-1">
+                {tagsQuery.map((tag, index) => (
+                  <Badge key={index} variant="secondary">
+                    #{tag}
                   </Badge>
-                ))}{" "}
-              </div>{" "}
-              <ScrollBar orientation="horizontal" />{" "}
-            </ScrollArea>{" "}
-          </div>
-        </CardContent>
+                ))}
+              </span>
+            ) : (
+              <span className="ml-1 italic text-muted-foreground"> No tags specified in URL.</span>
+            )}
+          </CardDescription>
+        </CardHeader>
       </Card>
 
-      {/* Error Message */}
+      {/* Error Message Display */}
       {error && (
         <Card className="border-destructive bg-destructive/10">
           {" "}
@@ -465,31 +344,40 @@ export default function Discover() {
         </Card>
       )}
 
-      {/* Artworks Grid */}
+      {/* Results Grid Area */}
       <div className="mt-6">
-        {!initialLoadComplete && loadingArtworks && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"> {Array.from({ length: limit }).map((_, index) => renderSkeleton(`initial-skeleton-${index}`))} </div>}
-        {artworks.length > 0 && (
+        {/* Initial Loading Skeletons */}
+        {loading && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"> {Array.from({ length: limit }).map((_, index) => renderSkeleton(`initial-skeleton-${index}`))} </div>}
+
+        {/* Displayed Results Grid */}
+        {!loading && results.length > 0 && (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {" "}
-            {artworks.map((artwork, index) => (
-              <div ref={artworks.length === index + 1 ? lastArtworkElementRef : null} key={`${artwork.id}-${artwork.userId}-${index}`}>
-                {" "}
-                <ArtworkCard artwork={artwork} onLikeToggle={handleLikeToggle} onBookmarkToggle={handleBookmarkToggle} onCommentClick={openCommentModal} currentUserId={CURRENT_USER_ID} />{" "}
+            {results.map((artwork, index) => (
+              <div ref={results.length === index + 1 ? lastResultRef : null} key={`${artwork.id}-${index}`}>
+                <ArtworkCard artwork={artwork} onLikeToggle={handleLikeToggle} onBookmarkToggle={handleBookmarkToggle} onCommentClick={openCommentModal} currentUserId={CURRENT_USER_ID} />
               </div>
-            ))}{" "}
+            ))}
           </div>
         )}
-        {loadingArtworks && page > 1 && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-6"> {Array.from({ length: 3 }).map((_, index) => renderSkeleton(`loading-skeleton-${index}`))} </div>}
-        {initialLoadComplete && artworks.length === 0 && !loadingArtworks && !error && (
+
+        {/* Loading More Indicator */}
+        {loadingMore && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-6"> {Array.from({ length: 3 }).map((_, index) => renderSkeleton(`loading-skeleton-${index}`))} </div>}
+
+        {/* Empty State */}
+        {initialLoadComplete && !loading && results.length === 0 && !error && (
           <div className="text-center text-muted-foreground py-10 col-span-full">
-            {" "}
-            <p>No artworks found for discovery.</p>{" "}
+            <p>No posts found matching the specified tags.</p>
+            <Button variant="link" onClick={() => navigate("/discover")} className="mt-2">
+              Back to Discover
+            </Button>
           </div>
         )}
-        {!loadingArtworks && !hasMore && artworks.length > 0 && initialLoadComplete && (
+
+        {/* End of List Message */}
+        {!loading && !loadingMore && !hasMore && results.length > 0 && initialLoadComplete && (
           <div className="text-center text-muted-foreground py-10 col-span-full">
             {" "}
-            <p>You've scrolled through all discovered artworks!</p>{" "}
+            <p>You've reached the end of the search results.</p>{" "}
           </div>
         )}
       </div>
@@ -512,7 +400,7 @@ export default function Discover() {
   );
 }
 
-// --- Artwork Card Component ---
+// --- Artwork Card Component (Copied from Discover/TopArtworks) ---
 function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, currentUserId }) {
   return (
     <Card className="overflow-hidden flex flex-col h-full">

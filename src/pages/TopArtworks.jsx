@@ -1,437 +1,477 @@
-"use client";
-
-import { useState } from "react";
+// --- Import necessary components and hooks ---
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Heart, MessageCircle, Share2, Bookmark, Trophy, TrendingUp, Calendar, Filter, Eye, Crown } from "lucide-react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
+import { ImageCarousel } from "@/components/ImageCarousel"; // Import ImageCarousel
+import { CommentModal } from "@/components/CommentModal"; // Import CommentModal
+import { LikesHoverCard } from "@/components/LikesHoverCard"; // Import LikesHoverCard
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
+import { Heart, MessageCircle, Bookmark, Trophy, Loader2, Crown } from "lucide-react"; // Adjusted icons
+import api from "../api/axiosInstance"; // Import axios instance
+
+// --- Constants ---
+const ARTWORKS_PAGE_LIMIT = 9; // Number of artworks per page/fetch
+
+// --- Helper function to construct full URL for storage paths (same as Profile.jsx) ---
+const getFullStorageUrl = (path) => {
+  if (!path || typeof path !== "string") return "/placeholder.svg";
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  const normalizedPath = path.replace(/\\/g, "/");
+  let relativePath = normalizedPath;
+  if (normalizedPath.startsWith("storage/")) {
+    relativePath = normalizedPath; // Keep 'storage/' prefix
+  } else if (!normalizedPath.startsWith("/api") && !normalizedPath.startsWith("storage/")) {
+    relativePath = `/api/${normalizedPath.startsWith("/") ? normalizedPath.slice(1) : normalizedPath}`;
+    console.warn(`Prefixed non-storage path with /api/: ${relativePath}`);
+  }
+
+  const baseUrl = api.defaults.baseURL || window.location.origin;
+  const separator = baseUrl.endsWith("/") ? "" : "/";
+
+  try {
+    const url = new URL(relativePath, baseUrl + separator);
+    return url.href;
+  } catch (e) {
+    console.error("Error constructing image URL:", e, `Base: ${baseUrl}`, `Path: ${relativePath}`);
+    return "/placeholder.svg";
+  }
+};
+
+// --- Helper function to get type color (same as Profile.jsx) ---
+const getTypeColor = (type) => {
+  switch (type?.toLowerCase()) {
+    case "illustration":
+      return "text-primary bg-primary/10 hover:bg-primary/20";
+    case "manga":
+      return "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20";
+    case "novel":
+      return "text-purple-500 bg-purple-500/10 hover:bg-purple-500/20";
+    default:
+      return "text-gray-500 bg-gray-500/10 hover:bg-gray-500/20"; // Fallback color
+  }
+};
+
+// --- Helper function to get rank badge style ---
+const getRankBadgeStyle = (rank) => {
+  if (rank === 1) return "bg-yellow-500 text-white";
+  if (rank === 2) return "bg-gray-400 text-gray-800"; // Adjusted silver color
+  if (rank === 3) return "bg-amber-700 text-white"; // Bronze color
+  return "bg-muted text-muted-foreground";
+};
 
 export default function TopArtworks() {
-  const [category, setCategory] = useState("all");
+  const navigate = useNavigate(); // Hook for navigation
 
-  // Top artworks data
-  const topArtworks = [
-    {
-      id: 1,
-      rank: 1,
-      title: "Ethereal Forest",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Liam Parker",
-        avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=100&auto=format&fit=crop",
-        level: 16,
-      },
-      stats: {
-        likes: 2547,
-        comments: 342,
-        shares: 128,
-        views: 15243,
-      },
-      tags: ["fantasy", "landscape", "digital"],
-      trending: true,
-      featured: true,
-    },
-    {
-      id: 2,
-      rank: 2,
-      title: "Cyberpunk City",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Zoe Chen",
-        avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop",
-        level: 23,
-      },
-      stats: {
-        likes: 2103,
-        comments: 276,
-        shares: 95,
-        views: 12876,
-      },
-      tags: ["scifi", "cyberpunk", "digital"],
-      trending: true,
-      featured: false,
-    },
-    {
-      id: 3,
-      rank: 3,
-      title: "Moonlit Wanderer",
-      type: "manga",
-      imageUrl: "https://images.unsplash.com/photo-1579547945413-497e1b99dac0?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Hiroshi Tanaka",
-        avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=100&auto=format&fit=crop",
-        level: 28,
-      },
-      stats: {
-        likes: 1876,
-        comments: 231,
-        shares: 87,
-        views: 10543,
-      },
-      tags: ["manga", "character", "fantasy"],
-      trending: false,
-      featured: true,
-    },
-    {
-      id: 4,
-      rank: 4,
-      title: "Ocean Dreams",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Emma Waters",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop",
-        level: 19,
-      },
-      stats: {
-        likes: 1654,
-        comments: 198,
-        shares: 76,
-        views: 9876,
-      },
-      tags: ["landscape", "digital", "ocean"],
-      trending: false,
-      featured: false,
-    },
-    {
-      id: 5,
-      rank: 5,
-      title: "The Last Guardian",
-      type: "novel",
-      imageUrl: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Marcus Reed",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
-        level: 21,
-      },
-      stats: {
-        likes: 1432,
-        comments: 187,
-        shares: 65,
-        views: 8765,
-      },
-      tags: ["novel", "fantasy", "adventure"],
-      trending: true,
-      featured: false,
-    },
-    {
-      id: 6,
-      rank: 6,
-      title: "Sakura Dreams",
-      type: "illustration",
-      imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Yuki Sato",
-        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop",
-        level: 25,
-      },
-      stats: {
-        likes: 1321,
-        comments: 165,
-        shares: 54,
-        views: 7654,
-      },
-      tags: ["traditional", "japanese", "nature"],
-      trending: false,
-      featured: true,
-    },
-  ];
+  // --- State for dynamic data ---
+  const [displayedArtworks, setDisplayedArtworks] = useState([]);
+  const [loading, setLoading] = useState(false); // For initial load or subsequent loads
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1); // Next page to fetch
+  const [limit] = useState(ARTWORKS_PAGE_LIMIT);
+  const [hasMore, setHasMore] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  // Categories for filtering
-  const categories = [
-    { value: "all", label: "All Categories" },
-    { value: "illustration", label: "Illustrations" },
-    { value: "manga", label: "Manga" },
-    { value: "novel", label: "Novels" },
-  ];
+  // --- State for Modals & Logged-in User ---
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [selectedPostForModal, setSelectedPostForModal] = useState(null);
+  const [CURRENT_USER_ID, setUserId] = useState(null);
+  const [CURRENT_USER_DATA, setUserData] = useState(null);
 
-  // Helper function to get type color
-  const getTypeColor = (type) => {
-    switch (type) {
-      case "illustration":
-        return "text-primary bg-primary/10 hover:bg-primary/20";
-      case "manga":
-        return "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20";
-      case "novel":
-        return "text-purple-500 bg-purple-500/10 hover:bg-purple-500/20";
-      default:
-        return "text-primary bg-primary/10 hover:bg-primary/20";
+  // --- Infinite Scroll Observer ---
+  const observer = useRef();
+
+  // Get logged-in user data from localStorage
+  useEffect(() => {
+    const storedUserData = localStorage.getItem("user");
+    if (storedUserData) {
+      try {
+        const parsedData = JSON.parse(storedUserData);
+        setUserData(parsedData);
+        setUserId(parsedData?.id);
+      } catch (error) {
+        console.error("Failed to parse user data from localStorage:", error);
+        setUserData(null);
+        setUserId(null);
+      }
+    } else {
+      setUserData(null);
+      setUserId(null);
+    }
+  }, []);
+
+  // --- Function to fetch artworks ---
+  const fetchArtworks = useCallback(
+    async (pageNum, isInitialLoad = false) => {
+      if (loading || (!isInitialLoad && !hasMore)) return; // Prevent redundant fetches
+
+      setLoading(true);
+      setError(null);
+      console.log(`Fetching top artworks page: ${pageNum}`);
+
+      try {
+        const response = await api.get("/posts/leaderboard", {
+          params: {
+            page: pageNum,
+            limit: limit,
+            viewerId: CURRENT_USER_ID ?? 0, // Pass viewer for like/bookmark status
+          },
+        });
+
+        if (response.data && response.data.success && Array.isArray(response.data.data)) {
+          const newArtworks = response.data.data;
+
+          // Calculate Rank and process data
+          const startIndex = (pageNum - 1) * limit;
+          const processedArtworks = newArtworks.map((artwork, index) => ({
+            ...artwork,
+            rank: startIndex + index + 1, // Calculate global rank
+            // Ensure necessary fields have defaults
+            userId: Number(artwork.userId),
+            id: Number(artwork.id),
+            level: Number(artwork.level) || 1,
+            images: Array.isArray(artwork.images) ? artwork.images : [],
+            tags: Array.isArray(artwork.tags) ? artwork.tags : [],
+            bookmarkStatus: artwork.bookmarkStatus === undefined ? false : artwork.bookmarkStatus,
+            postLikeStatus: artwork.postLikeStatus === undefined ? false : artwork.postLikeStatus,
+            likeCount: artwork.likeCount === undefined ? 0 : Number(artwork.likeCount) || 0,
+            commentCount: artwork.commentCount === undefined ? 0 : Number(artwork.commentCount) || 0,
+            avatar: artwork.avatar || null,
+            username: artwork.username || "Unknown User",
+            type: artwork.type || "Unknown",
+            title: artwork.title || "Untitled",
+            description: artwork.description || "No description.",
+            createdAt: artwork.createdAt, // Keep original format for display if needed
+          }));
+
+          setDisplayedArtworks((prev) => (pageNum === 1 ? processedArtworks : [...prev, ...processedArtworks]));
+          setHasMore(processedArtworks.length === limit);
+          setPage((prev) => prev + 1); // Increment page for the *next* fetch
+        } else {
+          setError(response.data?.message || "Failed to fetch top artworks.");
+          setHasMore(false); // Stop fetching if API indicates error or unexpected data
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || err.message || "An error occurred while fetching artworks.");
+        setHasMore(false); // Stop fetching on error
+      } finally {
+        setLoading(false);
+        if (pageNum === 1) {
+          setInitialLoadComplete(true);
+        }
+      }
+    },
+    [limit, loading, hasMore, CURRENT_USER_ID] // Include dependencies
+  );
+
+  // --- Effect for Initial Data Load ---
+  useEffect(() => {
+    fetchArtworks(1, true); // Fetch page 1 initially
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Runs only on mount
+
+  // --- Intersection Observer Setup ---
+  const lastArtworkElementRef = useCallback(
+    (node) => {
+      if (loading) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          console.log("Intersection detected, fetching next page...");
+          fetchArtworks(page); // Fetch the *next* page
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore, fetchArtworks, page] // Dependencies
+  );
+
+  // --- Action Handlers (copied & adapted from Profile.jsx) ---
+
+  const handleLikeToggle = async (postId, currentStatus) => {
+    if (!CURRENT_USER_ID) {
+      setError("You must be logged in to like posts."); // Use main error state
+      return;
+    }
+    const postIndex = displayedArtworks.findIndex((p) => p.id === postId);
+    if (postIndex === -1) return;
+    const originalPost = displayedArtworks[postIndex];
+    const optimisticStatus = !currentStatus;
+    const optimisticCount = currentStatus ? originalPost.likeCount - 1 : originalPost.likeCount + 1;
+    setDisplayedArtworks((prev) => prev.map((p) => (p.id === postId ? { ...p, postLikeStatus: optimisticStatus, likeCount: Math.max(0, optimisticCount) } : p)));
+    try {
+      const response = await api.post("/likes/create-delete", { postId, userId: CURRENT_USER_ID });
+      if (!response.data.success) throw new Error(response.data.message || "Backend error");
+      setError(null);
+    } catch (err) {
+      console.error("Error toggling like:", err);
+      setDisplayedArtworks((prev) => prev.map((p) => (p.id === postId ? originalPost : p)));
+      setError(err.message || "Could not update like status.");
     }
   };
 
-  // Helper function to get rank badge style
-  const getRankBadgeStyle = (rank) => {
-    switch (rank) {
-      case 1:
-        return "bg-yellow-500 text-white";
-      case 2:
-        return "bg-gray-300 text-gray-800";
-      case 3:
-        return "bg-amber-700 text-white";
-      default:
-        return "bg-muted text-muted-foreground";
+  const handleBookmarkToggle = async (postId, currentStatus) => {
+    if (!CURRENT_USER_ID) {
+      setError("You must be logged in to bookmark posts.");
+      return;
+    }
+    const postIndex = displayedArtworks.findIndex((p) => p.id === postId);
+    if (postIndex === -1) return;
+    const originalPost = displayedArtworks[postIndex];
+    const optimisticStatus = !currentStatus;
+    setDisplayedArtworks((prev) => prev.map((p) => (p.id === postId ? { ...p, bookmarkStatus: optimisticStatus } : p)));
+    try {
+      const response = await api.post("/bookmarks/create-delete", { postId, userId: CURRENT_USER_ID });
+      if (!response.data.success) throw new Error(response.data.message || "Backend error");
+      setError(null);
+    } catch (err) {
+      console.error("Error toggling bookmark:", err);
+      setDisplayedArtworks((prev) => prev.map((p) => (p.id === postId ? originalPost : p)));
+      setError(err.message || "Could not update bookmark status.");
     }
   };
 
-  // Filter artworks based on selected category
-  const filteredArtworks = category === "all" ? topArtworks : topArtworks.filter((artwork) => artwork.type === category || artwork.tags.includes(category));
+  const openCommentModal = (post) => {
+    setSelectedPostForModal({ id: post.id, title: post.title });
+    setIsCommentModalOpen(true);
+  };
+
+  const handleCommentAdded = (postId) => {
+    setDisplayedArtworks((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p)));
+  };
+
+  // --- Render Skeleton ---
+  const renderSkeleton = (key) => (
+    <Card key={key} className="overflow-hidden">
+      <CardHeader className="pb-2 space-y-0">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div>
+              {" "}
+              <Skeleton className="h-4 w-20 mb-1" /> <Skeleton className="h-3 w-16" />{" "}
+            </div>
+          </div>
+          <Skeleton className="h-6 w-16 rounded-md" />
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          <Skeleton className="h-5 w-8 rounded-md" /> {/* Rank Skeleton */}
+          <Skeleton className="h-5 w-12 rounded-md" /> {/* Type Skeleton */}
+        </div>
+      </CardHeader>
+      <Skeleton className="aspect-video w-full" />
+      <CardContent className="pt-4">
+        <Skeleton className="h-5 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-full mb-1" />
+        <Skeleton className="h-4 w-2/3" />
+      </CardContent>
+      <CardFooter className="flex justify-between border-t pt-4">
+        <div className="flex space-x-4">
+          <Skeleton className="h-8 w-16" /> <Skeleton className="h-8 w-16" />
+        </div>
+        <Skeleton className="h-8 w-8" />
+      </CardFooter>
+    </Card>
+  );
 
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6">
       {/* Header Section */}
       <Card className="border-t-4 border-t-yellow-500">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Trophy className="h-6 w-6 text-yellow-500 mr-2" />
-              <div>
-                <CardTitle className="text-2xl">Top Artworks</CardTitle>
-                <CardDescription>The most popular artworks on the platform</CardDescription>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              {/* Category Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    <Filter className="h-4 w-4 mr-2" />
-                    {categories.find((c) => c.value === category)?.label || "Category"}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuRadioGroup value={category} onValueChange={setCategory}>
-                    {categories.map((cat) => (
-                      <DropdownMenuRadioItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        <CardHeader>
+          <div className="flex items-center">
+            <Trophy className="h-6 w-6 text-yellow-500 mr-3 flex-shrink-0" />
+            <div>
+              <CardTitle className="text-2xl">Top Artworks</CardTitle>
+              <CardDescription>Discover the highest-rated artworks on the platform</CardDescription>
             </div>
           </div>
+          {/* Filter removed as API doesn't support it */}
         </CardHeader>
-        <div className="mb-4" />
       </Card>
 
-      {/* Featured Artwork (Top 1) */}
-      {filteredArtworks.length > 0 && (
-        <Card className="overflow-hidden border-none shadow-md">
-          <div className="relative">
-            <img src={filteredArtworks[0].imageUrl || "/placeholder.svg"} alt={filteredArtworks[0].title} className="w-full h-[300px] md:h-[400px] object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className={`${getRankBadgeStyle(1)} px-3 py-1`}>
-                    <Crown className="h-3 w-3 mr-1" />
-                    #1 Top Artwork
-                  </Badge>
-                  <Badge variant="outline" className={getTypeColor(filteredArtworks[0].type)}>
-                    {filteredArtworks[0].type.charAt(0).toUpperCase() + filteredArtworks[0].type.slice(1)}
-                  </Badge>
-                  {filteredArtworks[0].trending && (
-                    <Badge variant="outline" className="bg-primary/10 text-primary">
-                      <TrendingUp className="h-3 w-3 mr-1" />
-                      Trending
-                    </Badge>
-                  )}
-                </div>
-
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">{filteredArtworks[0].title}</h2>
-
-                <div className="flex items-center gap-3 mb-4">
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <div className="flex items-center gap-2 cursor-pointer">
-                        <Avatar className="h-8 w-8 border-2 border-white">
-                          <AvatarImage src={filteredArtworks[0].author.avatar} alt={filteredArtworks[0].author.name} />
-                          <AvatarFallback>{filteredArtworks[0].author.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-white font-medium">{filteredArtworks[0].author.name}</span>
-                      </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <div className="flex justify-between space-x-4">
-                        <Avatar>
-                          <AvatarImage src={filteredArtworks[0].author.avatar} />
-                          <AvatarFallback>{filteredArtworks[0].author.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-semibold">{filteredArtworks[0].author.name}</h4>
-                          <p className="text-sm">Level {filteredArtworks[0].author.level} Artist</p>
-                          <div className="flex items-center pt-2">
-                            <Button variant="outline" size="sm" className="mr-2">
-                              View Profile
-                            </Button>
-                            <Button size="sm">Follow</Button>
-                          </div>
-                        </div>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                </div>
-
-                <div className="flex flex-wrap gap-4 text-white">
-                  <div className="flex items-center">
-                    <Heart className="h-4 w-4 mr-1 fill-primary text-primary" />
-                    <span>{filteredArtworks[0].stats.likes.toLocaleString()} likes</span>
-                  </div>
-                  <div className="flex items-center">
-                    <MessageCircle className="h-4 w-4 mr-1" />
-                    <span>{filteredArtworks[0].stats.comments.toLocaleString()} comments</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Share2 className="h-4 w-4 mr-1" />
-                    <span>{filteredArtworks[0].stats.shares.toLocaleString()} shares</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Eye className="h-4 w-4 mr-1" />
-                    <span>{filteredArtworks[0].stats.views.toLocaleString()} views</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex gap-2">
-                  <Button className="bg-white text-black hover:bg-white/90">View Artwork</Button>
-                  <Button variant="outline" className="text-white border-white hover:bg-white/20">
-                    <Heart className="h-4 w-4 mr-2" />
-                    Like
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Display Error if exists */}
+      {error && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="p-4 text-center text-destructive">Error: {error}</CardContent>
         </Card>
       )}
 
       {/* Top Artworks Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredArtworks.slice(1).map((artwork) => (
-          <Card key={artwork.id} className="overflow-hidden group h-full flex flex-col">
-            <div className="relative">
-              <img src={artwork.imageUrl || "/placeholder.svg"} alt={artwork.title} className="aspect-[4/3] w-full object-cover" />
-              <div className="absolute top-2 left-2">
-                <Badge className={`${getRankBadgeStyle(artwork.rank)} px-2 py-1`}>#{artwork.rank}</Badge>
-              </div>
-              <div className="absolute top-2 right-2">
-                <Badge variant="outline" className={`${getTypeColor(artwork.type)} border-transparent text-white`}>
-                  {artwork.type.charAt(0).toUpperCase() + artwork.type.slice(1)}
-                </Badge>
-              </div>
-              {artwork.trending && (
-                <div className="absolute bottom-2 left-2">
-                  <Badge variant="outline" className="bg-primary/20 text-white border-transparent">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    Trending
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Initial Loading Skeletons */}
+        {!initialLoadComplete && loading && Array.from({ length: 6 }).map((_, index) => renderSkeleton(`initial-skeleton-${index}`))}
+
+        {/* Displayed Artworks */}
+        {displayedArtworks.map((artwork, index) => (
+          <div ref={displayedArtworks.length === index + 1 ? lastArtworkElementRef : null} key={artwork.id}>
+            <Card className="overflow-hidden flex flex-col h-full">
+              {" "}
+              {/* Ensure full height */}
+              <CardHeader className="pb-2 space-y-0">
+                <div className="flex justify-between items-start mb-1">
+                  {/* User Info - Link to Profile */}
+                  <div className="flex items-center space-x-2 cursor-pointer group" onClick={() => navigate(`/profile/${artwork.userId}`)}>
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={getFullStorageUrl(artwork.avatar)} alt={artwork.username} />
+                      <AvatarFallback>{artwork.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-sm group-hover:text-primary transition-colors">{artwork.username}</p>
+                      <p className="text-xs text-muted-foreground">Level {artwork.level || 1}</p>
+                      <p className="text-xs text-muted-foreground">{artwork.createdAt}</p>
+                    </div>
+                  </div>
+                  {/* Rank Badge */}
+                  <Badge className={`${getRankBadgeStyle(artwork.rank)} px-2 py-1 self-start flex items-center gap-1 shrink-0`}>
+                    {artwork.rank === 1 && <Crown className="h-3 w-3" />} #{artwork.rank}
                   </Badge>
                 </div>
-              )}
-            </div>
-
-            <CardContent className="p-4 flex-grow">
-              <div className="flex justify-between items-start">
-                <h3 className="font-semibold text-lg">{artwork.title}</h3>
-              </div>
-
-              <div className="flex items-center mt-2">
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <div className="flex items-center gap-2 cursor-pointer">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={artwork.author.avatar} alt={artwork.author.name} />
-                        <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{artwork.author.name}</span>
-                    </div>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80">
-                    <div className="flex justify-between space-x-4">
-                      <Avatar>
-                        <AvatarImage src={artwork.author.avatar} />
-                        <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-semibold">{artwork.author.name}</h4>
-                        <p className="text-sm">Level {artwork.author.level} Artist</p>
-                        <div className="flex items-center pt-2">
-                          <Button variant="outline" size="sm" className="mr-2">
-                            View Profile
-                          </Button>
-                          <Button size="sm">Follow</Button>
-                        </div>
-                      </div>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              </div>
-
-              <div className="flex flex-wrap gap-1 mt-3">
-                {artwork.tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs hover:bg-secondary/80 transition-colors cursor-pointer">
-                    #{tag}
+                {/* Type Badge */}
+                <div className="flex justify-end mt-1">
+                  <Badge variant="outline" className={`${getTypeColor(artwork.type)} capitalize`}>
+                    {artwork.type || "Unknown"}
                   </Badge>
-                ))}
-              </div>
-
-              <Separator className="my-3" />
-
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <div className="flex items-center">
-                  <Heart className="h-4 w-4 mr-1 fill-primary text-primary" />
-                  <span>{artwork.stats.likes.toLocaleString()}</span>
                 </div>
-                <div className="flex items-center">
-                  <MessageCircle className="h-4 w-4 mr-1" />
-                  <span>{artwork.stats.comments.toLocaleString()}</span>
+              </CardHeader>
+              {/* Image Carousel */}
+              <ImageCarousel images={artwork.images} title={artwork.title} />
+              {/* Card Content */}
+              <CardContent className="p-4 pt-4 flex-grow">
+                <h3 className="text-lg font-semibold line-clamp-2">{artwork.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{artwork.description}</p>
+                {/* Tags */}
+                {artwork.tags && Array.isArray(artwork.tags) && artwork.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {artwork.tags.map((tag, tagIndex) => (
+                      <Badge key={tagIndex} variant="secondary" className="text-xs capitalize">
+                        #{tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              {/* Card Footer - Like, Comment, Bookmark */}
+              <CardFooter className="flex justify-between border-t p-4 pt-3 mt-auto">
+                <div className="flex space-x-3">
+                  {/* Like Button & Hover Card */}
+                  <HoverCard openDelay={200} closeDelay={100}>
+                    <TooltipProvider>
+                      {" "}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={`flex items-center space-x-1 h-8 pl-1 pr-2 rounded-l-md ${artwork.postLikeStatus ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-foreground"}`}
+                              onClick={() => handleLikeToggle(artwork.id, artwork.postLikeStatus)}
+                              disabled={!CURRENT_USER_ID}
+                            >
+                              <Heart className={`h-4 w-4 ${artwork.postLikeStatus ? "fill-current" : ""}`} />
+                            </Button>
+                            <HoverCardTrigger asChild>
+                              <span
+                                className={`cursor-pointer text-sm font-medium h-8 flex items-center pr-2 pl-1 border-l border-transparent hover:bg-accent rounded-r-md ${artwork.postLikeStatus ? "text-red-500" : "text-muted-foreground"}`}
+                              >
+                                {artwork.likeCount || 0}
+                              </span>
+                            </HoverCardTrigger>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {" "}
+                          <p>{!CURRENT_USER_ID ? "Login to like" : artwork.postLikeStatus ? "Unlike" : "Like"} this post</p>{" "}
+                        </TooltipContent>
+                      </Tooltip>{" "}
+                    </TooltipProvider>
+                    <HoverCardContent className="w-auto p-0" side="top" align="start">
+                      {artwork.id && <LikesHoverCard postId={artwork.id} />}
+                    </HoverCardContent>
+                  </HoverCard>
+                  {/* Comment Button */}
+                  <TooltipProvider>
+                    {" "}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" className="flex items-center space-x-1 h-8 text-muted-foreground hover:text-foreground" onClick={() => openCommentModal(artwork)}>
+                          {" "}
+                          <MessageCircle className="h-4 w-4" /> <span>{artwork.commentCount || 0}</span>{" "}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {" "}
+                        <p>View or add comments</p>{" "}
+                      </TooltipContent>
+                    </Tooltip>{" "}
+                  </TooltipProvider>
                 </div>
-                <div className="flex items-center">
-                  <Eye className="h-4 w-4 mr-1" />
-                  <span>{artwork.stats.views.toLocaleString()}</span>
-                </div>
-              </div>
-            </CardContent>
-
-            <CardFooter className="p-4 pt-0">
-              <div className="flex w-full gap-2">
-                <Button variant="outline" className="flex-1">
-                  View
-                </Button>
+                {/* Bookmark Button */}
                 <TooltipProvider>
+                  {" "}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Heart className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-8 w-8 ${artwork.bookmarkStatus ? "text-blue-500 hover:text-blue-600" : "text-muted-foreground hover:text-foreground"}`}
+                        onClick={() => handleBookmarkToggle(artwork.id, artwork.bookmarkStatus)}
+                        disabled={!CURRENT_USER_ID}
+                      >
+                        <Bookmark className={`h-4 w-4 ${artwork.bookmarkStatus ? "fill-current" : ""}`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Like artwork</p>
+                      {" "}
+                      <p>{!CURRENT_USER_ID ? "Login to bookmark" : artwork.bookmarkStatus ? "Remove from bookmarks" : "Save to bookmarks"}</p>{" "}
                     </TooltipContent>
-                  </Tooltip>
+                  </Tooltip>{" "}
                 </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Bookmark className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Save artwork</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </CardFooter>
-          </Card>
+              </CardFooter>
+            </Card>
+          </div>
         ))}
+
+        {/* Loading More Indicator */}
+        {loading && !initialLoadComplete && Array.from({ length: 3 }).map((_, index) => renderSkeleton(`loading-skeleton-${index}`))}
       </div>
+
+      {/* Empty State */}
+      {initialLoadComplete && displayedArtworks.length === 0 && !loading && !error && (
+        <Card>
+          <CardContent className="p-10 text-center text-muted-foreground">No top artworks found at the moment.</CardContent>
+        </Card>
+      )}
+
+      {/* End of List Message */}
+      {!loading && !hasMore && displayedArtworks.length > 0 && initialLoadComplete && (
+        <div className="text-center text-muted-foreground py-6">
+          <p>You've reached the end of the list!</p>
+        </div>
+      )}
+
+      {/* --- Modals Rendered Outside Main Layout Flow --- */}
+      {isCommentModalOpen && selectedPostForModal && (
+        <CommentModal
+          postId={selectedPostForModal.id}
+          postTitle={selectedPostForModal.title}
+          isOpen={isCommentModalOpen}
+          onClose={() => {
+            setIsCommentModalOpen(false);
+            setSelectedPostForModal(null);
+          }}
+          onCommentAdded={handleCommentAdded}
+          currentUser={CURRENT_USER_DATA ? { id: CURRENT_USER_DATA.id, username: CURRENT_USER_DATA.username, avatar: getFullStorageUrl(CURRENT_USER_DATA.avatar), level: CURRENT_USER_DATA.level || 1 } : null}
+        />
+      )}
     </div>
   );
 }

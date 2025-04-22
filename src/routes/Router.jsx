@@ -11,6 +11,10 @@ import TopArtworks from "@/pages/TopArtworks";
 import WeeklyWinners from "@/pages/WeeklyWinners";
 import CreatePost from "@/pages/CreatePost";
 import Bookmarks from "@/pages/Bookmarks";
+import EditProfile from "@/pages/EditProfile"; // Assuming this is the correct path
+import TitleDescriptionResult from "@/pages/TitleDescriptionResult"; // Assuming this is the correct path
+import TagsResult from "@/pages/TagsResult"; // Assuming this is the correct path
+import TypeResult from "@/pages/TypeResult"; // Assuming this is the correct path
 import Likes from "@/pages/Likes";
 import Landing from "@/pages/Landing";
 import Error404 from "@/errors/Error404/Error404";
@@ -176,6 +180,50 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
               <Likes />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      // EditProfile.jsx
+      {
+        path: "settings/profile",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <EditProfile /> {/* Assuming Profile component handles editing as well */}
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      // TitleDescriptionResult.jsx
+      {
+        path: "posts/title-desc",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <TitleDescriptionResult /> {/* Assuming this is the correct component */}
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      // TagsResult.jsx
+      {
+        path: "posts/tags",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <TagsResult /> {/* Assuming this is the correct component */}
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      // TypeResult.jsx
+      {
+        path: "posts/type",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <TypeResult /> {/* Assuming this is the correct component */}
             </ProtectedRoute>
           </Suspense>
         ),
