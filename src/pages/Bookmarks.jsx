@@ -18,9 +18,6 @@ import { CommentModal } from "@/components/CommentModal";
 // Instance Axios
 import api from "./../api/axiosInstance"; // Pastikan path ini benar
 
-// --- Constants ---
-const USER_DATA = JSON.parse(localStorage.getItem("user"));
-const USER_ID = USER_DATA?.id;
 const POSTS_PER_PAGE = 12; // Atau sesuaikan dengan limit di API Anda jika berbeda
 
 export default function BookmarkedPosts() {
@@ -36,8 +33,32 @@ export default function BookmarkedPosts() {
   // --- State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
+  // USER DATA AND USER ID
+  const [USER_DATA, setUserData] = useState(null);
+  const [USER_ID, setUserId] = useState(null);
 
   const observer = useRef();
+
+  // --- *** Gunakan useEffect untuk membaca localStorage saat komponen mount/lokasi berubah *** ---
+  useEffect(() => {
+    const storedUserData = localStorage.getItem("user");
+    if (storedUserData) {
+      try {
+        const parsedData = JSON.parse(storedUserData);
+        setUserData(parsedData); // Set user data if needed
+        setUserId(parsedData?.id);
+      } catch (error) {
+        console.error("Failed to parse user data from localStorage:", error);
+        // Handle error, maybe clear invalid data
+        localStorage.removeItem("user");
+        setUserData(null);
+        setUserId(null);
+      }
+    } else {
+      setUserData(null);
+      setUserId(null);
+    }
+  }, []); // Kosongkan dependency array agar hanya dijalankan saat mount
 
   // --- Helper function to format image URLs ---
   const formatImageUrl = (imagePath) => {
@@ -327,7 +348,7 @@ export default function BookmarkedPosts() {
     console.log("Bookmarked Posts component mounted, loading initial posts...");
     loadMoreBookmarkedPosts(1, true); // Panggil fungsi fetch bookmark
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Tetap kosong
+  }, [USER_ID]);
 
   // --- Helper Functions ---
   const getTypeColor = (type) => {

@@ -1,260 +1,335 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Removed Tabs imports
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Heart, X } from "lucide-react"; // Removed ChevronLeft/Right
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Discover() {
-  const [activeTab, setActiveTab] = useState("artworks");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6); // Adjust as needed for the grid
-  const [totalArtworks, setTotalArtworks] = useState(0);
-  const [totalArtists, setTotalArtists] = useState(0);
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1); // Represents the next page to fetch
+  const [pageSize, setPageSize] = useState(9); // Adjust page size for infinite scroll
   const [artworks, setArtworks] = useState([]);
-  const [artists, setArtists] = useState([]);
-  const [loadingArtworks, setLoadingArtworks] = useState(true);
-  const [loadingArtists, setLoadingArtists] = useState(true);
+  const [loadingArtworks, setLoadingArtworks] = useState(false); // Initially false, true during fetch
+  const [hasMore, setHasMore] = useState(true); // Tracks if more data is available
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Track initial data load
+
+  // Ref for the observer target element
+  const observer = useRef();
+
+  // --- Search State (for navigation trigger) ---
+  const [searchType, setSearchType] = useState("post");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [currentTagInput, setCurrentTagInput] = useState("");
+  const [selectedType, setSelectedType] = useState("");
 
   const popularTags = ["fantasy", "digital", "portrait", "landscape", "character", "anime", "scifi", "traditional", "concept", "fanart"];
+  const artworkTypes = ["illustration", "manga", "novel"];
 
-  // Dummy data (make sure this is larger than your pageSize)
+  // --- Dummy Data (Artworks Only) ---
   const allArtworks = [
     {
       id: 1,
       title: "Ethereal Forest",
       type: "illustration",
       imageUrl: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Liam Parker",
-        avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=100&auto=format&fit=crop",
-        level: 16,
-      },
+      author: { name: "Liam Parker", avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=100&auto=format&fit=crop", level: 16 },
       likes: 542,
       tags: ["fantasy", "landscape", "digital"],
+      description: "A mystical forest scene bathed in soft light.",
     },
     {
       id: 2,
       title: "Cyberpunk City",
       type: "illustration",
       imageUrl: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Zoe Chen",
-        avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop",
-        level: 23,
-      },
+      author: { name: "Zoe Chen", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop", level: 23 },
       likes: 876,
       tags: ["scifi", "cyberpunk", "digital"],
+      description: "Neon lights illuminate a futuristic cityscape.",
     },
     {
       id: 3,
       title: "Moonlit Wanderer",
       type: "manga",
       imageUrl: "https://images.unsplash.com/photo-1579547945413-497e1b99dac0?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Hiroshi Tanaka",
-        avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=100&auto=format&fit=crop",
-        level: 28,
-      },
+      author: { name: "Hiroshi Tanaka", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=100&auto=format&fit=crop", level: 28 },
       likes: 723,
       tags: ["manga", "character", "fantasy"],
+      description: "A lone character walking under a full moon.",
     },
     {
       id: 4,
       title: "Ocean Dreams",
       type: "illustration",
       imageUrl: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Emma Waters",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop",
-        level: 19,
-      },
+      author: { name: "Emma Waters", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop", level: 19 },
       likes: 412,
       tags: ["landscape", "digital", "ocean"],
+      description: "Vibrant underwater scene.",
     },
     {
       id: 5,
       title: "The Last Guardian",
       type: "novel",
       imageUrl: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Marcus Reed",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
-        level: 21,
-      },
+      author: { name: "Marcus Reed", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop", level: 21 },
       likes: 356,
       tags: ["novel", "fantasy", "adventure"],
+      description: "Cover art for an epic fantasy novel.",
     },
     {
       id: 6,
       title: "Sakura Dreams",
       type: "illustration",
       imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=1000&auto=format&fit=crop",
-      author: {
-        name: "Yuki Sato",
-        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop",
-        level: 25,
-      },
+      author: { name: "Yuki Sato", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop", level: 25 },
       likes: 689,
       tags: ["traditional", "japanese", "nature"],
+      description: "Peaceful scene with cherry blossoms.",
     },
-    { id: 7, title: "Another Artwork 1", type: "illustration", imageUrl: "/placeholder.svg", author: { name: "Test Author 1", avatar: "/placeholder.svg", level: 10 }, likes: 123, tags: ["test", "tag1"] },
-    { id: 8, title: "Another Artwork 2", type: "manga", imageUrl: "/placeholder.svg", author: { name: "Test Author 2", avatar: "/placeholder.svg", level: 15 }, likes: 456, tags: ["test", "tag2"] },
-    { id: 9, title: "Another Artwork 3", type: "novel", imageUrl: "/placeholder.svg", author: { name: "Test Author 3", avatar: "/placeholder.svg", level: 20 }, likes: 789, tags: ["test", "tag3"] },
-    { id: 10, title: "Another Artwork 4", type: "illustration", imageUrl: "/placeholder.svg", author: { name: "Test Author 4", avatar: "/placeholder.svg", level: 12 }, likes: 987, tags: ["test", "tag4"] },
-    { id: 11, title: "Another Artwork 5", type: "manga", imageUrl: "/placeholder.svg", author: { name: "Test Author 5", avatar: "/placeholder.svg", level: 18 }, likes: 654, tags: ["test", "tag5"] },
-    { id: 12, title: "Another Artwork 6", type: "novel", imageUrl: "/placeholder.svg", author: { name: "Test Author 6", avatar: "/placeholder.svg", level: 22 }, likes: 321, tags: ["test", "tag6"] },
+    {
+      id: 7,
+      title: "Ancient Ruins",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=1000&auto=format&fit=crop",
+      author: { name: "Liam Parker", avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=100&auto=format&fit=crop", level: 16 },
+      likes: 610,
+      tags: ["fantasy", "landscape", "adventure"],
+      description: "Exploring lost civilizations.",
+    },
+    {
+      id: 8,
+      title: "Mech Pilot",
+      type: "manga",
+      imageUrl: "https://images.unsplash.com/photo-1612036782180-6f0b6cd84627?w=1000&auto=format&fit=crop",
+      author: { name: "Alex Kim", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop", level: 19 },
+      likes: 950,
+      tags: ["manga", "scifi", "character", "mech"],
+      description: "Ready for battle in a giant robot.",
+    },
+    {
+      id: 9,
+      title: "Galactic Voyage",
+      type: "novel",
+      imageUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000&auto=format&fit=crop",
+      author: { name: "Marcus Reed", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop", level: 21 },
+      likes: 420,
+      tags: ["novel", "scifi", "space", "adventure"],
+      description: "Journey across the stars.",
+    },
+    {
+      id: 10,
+      title: "Street Samurai",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1531579790436-aa04fa4b7450?w=1000&auto=format&fit=crop",
+      author: { name: "Zoe Chen", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop", level: 23 },
+      likes: 788,
+      tags: ["cyberpunk", "character", "digital", "samurai"],
+      description: "Modern warrior in the neon city.",
+    },
+    {
+      id: 11,
+      title: "Dragon's Peak",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1542838234-b9a2004c9c9b?w=1000&auto=format&fit=crop",
+      author: { name: "Emma Waters", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop", level: 19 },
+      likes: 595,
+      tags: ["fantasy", "landscape", "dragon", "mountain"],
+      description: "Where ancient creatures dwell.",
+    },
+    {
+      id: 12,
+      title: "Spirit Fox",
+      type: "manga",
+      imageUrl: "https://plus.unsplash.com/premium_photo-1675372610516-51215aa3a016?w=1000&auto=format&fit=crop",
+      author: { name: "Hiroshi Tanaka", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=100&auto=format&fit=crop", level: 28 },
+      likes: 812,
+      tags: ["manga", "fantasy", "character", "yokai"],
+      description: "A mystical fox guide.",
+    },
+    // --- Add more dummy data items here if needed to test scrolling ---
+    {
+      id: 13,
+      title: "Underwater Kingdom",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1551918120-9739cb430c6d?w=1000&auto=format&fit=crop",
+      author: { name: "Emma Waters", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop", level: 19 },
+      likes: 650,
+      tags: ["fantasy", "landscape", "ocean", "city"],
+      description: "A hidden city beneath the waves.",
+    },
+    {
+      id: 14,
+      title: "Space Station Hub",
+      type: "illustration",
+      imageUrl: "https://images.unsplash.com/photo-1517976487-704910680149?w=1000&auto=format&fit=crop",
+      author: { name: "Zoe Chen", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop", level: 23 },
+      likes: 710,
+      tags: ["scifi", "space", "concept", "station"],
+      description: "A bustling hub in zero gravity.",
+    },
+    {
+      id: 15,
+      title: "Forest Guardian",
+      type: "manga",
+      imageUrl: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1000&auto=format&fit=crop",
+      author: { name: "Yuki Sato", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop", level: 25 },
+      likes: 880,
+      tags: ["manga", "fantasy", "character", "nature"],
+      description: "Protector of the ancient woods.",
+    },
   ];
 
-  const allArtists = [
-    {
-      id: 1,
-      name: "Kai Nakamura",
-      avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop",
-      bio: "Digital Illustration",
-      level: 15,
-    },
-    {
-      id: 2,
-      name: "Sofia Martinez",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop",
-      bio: "Character Design",
-      level: 22,
-    },
-    {
-      id: 3,
-      name: "Alex Kim",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop",
-      bio: "Manga Artist",
-      level: 19,
-    },
-    {
-      id: 4,
-      name: "Emily Johnson",
-      avatar: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=100&auto=format&fit=crop",
-      bio: "Concept Art",
-      level: 18,
-    },
-    {
-      id: 5,
-      name: "David Rodriguez",
-      avatar: "https://images.unsplash.com/photo-1521119989659-a83eee242995?q=80&w=100&auto=format&fit=crop",
-      bio: "Traditional Painting",
-      level: 20,
-    },
-    {
-      id: 6,
-      name: "Priya Sharma",
-      avatar: "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?q=80&w=100&auto=format&fit=crop",
-      bio: "Anime Art",
-      level: 24,
-    },
-    { id: 7, name: "Artist 7", avatar: "/placeholder.svg", bio: "Bio 7", level: 17 },
-    { id: 8, name: "Artist 8", avatar: "/placeholder.svg", bio: "Bio 8", level: 21 },
-    { id: 9, name: "Artist 9", avatar: "/placeholder.svg", bio: "Bio 9", level: 16 },
-    { id: 10, name: "Artist 10", avatar: "/placeholder.svg", bio: "Bio 10", level: 25 },
-    { id: 11, name: "Artist 11", avatar: "/placeholder.svg", bio: "Bio 11", level: 19 },
-    { id: 12, name: "Artist 12", avatar: "/placeholder.svg", bio: "Bio 12", level: 23 },
-  ];
+  // --- Fetching Logic (for Infinite Scroll) ---
+  const fetchArtworks = useCallback(
+    async (pageNum) => {
+      if (loadingArtworks) return; // Prevent multiple fetches
+      setLoadingArtworks(true);
+      console.log(`Fetching page: ${pageNum}`);
 
-  // --- Fetching and Pagination Logic ---
+      try {
+        const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+        await delay(750); // Simulate network delay
 
-  const fetchArtworks = async (currentPage, currentpageSize, query) => {
-    setLoadingArtworks(true);
-    try {
-      const delay = (ms) => new Promise((res) => setTimeout(res, ms));
-      await delay(500);
+        // --- No filtering applied here, just pagination ---
+        const startIndex = (pageNum - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const newArtworks = allArtworks.slice(startIndex, endIndex);
 
-      let filteredData = allArtworks;
-      if (query) {
-        filteredData = allArtworks.filter(
-          (artwork) =>
-            artwork.title.toLowerCase().includes(query.toLowerCase()) ||
-            artwork.type.toLowerCase().includes(query.toLowerCase()) ||
-            artwork.author.name.toLowerCase().includes(query.toLowerCase()) ||
-            artwork.tags.some((tag) => tag.toLowerCase().includes(query.toLowerCase()))
-        );
+        setArtworks((prev) => (pageNum === 1 ? newArtworks : [...prev, ...newArtworks]));
+        setHasMore(endIndex < allArtworks.length); // Check if more data exists
+        setPage((prev) => prev + 1); // Increment page number for the *next* fetch
+      } catch (error) {
+        console.error("Error fetching artworks:", error);
+        // Handle error state if needed
+      } finally {
+        setLoadingArtworks(false);
+        if (pageNum === 1) {
+          setInitialLoadComplete(true); // Mark initial load done after first fetch
+        }
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [pageSize, loadingArtworks]
+  ); // Add loadingArtworks to prevent race conditions
 
-      const startIndex = (currentPage - 1) * currentpageSize;
-      const endIndex = startIndex + currentpageSize;
-      const paginatedArtworks = filteredData.slice(startIndex, endIndex);
-
-      const response = {
-        total: filteredData.length,
-        page: currentPage,
-        pageSize: currentpageSize,
-        results: paginatedArtworks,
-      };
-      setArtworks(response.results);
-      setTotalArtworks(response.total);
-      setPage(response.page);
-      setPageSize(response.pageSize); //Keep this for consistency
-      setLoadingArtworks(false);
-    } catch (error) {
-      console.error("Error fetching artworks:", error);
-      setLoadingArtworks(false);
-    }
-  };
-
-  const fetchArtists = async (currentPage, currentpageSize, query) => {
-    setLoadingArtists(true);
-    try {
-      const delay = (ms) => new Promise((res) => setTimeout(res, ms));
-      await delay(500);
-      let filteredData = allArtists;
-      if (query) {
-        filteredData = allArtists.filter((artist) => artist.name.toLowerCase().includes(query.toLowerCase()) || artist.bio.toLowerCase().includes(query.toLowerCase()));
-      }
-
-      const startIndex = (currentPage - 1) * currentpageSize;
-      const endIndex = startIndex + currentpageSize;
-      const paginatedArtists = filteredData.slice(startIndex, endIndex);
-
-      const response = {
-        total: filteredData.length,
-        page: currentPage,
-        pageSize: currentpageSize,
-        results: paginatedArtists,
-      };
-
-      setArtists(response.results);
-      setTotalArtists(response.total);
-      setPage(response.page); //Keep the state consistent.
-      setPageSize(response.pageSize);
-      setLoadingArtists(false);
-    } catch (error) {
-      console.error("Error fetching artists:", error);
-      setLoadingArtists(false);
-    }
-  };
-
+  // --- Effect for Initial Data Load ---
   useEffect(() => {
-    if (activeTab === "artworks") {
-      fetchArtworks(page, pageSize, searchQuery);
-    } else {
-      fetchArtists(page, pageSize, searchQuery);
-    }
-  }, [page, pageSize, activeTab, searchQuery]); // Include searchQuery
+    // Only fetch page 1 initially
+    fetchArtworks(1);
+  }, [fetchArtworks]); // fetchArtworks is wrapped in useCallback
 
-  const handlePageChange = (newPage) => {
-    if (activeTab === "artworks" && newPage >= 1 && newPage <= Math.ceil(totalArtworks / pageSize)) {
-      setPage(newPage);
-    } else if (activeTab === "artists" && newPage >= 1 && newPage <= Math.ceil(totalArtists / pageSize)) {
-      setPage(newPage);
+  // --- Intersection Observer Setup ---
+  const lastArtworkElementRef = useCallback(
+    (node) => {
+      if (loadingArtworks) return; // Don't observe while loading
+      if (observer.current) observer.current.disconnect(); // Disconnect previous observer
+
+      observer.current = new IntersectionObserver((entries) => {
+        // If the target element is intersecting (visible) and there's more data
+        if (entries[0].isIntersecting && hasMore) {
+          fetchArtworks(page); // Fetch the next page
+        }
+      });
+
+      if (node) observer.current.observe(node); // Start observing the new target node
+    },
+    [loadingArtworks, hasMore, fetchArtworks, page]
+  ); // Dependencies for the observer callback
+
+  // --- Search Type Change Handler (Simplified) ---
+  const handleSearchTypeChange = (value) => {
+    setSearchType(value);
+    setSearchQuery("");
+    setSelectedTags([]);
+    setCurrentTagInput("");
+    setSelectedType("");
+  };
+
+  // --- Tag Input Handling (Unchanged) ---
+  const addTag = (tagToAdd) => {
+    const cleanedTag = tagToAdd.trim().toLowerCase();
+    if (cleanedTag && !selectedTags.includes(cleanedTag)) {
+      setSelectedTags([...selectedTags, cleanedTag]);
+    }
+    setCurrentTagInput("");
+  };
+
+  const removeTag = (tagToRemove) => {
+    setSelectedTags(selectedTags.filter((tag) => tag !== tagToRemove));
+  };
+
+  const handleTagInputChange = (e) => {
+    setCurrentTagInput(e.target.value);
+  };
+
+  const handleTagInputKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag(currentTagInput);
+    } else if (e.key === "Enter") {
+      handleSearchSubmit();
     }
   };
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    setPage(1); // Reset to page 1 when searching
+  // --- Handle Search Submission (Navigates Away - Unchanged) ---
+  const handleSearchSubmit = () => {
+    let searchParams = {};
+    let targetPath = "/search";
+
+    switch (searchType) {
+      case "artist":
+        if (!searchQuery.trim()) {
+          console.log("Artist search query empty.");
+          return;
+        }
+        searchParams = { type: "artist", query: searchQuery.trim() };
+        break;
+      case "post":
+        if (!searchQuery.trim()) {
+          console.log("Post search query empty.");
+          return;
+        }
+        searchParams = { type: "post", query: searchQuery.trim() };
+        break;
+      case "tags":
+        if (selectedTags.length === 0) {
+          console.log("No tags selected.");
+          return;
+        }
+        searchParams = { type: "tags", tags: selectedTags.join(",") };
+        break;
+      case "type":
+        if (!selectedType) {
+          console.log("No type selected.");
+          return;
+        }
+        searchParams = { type: "type", value: selectedType };
+        break;
+      default:
+        console.warn("Unknown search type:", searchType);
+        return;
+    }
+
+    const url = `${targetPath}?${new URLSearchParams(searchParams).toString()}`;
+    console.log("Navigating to:", url);
+    navigate(url);
+  };
+
+  const handleQueryInputKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSearchSubmit();
+    }
   };
 
   const getTypeColor = (type) => {
@@ -270,31 +345,97 @@ export default function Discover() {
     }
   };
 
+  // --- Render Search Input (Simplified - always for artworks) ---
+  const renderSearchInput = () => {
+    switch (searchType) {
+      case "artist":
+        return <Input placeholder="Search by artist name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleQueryInputKeyDown} />;
+      case "post":
+        return <Input placeholder="Search by title or description..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleQueryInputKeyDown} />;
+      case "tags":
+        return (
+          <div className="space-y-2">
+            <div className="border rounded-md p-2 min-h-[40px] flex flex-wrap gap-1 items-center">
+              {selectedTags.length === 0 && <span className="text-sm text-muted-foreground px-1">Selected tags appear here</span>}
+              {selectedTags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                  {tag}
+                  <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-muted-foreground/20" onClick={() => removeTag(tag)} aria-label={`Remove tag ${tag}`}>
+                    {" "}
+                    <X className="h-3 w-3" />{" "}
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+            <Input placeholder="Type a tag and press Enter or comma..." value={currentTagInput} onChange={handleTagInputChange} onKeyDown={handleTagInputKeyDown} />
+          </div>
+        );
+      case "type":
+        return (
+          <Select value={selectedType} onValueChange={setSelectedType}>
+            <SelectTrigger>
+              {" "}
+              <SelectValue placeholder="Select artwork type..." />{" "}
+            </SelectTrigger>
+            <SelectContent>
+              {artworkTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {" "}
+                  {type.charAt(0).toUpperCase() + type.slice(1)}{" "}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 space-y-6 p-4 md:p-6">
-      {/* Search and Filter Section */}
+      {/* Search Card */}
       <Card className="border-t-4 border-t-primary">
         <CardHeader className="pb-2">
-          <CardTitle>Discover</CardTitle>
-          <CardDescription>Find new artworks, and artists</CardDescription>
+          <CardTitle>Discover Artworks</CardTitle> {/* Updated Title */}
+          <CardDescription>Find new artworks</CardDescription> {/* Updated Description */}
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row">
-            {/* Search Bar */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search for artworks, artists, type, or tags..." className="pl-10" value={searchQuery} onChange={(e) => handleSearch(e.target.value)} />
+          <div className="flex flex-col gap-4 md:flex-row md:items-start">
+            <div className="w-full md:w-40 flex-shrink-0">
+              <Select value={searchType} onValueChange={handleSearchTypeChange}>
+                <SelectTrigger>
+                  {" "}
+                  <SelectValue placeholder="Search By..." />{" "}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="post">Post (Title/Desc)</SelectItem>
+                  <SelectItem value="artist">Artist Name</SelectItem>
+                  <SelectItem value="tags">Tags</SelectItem>
+                  <SelectItem value="type">Type</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            <div className="flex-1 min-w-0"> {renderSearchInput()} </div>
+            <Button onClick={handleSearchSubmit} className="w-full md:w-auto">
+              {" "}
+              <Search className="mr-2 h-4 w-4" /> Search{" "}
+            </Button>
           </div>
-
-          {/* Popular Tags */}
           <div className="mt-4">
             <h3 className="text-sm font-medium mb-2">Popular Tags</h3>
             <ScrollArea className="w-full whitespace-nowrap pb-2">
               <div className="flex gap-2">
                 {popularTags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="cursor-pointer hover:bg-secondary/80 transition-colors">
-                    #{tag}
+                  <Badge
+                    key={tag}
+                    variant={searchType === "tags" ? "secondary" : "outline"}
+                    className={`cursor-${searchType === "tags" ? "pointer" : "not-allowed"} ${searchType === "tags" ? "hover:bg-secondary/80" : "opacity-60"} transition-colors`}
+                    onClick={() => searchType === "tags" && addTag(tag)}
+                    title={searchType !== "tags" ? "Select 'Tags' in 'Search By' to use" : `Add tag: ${tag}`}
+                  >
+                    {" "}
+                    #{tag}{" "}
                   </Badge>
                 ))}
               </div>
@@ -304,197 +445,189 @@ export default function Discover() {
         </CardContent>
       </Card>
 
-      {/* Main Content */}
-      <Tabs
-        defaultValue="artworks"
-        value={activeTab}
-        onValueChange={(tab) => {
-          setActiveTab(tab);
-          setPage(1); // Reset page when switching tabs
-        }}
-      >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="artworks">Artworks</TabsTrigger>
-          <TabsTrigger value="artists">Artists</TabsTrigger>
-        </TabsList>
-
-        {/* Artworks Tab */}
-        <TabsContent value="artworks" className="mt-6">
-          {loadingArtworks ? (
+      {/* Artworks Grid */}
+      <div className="mt-6">
+        {!initialLoadComplete &&
+          loadingArtworks && ( // Show initial loading skeletons
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Skeleton Loaders */}
               {Array.from({ length: pageSize }).map((_, index) => (
-                <Card key={index} className="overflow-hidden">
+                <Card key={`initial-skeleton-${index}`} className="overflow-hidden">
                   <Skeleton className="aspect-square w-full" />
                   <CardContent className="p-4">
                     <Skeleton className="h-5 w-2/3 mb-2" />
                     <div className="flex justify-between items-center mt-2">
                       <div className="flex items-center space-x-2">
-                        <Skeleton className="h-6 w-6 rounded-full" />
-                        <Skeleton className="h-4 w-16" />
+                        {" "}
+                        <Skeleton className="h-6 w-6 rounded-full" /> <Skeleton className="h-4 w-16" />{" "}
                       </div>
                       <Skeleton className="h-4 w-10" />
                     </div>
                     <div className="flex flex-wrap gap-1 mt-3">
+                      {" "}
                       {Array.from({ length: 3 }).map((_, i) => (
                         <Skeleton key={i} className="h-4 w-12 mr-1" />
-                      ))}
+                      ))}{" "}
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          ) : artworks.length === 0 ? (
-            <p>No artworks found.</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {artworks.map((artwork) => (
-                  <Card key={artwork.id} className="overflow-hidden group h-full flex flex-col">
-                    <div className="relative aspect-square w-full overflow-hidden">
-                      <img src={artwork.imageUrl || "/placeholder.svg"} alt={artwork.title} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
-                      <div className="absolute top-2 right-2">
-                        <Badge variant="outline" className={getTypeColor(artwork.type)}>
-                          {artwork.type.charAt(0).toUpperCase() + artwork.type.slice(1)}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <CardContent className="p-4 flex-grow">
-                      <h3 className="font-semibold truncate">{artwork.title}</h3>
-
-                      <div className="flex justify-between items-center mt-2">
-                        <HoverCard>
-                          <HoverCardTrigger asChild>
-                            <div className="flex items-center space-x-2 cursor-pointer">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={artwork.author.avatar} alt={artwork.author.name} />
-                                <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">{artwork.author.name}</span>
-                            </div>
-                          </HoverCardTrigger>
-                          <HoverCardContent className="w-80">
-                            <div className="flex justify-between space-x-4">
-                              <Avatar>
-                                <AvatarImage src={artwork.author.avatar} />
-                                <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <div className="space-y-1">
-                                <h4 className="text-sm font-semibold">{artwork.author.name}</h4>
-                                <p className="text-sm">Level {artwork.author.level} Artist</p>
-                                <div className="flex items-center pt-2">
-                                  <Button variant="outline" size="sm" className="mr-2">
-                                    View Profile
-                                  </Button>
-                                  <Button size="sm">Follow</Button>
-                                </div>
-                              </div>
-                            </div>
-                          </HoverCardContent>
-                        </HoverCard>
-
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center text-sm text-muted-foreground">
-                                <Heart className="h-4 w-4 mr-1 fill-primary text-primary" />
-                                <span>{artwork.likes}</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{artwork.likes} likes</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 mt-3">
-                        {artwork.tags.map((tag, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs hover:bg-secondary/80 transition-colors cursor-pointer">
-                            #{tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              {/* Pagination Controls (Artworks) */}
-              <div className="flex justify-center mt-4 space-x-2">
-                <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" disabled>
-                  {page} / {Math.ceil(totalArtworks / pageSize)}
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === Math.ceil(totalArtworks / pageSize)}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </>
           )}
-        </TabsContent>
 
-        {/* Artists Tab */}
-        <TabsContent value="artists" className="mt-6">
-          {loadingArtists ? (
-            <div className="space-y-4">
-              {/* Skeleton Loaders */}
-              {Array.from({ length: pageSize }).map((_, index) => (
-                <Card key={index} className="overflow-hidden">
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center space-x-4">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div>
-                        <Skeleton className="h-6 w-24 mb-1" />
-                        <Skeleton className="h-4 w-32" />
-                      </div>
-                    </div>
-                    <Skeleton className="h-8 w-20" />
-                  </CardContent>
-                </Card>
-              ))}
+        {initialLoadComplete &&
+          artworks.length === 0 &&
+          !loadingArtworks && ( // Show empty state only after initial load & not loading
+            <div className="text-center text-muted-foreground py-10 col-span-full">
+              <p>No artworks found.</p>
             </div>
-          ) : artists.length === 0 ? (
-            <p>No artists found.</p>
-          ) : (
-            <>
-              <div className="space-y-4">
-                {artists.map((artist) => (
-                  <Card key={artist.id} className="overflow-hidden">
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={artist.avatar} alt={artist.name} />
-                          <AvatarFallback>{artist.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-lg font-medium">{artist.name}</CardTitle>
-                          <CardDescription className="text-sm text-muted-foreground">{artist.bio}</CardDescription>
+          )}
+
+        {artworks.length > 0 && (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {artworks.map((artwork, index) => {
+              // If it's the last artwork, attach the ref for IntersectionObserver
+              if (artworks.length === index + 1) {
+                return (
+                  <div ref={lastArtworkElementRef} key={artwork.id}>
+                    <ArtworkCard artwork={artwork} />
+                  </div>
+                );
+              } else {
+                return <ArtworkCard key={artwork.id} artwork={artwork} />;
+              }
+            })}
+
+            {/* Loading indicator for subsequent pages */}
+            {loadingArtworks && page > 1 && (
+              <>
+                {/* Add skeleton loaders for the next page */}
+                {Array.from({ length: 3 }).map(
+                  (
+                    _,
+                    index // Show fewer skeletons for loading more
+                  ) => (
+                    <Card key={`loading-skeleton-${index}`} className="overflow-hidden">
+                      <Skeleton className="aspect-square w-full" />
+                      <CardContent className="p-4">
+                        <Skeleton className="h-5 w-2/3 mb-2" />
+                        <div className="flex justify-between items-center mt-2">
+                          <div className="flex items-center space-x-2">
+                            <Skeleton className="h-6 w-6 rounded-full" />
+                            <Skeleton className="h-4 w-16" />
+                          </div>
+                          <Skeleton className="h-4 w-10" />
                         </div>
-                      </div>
-                      <Button variant="outline">View Profile</Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              {/* Pagination Controls (Artists)*/}
-              <div className="flex justify-center mt-4 space-x-2">
-                <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" disabled>
-                  {page} / {Math.ceil(totalArtists / pageSize)}
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === Math.ceil(totalArtists / pageSize)}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </>
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          {Array.from({ length: 3 }).map((_, i) => (
+                            <Skeleton key={i} className="h-4 w-12 mr-1" />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {!loadingArtworks &&
+          !hasMore &&
+          artworks.length > 0 && ( // Message when all data is loaded
+            <div className="text-center text-muted-foreground py-10 col-span-full">
+              <p>You've reached the end!</p>
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
+  );
+}
+
+// Helper component for Artwork Card to keep the main component cleaner
+function ArtworkCard({ artwork }) {
+  const getTypeColor = (type) => {
+    switch (type) {
+      case "illustration":
+        return "text-primary bg-primary/10 hover:bg-primary/20";
+      case "manga":
+        return "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20";
+      case "novel":
+        return "text-purple-500 bg-purple-500/10 hover:bg-purple-500/20";
+      default:
+        return "text-primary bg-primary/10 hover:bg-primary/20";
+    }
+  };
+
+  return (
+    <Card className="overflow-hidden group h-full flex flex-col">
+      <div className="relative aspect-square w-full overflow-hidden">
+        <img src={artwork.imageUrl || "/placeholder.svg"} alt={artwork.title} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
+        <div className="absolute top-2 right-2">
+          <Badge variant="outline" className={getTypeColor(artwork.type)}>
+            {artwork.type.charAt(0).toUpperCase() + artwork.type.slice(1)}
+          </Badge>
+        </div>
+      </div>
+      <CardContent className="p-4 flex-grow flex flex-col justify-between">
+        <div>
+          <h3 className="font-semibold truncate">{artwork.title}</h3>
+          <div className="flex justify-between items-center mt-2">
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <div className="flex items-center space-x-2 cursor-pointer">
+                  <Avatar className="h-6 w-6">
+                    {" "}
+                    <AvatarImage src={artwork.author.avatar} alt={artwork.author.name} /> <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>{" "}
+                  </Avatar>
+                  <span className="text-sm">{artwork.author.name}</span>
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-80">
+                <div className="flex justify-between space-x-4">
+                  <Avatar>
+                    {" "}
+                    <AvatarImage src={artwork.author.avatar} /> <AvatarFallback>{artwork.author.name.charAt(0)}</AvatarFallback>{" "}
+                  </Avatar>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold">{artwork.author.name}</h4>
+                    <p className="text-sm">Level {artwork.author.level} Artist</p>
+                    <div className="flex items-center pt-2">
+                      {" "}
+                      <Button variant="outline" size="sm" className="mr-2">
+                        {" "}
+                        View Profile{" "}
+                      </Button>{" "}
+                      <Button size="sm">Follow</Button>{" "}
+                    </div>
+                  </div>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    {" "}
+                    <Heart className="h-4 w-4 mr-1 fill-primary text-primary" /> <span>{artwork.likes}</span>{" "}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {" "}
+                  <p>{artwork.likes} likes</p>{" "}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1 mt-3 pt-2 border-t border-border/50">
+          {artwork.tags.map((tag, index) => (
+            <Badge key={index} variant="secondary" className="text-xs hover:bg-secondary/80 transition-colors cursor-pointer">
+              {" "}
+              #{tag}{" "}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -47,24 +47,7 @@ import api from "../api/axiosInstance";
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
 
-// --- Helper function to get current user data ---
-const getCurrentUser = () => {
-  const storedUser = localStorage.getItem("user");
-  if (storedUser) {
-    try {
-      return JSON.parse(storedUser);
-    } catch (e) {
-      console.error("Error parsing user data from storage:", e);
-      return null;
-    }
-  }
-  return null;
-};
-// --- End Helper ---
-
 // --- Constants from Home (adapted) ---
-const CURRENT_USER_DATA = getCurrentUser(); // Get full user object once
-const CURRENT_USER_ID = CURRENT_USER_DATA?.id ? Number(CURRENT_USER_DATA.id) : null; // Get ID as number
 const ARTWORKS_PAGE_LIMIT = 6; // Define the limit for artworks per page
 
 // --- Helper function to construct full URL for storage paths ---
@@ -151,6 +134,30 @@ export default function Profile() {
   // --- NEW: State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
+  // -- CURRENT_USER_ID --
+  const [CURRENT_USER_ID, setUserId] = useState(null); // State for current user ID
+  const [CURRENT_USER_DATA, setUserData] = useState(null); // Get current user data from local storage
+
+  // --- *** Gunakan useEffect untuk membaca localStorage saat komponen mount/lokasi berubah *** ---
+  useEffect(() => {
+    const storedUserData = localStorage.getItem("user");
+    if (storedUserData) {
+      try {
+        const parsedData = JSON.parse(storedUserData);
+        setUserData(parsedData); // Set user data if needed
+        setUserId(parsedData?.id);
+      } catch (error) {
+        console.error("Failed to parse user data from localStorage:", error);
+        // Handle error, maybe clear invalid data
+        localStorage.removeItem("user");
+        setUserData(null);
+        setUserId(null);
+      }
+    } else {
+      setUserData(null);
+      setUserId(null);
+    }
+  }, []); // Kosongkan dependency array agar hanya dijalankan saat mount
 
   // --- Function to fetch user profile data ---
   const fetchUserProfile = async () => {
@@ -243,7 +250,7 @@ export default function Profile() {
   // --- Function to fetch user artworks (posts) for a specific page ---
   const fetchArtworksPage = useCallback(
     async (pageToFetch) => {
-      if (!userId) {
+      if (!CURRENT_USER_ID) {
         setArtworksError("Cannot fetch artworks without a User ID.");
         return;
       }
@@ -257,7 +264,7 @@ export default function Profile() {
       setArtworksError(null);
 
       try {
-        const response = await api.get(`/posts/${userId}`, {
+        const response = await api.get(`/posts/${CURRENT_USER_ID}`, {
           params: { page: pageToFetch, limit: ARTWORKS_PAGE_LIMIT, viewerId: CURRENT_USER_ID ?? 0 },
         });
 
@@ -306,12 +313,12 @@ export default function Profile() {
         }
       }
     },
-    [userId, CURRENT_USER_ID, userProfile] // Add userProfile dependency here
+    [CURRENT_USER_ID, userProfile] // Add userProfile dependency here
   );
 
   // --- Effect to fetch profile when userId changes ---
   useEffect(() => {
-    if (userId) {
+    if (CURRENT_USER_ID) {
       fetchUserProfile(); // Fetch profile (which includes follow status)
     } else {
       console.error("User ID parameter is missing or invalid.");
@@ -320,7 +327,7 @@ export default function Profile() {
     }
     setActiveTab("artworks"); // Default to artworks tab on profile change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]); // Re-fetch profile if the userId param changes
+  }, [CURRENT_USER_ID]); // Re-fetch profile if the userId param changes
 
   // --- Effect to fetch initial artworks when the artworks tab is active AND profile is loaded ---
   useEffect(() => {
