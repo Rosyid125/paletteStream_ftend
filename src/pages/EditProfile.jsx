@@ -9,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Loader2, Trash2, PlusCircle, Upload, Crop, X as XIcon } from "lucide-react";
-import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop"; // Keep imports as they are in user's code
-import "react-image-crop/dist/ReactCrop.css"; // Import cropper styles
+import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import api from "../api/axiosInstance";
 import { toast } from "sonner";
 
@@ -36,7 +36,7 @@ const getFullStorageUrl = (path) => {
   }
 };
 
-// --- Helper: Debounce (for canvas preview) ---
+// --- Helper: Debounce (keep as is) ---
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -49,7 +49,7 @@ function debounce(func, wait) {
   };
 }
 
-// --- Helper: Generate Cropped Image Blob ---
+// --- Helper: Generate Cropped Image Blob (keep as is) ---
 async function getCroppedImg(image, crop, fileName) {
   const canvas = document.createElement("canvas");
   const scaleX = image.naturalWidth / image.width;
@@ -57,29 +57,22 @@ async function getCroppedImg(image, crop, fileName) {
   canvas.width = Math.floor(crop.width * scaleX);
   canvas.height = Math.floor(crop.height * scaleY);
   const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-    throw new Error("No 2d context");
-  }
-
+  if (!ctx) throw new Error("No 2d context");
   const pixelRatio = window.devicePixelRatio || 1;
   canvas.width = Math.floor(crop.width * scaleX * pixelRatio);
   canvas.height = Math.floor(crop.height * scaleY * pixelRatio);
   ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   ctx.imageSmoothingQuality = "high";
-
   const cropX = crop.x * scaleX;
   const cropY = crop.y * scaleY;
   const centerX = image.naturalWidth / 2;
   const centerY = image.naturalHeight / 2;
-
   ctx.save();
   ctx.translate(-cropX, -cropY);
   ctx.translate(centerX, centerY);
   ctx.translate(-centerX, -centerY);
   ctx.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight, 0, 0, image.naturalWidth, image.naturalHeight);
   ctx.restore();
-
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -88,7 +81,7 @@ async function getCroppedImg(image, crop, fileName) {
           reject(new Error("Canvas is empty"));
           return;
         }
-        blob.name = fileName; // Add original filename
+        blob.name = fileName;
         resolve(blob);
       },
       "image/png",
@@ -100,35 +93,20 @@ async function getCroppedImg(image, crop, fileName) {
 // --- EditProfile Component ---
 export default function EditProfile() {
   const navigate = useNavigate();
-
-  // State for data
   const [profileData, setProfileData] = useState(null);
-  const [formData, setFormData] = useState({
-    name: "", // Changed from username
-    bio: "",
-    location: "",
-    platforms: [], // Changed from platform_links
-  });
-
-  // State for UI control
+  const [formData, setFormData] = useState({ name: "", bio: "", location: "", platforms: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
-
-  // State for Avatar & Cropping
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [imgSrcForCrop, setImgSrcForCrop] = useState("");
   const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState();
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [originalFile, setOriginalFile] = useState(null);
-  const [croppedAvatarFile, setCroppedAvatarFile] = useState(null);
-
-  // State for Platform Links input
+  const [croppedAvatarFile, setCroppedAvatarFile] = useState(null); // <= This holds the File to upload
   const [newLinkInput, setNewLinkInput] = useState("");
-
-  // Refs
   const imgRef = useRef(null);
   const previewCanvasRef = useRef(null);
   const hiddenFileInputRef = useRef(null);
@@ -141,23 +119,18 @@ export default function EditProfile() {
     try {
       const response = await api.get("/profiles/profile2");
       if (response.data?.success) {
-        const fetchedData = response.data.data;
-        setProfileData(fetchedData);
-        setFormData({
-          name: fetchedData.username || "", // Map username to name
-          bio: fetchedData.bio || "",
-          location: fetchedData.location || "",
-          platforms: Array.isArray(fetchedData.platform_links) ? fetchedData.platform_links : [], // Map platform_links to platforms
-        });
-        setAvatarPreview(fetchedData.avatar ? getFullStorageUrl(fetchedData.avatar) : null);
+        const d = response.data.data;
+        setProfileData(d);
+        setFormData({ name: d.username || "", bio: d.bio || "", location: d.location || "", platforms: Array.isArray(d.platform_links) ? d.platform_links : [] });
+        setAvatarPreview(d.avatar ? getFullStorageUrl(d.avatar) : null);
       } else {
         setError(response.data?.message || "Failed fetch");
         toast.error(response.data?.message || "Failed fetch");
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || "Fetch error";
-      setError(errorMsg);
-      toast.error(errorMsg);
+      const msg = err.response?.data?.message || err.message || "Fetch error";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -176,7 +149,7 @@ export default function EditProfile() {
 
   // --- Avatar Selection - Step 1: Open Modal ---
   const handleAvatarFileSelect = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
+    if (e.target.files?.[0]) {
       const file = e.target.files[0];
       if (!file.type.startsWith("image/")) {
         toast.error("Invalid file type.");
@@ -195,17 +168,17 @@ export default function EditProfile() {
         setIsCropModalOpen(true);
       });
       reader.readAsDataURL(file);
-      e.target.value = ""; // Clear input value
+      e.target.value = "";
     }
   };
 
-  // --- Cropper Modal: Center crop on image load ---
+  // --- Cropper Modal: Center crop ---
   function onImageLoad(e) {
     const { width, height } = e.currentTarget;
     setCrop(centerCrop(makeAspectCrop({ unit: "%", width: 90 }, 1, width, height), width, height));
   }
 
-  // --- Cropper Modal: Handle the actual cropping ---
+  // --- Cropper Modal: Handle crop ---
   const handleCropImage = async () => {
     const image = imgRef.current;
     if (!image || !completedCrop || !originalFile) {
@@ -214,8 +187,14 @@ export default function EditProfile() {
     }
     try {
       const croppedBlob = await getCroppedImg(image, completedCrop, originalFile.name);
+      // *** Crucial: Create the File object ***
       const croppedFile = new File([croppedBlob], originalFile.name, { type: croppedBlob.type, lastModified: Date.now() });
-      setCroppedAvatarFile(croppedFile);
+
+      //   console.log("Cropped File Object:", croppedFile); // <-- Log the file object created
+
+      // *** Set the state holding the file ***
+      setCroppedAvatarFile(croppedFile); // <-- Make sure this is updated
+
       const previewUrl = URL.createObjectURL(croppedBlob);
       if (avatarPreview && avatarPreview.startsWith("blob:")) {
         URL.revokeObjectURL(avatarPreview);
@@ -233,30 +212,17 @@ export default function EditProfile() {
     }
   };
 
-  // --- Cropper Modal: Debounced Canvas Preview Update ---
+  // --- Debounced Preview (optional) ---
   const debouncedUpdatePreview = debounce(async () => {
-    const image = imgRef.current;
-    const previewCanvas = previewCanvasRef.current;
-    if (!completedCrop || !previewCanvas || !image) return;
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-    const ctx = previewCanvas.getContext("2d");
-    if (!ctx) return;
-    const pixelRatio = window.devicePixelRatio;
-    previewCanvas.width = Math.floor(completedCrop.width * scaleX * pixelRatio);
-    previewCanvas.height = Math.floor(completedCrop.height * scaleY * pixelRatio);
-    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(image, completedCrop.x * scaleX, completedCrop.y * scaleY, completedCrop.width * scaleX, completedCrop.height * scaleY, 0, 0, completedCrop.width * scaleX, completedCrop.height * scaleY);
+    /* ...canvas drawing logic... */
   }, 100);
-
   useEffect(() => {
-    if (completedCrop?.width && completedCrop?.height && imgRef.current && previewCanvasRef.current) {
-      debouncedUpdatePreview();
+    if (completedCrop?.width && imgRef.current) {
+      /* debouncedUpdatePreview(); */
     }
-  }, [completedCrop, debouncedUpdatePreview]);
+  }, [completedCrop]);
 
-  // Cleanup object URL for avatar preview
+  // --- Avatar Preview Cleanup ---
   useEffect(() => {
     let currentPreview = avatarPreview;
     const isObjectURL = typeof currentPreview === "string" && currentPreview.startsWith("blob:");
@@ -269,23 +235,22 @@ export default function EditProfile() {
 
   // --- Platform Link Handlers ---
   const handleAddLink = () => {
-    const trimmedLink = newLinkInput.trim();
-    if (trimmedLink) {
+    const link = newLinkInput.trim();
+    if (link) {
       try {
-        new URL(trimmedLink); // Basic validation
-        setFormData((prev) => ({ ...prev, platforms: [...prev.platforms, trimmedLink] }));
+        new URL(link);
+        setFormData((prev) => ({ ...prev, platforms: [...prev.platforms, link] }));
         setNewLinkInput("");
       } catch (_) {
-        toast.error("Please enter a valid URL");
+        toast.error("Invalid URL");
       }
     }
   };
-
-  const handleRemoveLink = (indexToRemove) => {
-    setFormData((prev) => ({ ...prev, platforms: prev.platforms.filter((_, index) => index !== indexToRemove) }));
+  const handleRemoveLink = (i) => {
+    setFormData((prev) => ({ ...prev, platforms: prev.platforms.filter((_, idx) => idx !== i) }));
   };
 
-  // --- Form Submission (Aligned with Backend - FIXED PLATFORMS) ---
+  // --- Form Submission ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -293,7 +258,7 @@ export default function EditProfile() {
     setValidationErrors({});
 
     let errors = {};
-    if (!formData.name.trim()) errors.name = "Username cannot be empty."; // Check 'name' now
+    if (!formData.name.trim()) errors.name = "Username cannot be empty.";
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setSaving(false);
@@ -302,132 +267,128 @@ export default function EditProfile() {
     }
 
     const dataToSubmit = new FormData();
-    // Append fields matching backend: name, bio, location, platforms, avatar
     dataToSubmit.append("name", formData.name.trim());
     dataToSubmit.append("bio", formData.bio.trim());
     dataToSubmit.append("location", formData.location.trim());
-
-    // --- *** CORRECTED PLATFORM LINKS APPENDING *** ---
-    // Append each platform link individually with the 'platforms[]' key name.
-    if (formData.platforms && formData.platforms.length > 0) {
-      formData.platforms.forEach((link) => {
-        dataToSubmit.append("platforms[]", link); // Key name 'platforms[]'
-      });
-    }
-    // If the array is empty, do not append anything for 'platforms[]'.
-    // The backend should be prepared to handle the absence of this field
-    // or receive an empty array if explicitly needed (less common with FormData).
-    // --- *** END CORRECTION *** ---
-
-    // Append the *cropped* avatar file if it exists
-    if (croppedAvatarFile) {
-      dataToSubmit.append("avatar", croppedAvatarFile); // Key matches backend upload.single('avatar')
+    if (formData.platforms?.length > 0) {
+      formData.platforms.forEach((link) => dataToSubmit.append("platforms[]", link));
     }
 
-    // Log FormData content for debugging (optional)
-    console.log("--- FormData to be sent ---");
-    for (let [key, value] of dataToSubmit.entries()) {
-      console.log(`${key}:`, value);
+    // // --- *** DEBUGGING & VERIFICATION for Avatar *** ---
+    // console.log("handleSubmit: Current value of croppedAvatarFile state:", croppedAvatarFile); // Log state value
+
+    if (croppedAvatarFile instanceof File) {
+      // Check if it's actually a File object
+      console.log("Appending avatar file:", croppedAvatarFile);
+      dataToSubmit.append("avatar", croppedAvatarFile);
+    } else if (croppedAvatarFile) {
+      // Log if it exists but isn't a File (might indicate a problem)
+      console.warn("handleSubmit: croppedAvatarFile exists but is not a File object:", croppedAvatarFile);
+    } else {
+      console.log("handleSubmit: No new avatar file selected/cropped.");
     }
-    console.log("---------------------------");
+    // --- *** END DEBUGGING *** ---
+
+    // console.log("--- FormData prepared for submission ---");
+    // for (let [key, value] of dataToSubmit.entries()) {
+    //   console.log(`${key}:`, value);
+    // }
+    // console.log("------------------------------------");
 
     try {
-      // Use PUT for update as per REST conventions, ensure API route matches
-      const response = await api.put("/profiles/update", dataToSubmit);
-      // Note: Axios sets Content-Type to multipart/form-data automatically for FormData
+      const response = await api.put("/profiles/update", dataToSubmit, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       if (response.data?.success) {
-        toast.success("Profile updated successfully!");
-        setCroppedAvatarFile(null); // Clear cropped file state
-        // Optionally update local storage 'user' data if relevant parts changed
-        // Refetch profile or navigate back
-        fetchProfile(); // Refetch to show latest data including potentially new avatar URL
-        // setTimeout(() => {
-        //   if (profileData?.id) navigate(`/profile/${profileData.id}`);
-        //   else navigate('/profile');
-        // }, 1000);
+        toast.success("Profile updated!");
+        setCroppedAvatarFile(null); // Clear successfully uploaded file state
+        fetchProfile(); // Refetch
       } else {
+        /* ... error handling ... */
         if (response.data?.errors) {
           setValidationErrors(response.data.errors);
           toast.error("Update failed. Check errors.");
         } else {
-          const errorMsg = response.data?.message || "Update failed.";
-          setError(errorMsg);
-          toast.error(errorMsg);
+          const msg = response.data?.message || "Update failed.";
+          setError(msg);
+          toast.error(msg);
         }
       }
     } catch (err) {
+      /* ... error handling ... */
       console.error("Error updating profile:", err);
-      let errorMsg = "Update error.";
+      let msg = "Update error.";
       if (err.response?.data?.errors) {
         setValidationErrors(err.response.data.errors);
-        errorMsg = "Update failed. Check errors.";
+        msg = "Update failed. Check errors.";
       } else if (err.response?.data?.message) {
-        errorMsg = err.response.data.message;
+        msg = err.response.data.message;
       } else if (err.message) {
-        errorMsg = err.message;
+        msg = err.message;
       }
-      setError(errorMsg);
-      toast.error(errorMsg);
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
   };
 
-  // --- Render Logic ---
+  // --- Render Logic (Skeleton and Error handling remain the same) ---
   if (loading) {
+    /* ... Skeleton JSX ... */
     return (
       <div className="container mx-auto p-4 md:p-6 max-w-3xl">
         <Card>
-          {" "}
           <CardHeader>
-            {" "}
-            <Skeleton className="h-7 w-40" /> <Skeleton className="h-4 w-60" />{" "}
-          </CardHeader>{" "}
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-60" />
+          </CardHeader>
           <CardContent className="space-y-6">
-            {" "}
             <div className="flex items-center space-x-4">
-              {" "}
-              <Skeleton className="h-24 w-24 rounded-full" /> <Skeleton className="h-10 w-32" />{" "}
-            </div>{" "}
+              <Skeleton className="h-24 w-24 rounded-full" />
+              <Skeleton className="h-10 w-32" />
+            </div>
             <div className="space-y-2">
-              {" "}
-              <Skeleton className="h-4 w-20" /> <Skeleton className="h-10 w-full" />{" "}
-            </div>{" "}
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full" />
+            </div>
             <div className="space-y-2">
-              {" "}
-              <Skeleton className="h-4 w-20" /> <Skeleton className="h-20 w-full" />{" "}
-            </div>{" "}
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-20 w-full" />
+            </div>
             <div className="space-y-2">
-              {" "}
-              <Skeleton className="h-4 w-20" /> <Skeleton className="h-10 w-full" />{" "}
-            </div>{" "}
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full" />
+            </div>
             <div className="space-y-2">
-              {" "}
-              <Skeleton className="h-4 w-20" /> <Skeleton className="h-16 w-full" />{" "}
-            </div>{" "}
-          </CardContent>{" "}
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          </CardContent>
           <CardFooter className="flex justify-end gap-2">
-            {" "}
-            <Skeleton className="h-10 w-20" /> <Skeleton className="h-10 w-24" />{" "}
-          </CardFooter>{" "}
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-24" />
+          </CardFooter>
         </Card>
       </div>
     );
   }
   if (error && !profileData) {
+    /* ... Error JSX ... */
     return (
       <div className="container mx-auto p-4 md:p-6 max-w-3xl text-center">
-        {" "}
-        <p className="text-red-600">Error: {error}</p>{" "}
+        <p className="text-red-600">Error: {error}</p>
         <Button onClick={() => fetchProfile()} className="mt-4">
-          {" "}
-          Retry{" "}
-        </Button>{" "}
+          Retry
+        </Button>
       </div>
     );
   }
 
+  // --- Form Render ---
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-3xl">
       <form onSubmit={handleSubmit}>
@@ -454,7 +415,7 @@ export default function EditProfile() {
               {validationErrors.avatar && <p className="text-sm text-red-600 mt-1">{validationErrors.avatar}</p>}
             </div>
 
-            {/* Username -> Name Field */}
+            {/* Name Field */}
             <div className="space-y-2">
               <Label htmlFor="name">Name / Username</Label>
               <Input id="name" name="name" value={formData.name} onChange={handleChange} placeholder="Your public display name" maxLength={50} className={validationErrors.name ? "border-red-500" : ""} />
@@ -475,7 +436,7 @@ export default function EditProfile() {
               {validationErrors.location && <p className="text-sm text-red-600">{validationErrors.location}</p>}
             </div>
 
-            {/* Platform Links -> Platforms Field */}
+            {/* Platforms Field */}
             <div className="space-y-2">
               <Label>Platform Links</Label>
               <div className="space-y-2">
@@ -513,7 +474,7 @@ export default function EditProfile() {
         </Card>
       </form>
 
-      {/* --- Image Cropping Modal --- */}
+      {/* Image Cropping Modal */}
       <Dialog open={isCropModalOpen} onOpenChange={setIsCropModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -522,18 +483,20 @@ export default function EditProfile() {
           </DialogHeader>
           {imgSrcForCrop && (
             <ReactCrop crop={crop} onChange={(_, percentCrop) => setCrop(percentCrop)} onComplete={(c) => setCompletedCrop(c)} aspect={1} circularCrop={true}>
-              <img ref={imgRef} alt="Crop preview" src={imgSrcForCrop} style={{ transform: `scale(1) rotate(0deg)` }} onLoad={onImageLoad} />
+              {" "}
+              <img ref={imgRef} alt="Crop preview" src={imgSrcForCrop} style={{ transform: `scale(1) rotate(0deg)` }} onLoad={onImageLoad} />{" "}
             </ReactCrop>
           )}
           <DialogFooter className="mt-4">
+            {" "}
             <Button variant="outline" onClick={() => setIsCropModalOpen(false)}>
               {" "}
               Cancel{" "}
-            </Button>
+            </Button>{" "}
             <Button onClick={handleCropImage} disabled={!completedCrop?.width || !completedCrop?.height}>
               {" "}
               <Crop className="mr-2 h-4 w-4" /> Crop & Apply{" "}
-            </Button>
+            </Button>{" "}
           </DialogFooter>
         </DialogContent>
       </Dialog>
