@@ -15,13 +15,14 @@ import EditProfile from "@/pages/EditProfile"; // Assuming this is the correct p
 import TitleDescriptionResult from "@/pages/TitleDescriptionResult"; // Assuming this is the correct path
 import TagsResult from "@/pages/TagsResult"; // Assuming this is the correct path
 import TypeResult from "@/pages/TypeResult"; // Assuming this is the correct path
+import UserResult from "@/pages/UserResult"; // Assuming this is the correct path
 import Likes from "@/pages/Likes";
 import Landing from "@/pages/Landing";
 import Error404 from "@/errors/Error404/Error404";
 import ProtectedRoute from "../components/ProtectedRoute"; // Assuming correct path
 import React, { Suspense } from "react";
 import { motion } from "framer-motion";
-import { Coins } from "lucide-react";
+import { Coins, User } from "lucide-react";
 
 const LoadingSpinner = () => (
   <motion.div
@@ -224,6 +225,17 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
               <TypeResult /> {/* Assuming this is the correct component */}
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      // UserResult.jsx
+      {
+        path: "users/name",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <UserResult /> {/* Assuming this is the correct component */}
             </ProtectedRoute>
           </Suspense>
         ),
