@@ -139,6 +139,10 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
   // --- Toggle Reply Input Visibility --- (Tetap sama)
   const toggleReplyInput = (commentId) => {
     setShowReplyInput((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
+    if (!showReplyInput[commentId]) {
+      setNewReply((prev) => ({ ...prev, [commentId]: "" })); // Clear input when opening
+    }
+    setVisibleReplies((prev) => ({ ...prev, [commentId]: true })); // Ensure replies are visible when opening input
   };
 
   // --- Posting New Comment --- (Tetap sama - with optimistic updates)
