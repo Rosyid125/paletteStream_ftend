@@ -90,38 +90,79 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     [postId, loadingComments, hasMoreComments] // Removed error from dependencies as it's handled internally
   );
 
-  // --- Fetching Replies --- (Tetap sama)
-  const loadReplies = useCallback(async (commentId, pageToLoad = 1, isInitial = false) => {
-    setLoadingReplies((prev) => ({ ...prev, [commentId]: true }));
-    if (isInitial) {
-      setReplies((prev) => ({ ...prev, [commentId]: [] }));
-      setReplyPage((prev) => ({ ...prev, [commentId]: 1 }));
-      setHasMoreReplies((prev) => ({ ...prev, [commentId]: true }));
-    }
-
-    try {
-      const response = await api.get(`/comments/comment-replies/${commentId}`, {
-        params: { page: pageToLoad, limit: REPLIES_PER_PAGE },
-      });
-      if (response.data.success && Array.isArray(response.data.data)) {
-        const fetchedReplies = response.data.data;
-        setReplies((prev) => ({
-          ...prev,
-          [commentId]: isInitial ? fetchedReplies : [...(prev[commentId] || []), ...fetchedReplies],
-        }));
-        setReplyPage((prev) => ({ ...prev, [commentId]: pageToLoad + 1 }));
-        setHasMoreReplies((prev) => ({ ...prev, [commentId]: fetchedReplies.length === REPLIES_PER_PAGE }));
-      } else {
-        setHasMoreReplies((prev) => ({ ...prev, [commentId]: false }));
+  // --- Fetching Replies --- (MODIFIED to prevent duplicates on fetch)
+  const loadReplies = useCallback(
+    async (commentId, pageToLoad = 1, isInitial = false) => {
+      setLoadingReplies((prev) => ({ ...prev, [commentId]: true }));
+      if (isInitial) {
+        // Don't reset replies here if we want optimistic ones to potentially persist
+        // setReplies((prev) => ({ ...prev, [commentId]: [] })); // Comment this out or adjust logic
+        setReplyPage((prev) => ({ ...prev, [commentId]: 1 }));
+        setHasMoreReplies((prev) => ({ ...prev, [commentId]: true }));
       }
-    } catch (err) {
-      console.error(`Error fetching replies for comment ${commentId}:`, err);
-      // Consider setting a specific error for this comment's replies
-      setHasMoreReplies((prev) => ({ ...prev, [commentId]: false }));
-    } finally {
-      setLoadingReplies((prev) => ({ ...prev, [commentId]: false }));
-    }
-  }, []); // Dependencies remain the same
+
+      try {
+        const response = await api.get(`/comments/comment-replies/${commentId}`, {
+          params: { page: pageToLoad, limit: REPLIES_PER_PAGE },
+        });
+        if (response.data.success && Array.isArray(response.data.data)) {
+          const fetchedReplies = response.data.data;
+
+          // ***** FIX: Check for existing IDs before adding fetched replies *****
+          setReplies((prevReplies) => {
+            const existingReplies = prevReplies[commentId] || [];
+            // Filter out any fetched replies that *already exist* in the state by ID
+            const newRepliesToAdd = fetchedReplies.filter((fetchedReply) => !existingReplies.some((existingReply) => existingReply.id === fetchedReply.id));
+
+            // If it's an initial load, we *replace* the existing ones for that comment
+            // ONLY with the newly fetched ones (after filtering).
+            // If it's not an initial load (e.g., infinite scroll), we append the filtered new ones.
+            const combinedReplies = isInitial
+              ? newRepliesToAdd // Replace with the filtered results of the initial fetch
+              : [...existingReplies, ...newRepliesToAdd]; // Append the filtered new results
+
+            // Ensure optimistic replies added *after* this fetch started aren't lost
+            // (This check might be redundant if the filter above works correctly, but adds safety)
+            // Example: If an optimistic reply was added while fetch was in progress
+            const finalReplies = combinedReplies.reduce((acc, reply) => {
+              if (!acc.some((r) => r.id === reply.id)) {
+                acc.push(reply);
+              }
+              return acc;
+            }, []);
+
+            return {
+              ...prevReplies,
+              // Use finalReplies which has duplicates removed, respecting isInitial logic implicitly
+              [commentId]: finalReplies,
+            };
+          });
+          // ***** END FIX *****
+
+          setReplyPage((prev) => ({ ...prev, [commentId]: pageToLoad + 1 }));
+          // Base hasMoreReplies on the length of raw fetchedReplies before filtering
+          setHasMoreReplies((prev) => ({ ...prev, [commentId]: fetchedReplies.length === REPLIES_PER_PAGE }));
+        } else {
+          // If fetch failed or returned no data, assume no more pages
+          setHasMoreReplies((prev) => ({ ...prev, [commentId]: false }));
+          // If it was an initial load and failed, make sure the replies array exists as empty
+          if (isInitial) {
+            setReplies((prev) => ({ ...prev, [commentId]: prev[commentId] || [] }));
+          }
+        }
+      } catch (err) {
+        console.error(`Error fetching replies for comment ${commentId}:`, err);
+        setHasMoreReplies((prev) => ({ ...prev, [commentId]: false }));
+        // Ensure replies array exists if fetch fails on initial load
+        if (isInitial) {
+          setReplies((prev) => ({ ...prev, [commentId]: prev[commentId] || [] }));
+        }
+      } finally {
+        setLoadingReplies((prev) => ({ ...prev, [commentId]: false }));
+      }
+    },
+    [setReplies, setLoadingReplies, setReplyPage, setHasMoreReplies]
+  ); // Keep dependencies minimal, setters are stable
 
   // --- Toggle Reply Visibility and Load Initial --- (Tetap sama)
   const toggleReplies = (commentId) => {
@@ -139,9 +180,6 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
   // --- Toggle Reply Input Visibility --- (Tetap sama)
   const toggleReplyInput = (commentId) => {
     setShowReplyInput((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
-    if (!showReplyInput[commentId]) {
-      setNewReply((prev) => ({ ...prev, [commentId]: "" })); // Clear input when opening
-    }
     setVisibleReplies((prev) => ({ ...prev, [commentId]: true })); // Ensure replies are visible when opening input
   };
 
@@ -212,9 +250,11 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       if (!replyContent || !currentUser?.id || postingReply[commentId]) return;
 
       setPostingReply((prev) => ({ ...prev, [commentId]: true }));
+      setError(null); // Clear previous errors for this action
       let postedReplyData = null;
 
       try {
+        // 1. Post the reply to the API
         const postResponse = await api.post("/comments/comment-replies/create", {
           post_comment_id: commentId,
           user_id: currentUser.id,
@@ -224,48 +264,55 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         if (!postResponse.data.success || !postResponse.data.data) {
           throw new Error(postResponse.data.message || "Failed to post reply.");
         }
-        postedReplyData = postResponse.data.data; // Should contain the new reply's ID
+        postedReplyData = postResponse.data.data; // Contains the new reply's REAL ID
 
+        // 2. Fetch user profile for display data (username, avatar, etc.)
         const profileResponse = await api.get(`/profiles/mini-profile/${currentUser.id}`);
 
         if (!profileResponse.data.success || !profileResponse.data.data) {
           console.warn("Reply posted, but failed to fetch mini-profile for optimistic update.");
+          // Decide if this is critical - maybe proceed with placeholders or fail?
+          // For now, we'll throw an error as profile data is needed for display.
           throw new Error("Failed to fetch user profile after posting reply.");
         }
 
         const userProfileData = profileResponse.data.data;
 
+        // 3. Construct the full reply object for the UI
         const addedReply = {
           ...postedReplyData, // Contains the REAL ID from the backend
           username: userProfileData.username,
           avatar: userProfileData.avatar,
           level: userProfileData.level,
-          user_id: currentUser.id, // Explicitly add from currentUser if not returned by create API
-          created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          user_id: currentUser.id, // Ensure user_id is present
+          created_at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), // Or use created_at from postedReplyData if available/formatted
         };
 
-        // ***** START: MODIFICATION TO PREVENT DUPLICATE *****
-        setReplies((prev) => {
-          const currentReplies = prev[commentId] || [];
-          // Check if this specific reply ID already exists in the current state for this comment
-          if (currentReplies.some((reply) => reply.id === addedReply.id)) {
+        // 4. ***** FIX: Check before adding to state *****
+        setReplies((prevReplies) => {
+          const currentRepliesForComment = prevReplies[commentId] || [];
+          // Check if this specific reply ID already exists in the state for this comment
+          const replyAlreadyExists = currentRepliesForComment.some((reply) => reply.id === addedReply.id);
+
+          if (replyAlreadyExists) {
             console.warn(`Optimistic reply add: Reply ${addedReply.id} already found in state for comment ${commentId}. Skipping duplicate add.`);
-            return prev; // Return the previous state unchanged
+            return prevReplies; // Return the previous state unchanged if duplicate found
           }
+
           // If the reply doesn't exist, add it
           return {
-            ...prev,
-            [commentId]: [...currentReplies, addedReply],
+            ...prevReplies,
+            [commentId]: [...currentRepliesForComment, addedReply],
           };
         });
-        // ***** END: MODIFICATION TO PREVENT DUPLICATE *****
+        // ***** END FIX *****
 
+        // 5. Clear input and hide input area
         setNewReply((prev) => ({ ...prev, [commentId]: "" }));
         setShowReplyInput((prev) => ({ ...prev, [commentId]: false }));
 
-        // Update comment count (still needed)
+        // 6. Update the parent comment's reply count (optimistically)
         setComments((prevComments) => prevComments.map((c) => (c.id === commentId ? { ...c, replies_count: (c.replies_count || 0) + 1 } : c)));
-        setError(null); // Clear error on success
       } catch (err) {
         console.error(`Error posting reply to comment ${commentId} or fetching profile:`, err);
         let errorMsg = "An error occurred while posting the reply.";
@@ -274,20 +321,27 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         } else if (err.message) {
           errorMsg = `Failed to post reply: ${err.message}`;
         }
+        // Add context if the reply was posted but profile failed
         if (postedReplyData && err.message.includes("user profile")) {
           errorMsg = "Reply was posted, but there was an issue updating the display immediately.";
+          // Optional: Could still add the reply with placeholder info or refetch later
         }
-        // Set a general error or potentially a specific one near the input
-        setError(errorMsg);
-        console.error(errorMsg);
+        setError(errorMsg); // Display the error
+        console.error(errorMsg); // Log for debugging
+
+        // Optional: Rollback? If the API failed, the state wasn't updated yet.
+        // If the profile fetch failed *after* posting, the reply count might be off.
+        // However, a simple error message is usually sufficient here.
       } finally {
+        // Ensure loading state is turned off even if checks above return early
         setPostingReply((prev) => ({ ...prev, [commentId]: false }));
       }
     },
-    // Keep dependencies minimal, state setters don't usually need to be dependencies
-    [newReply, currentUser, postingReply, setComments, setReplies, setNewReply, setShowReplyInput, setError, setPostingReply]
-    // Note: Explicitly added state setters as dependencies here for clarity, though technically `useCallback` captures them.
-    // If you face infinite loops or excessive re-renders, review these dependencies.
+    // Dependencies: Include values read and setters used inside the callback.
+    // State setters generally have stable identities, but including them is safer
+    // if their identity *could* change (though unlikely with useState/useReducer).
+    // The core data dependencies are newReply, currentUser, postingReply.
+    [newReply, currentUser, postingReply, setReplies, setNewReply, setShowReplyInput, setComments, setPostingReply, setError]
   );
 
   // --- Deleting Comment --- (Tetap sama)
