@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Palette, ArrowRight, Github, Twitter } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { login, requestLoginOtp, verifyLoginOtp, resendLoginOtp } from "@/services/authService"; // Import API login dan OTP yang sudah dibuat
+import { login, requestLoginOtp, verifyLoginOtp, resendLoginOtp, loginWithGoogle } from "@/services/authService"; // Import API login dan OTP yang sudah dibuat
 
 export default function LoginPage() {
   const navigate = useNavigate(); // Use useNavigate hook
@@ -159,6 +159,15 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      console.error("Google login error", error);
+      toast({ title: "Google login failed", description: error?.response?.data?.message || "Something went wrong with Google login" });
+    }
+  };
+
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] md:w-[450px]">
@@ -184,102 +193,124 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             {tab === "password" && (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {errors.general && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{errors.general}</AlertDescription>
-                  </Alert>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" placeholder="name@example.com" value={formData.email} onChange={handleChange} disabled={isLoading} className={errors.email ? "border-red-500" : ""} />
-                  {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                      {" "}
-                      Forgot password?
-                    </Link>
+              <>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {errors.general && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.general}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" placeholder="name@example.com" value={formData.email} onChange={handleChange} disabled={isLoading} className={errors.email ? "border-red-500" : ""} />
+                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                   </div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={handleChange}
-                      disabled={isLoading}
-                      className={errors.password ? "border-red-500 pr-10" : "pr-10"}
-                    />
-                    <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground" onClick={() => setShowPassword(!showPassword)}>
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
-                    </Button>
-                  </div>
-                  {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign In"}
-                  {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-                </Button>
-              </form>
-            )}
-            {tab === "otp" && (
-              <div>
-                {otpStep === 1 && (
-                  <form onSubmit={handleSendLoginOtp} className="space-y-4">
-                    {otpErrors.general && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{otpErrors.general}</AlertDescription>
-                      </Alert>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="otpEmail">Email</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                        {" "}
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <div className="relative">
                       <Input
-                        id="otpEmail"
-                        name="otpEmail"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={otpEmail}
-                        onChange={(e) => setOtpEmail(e.target.value)}
-                        disabled={otpLoading}
-                        className={otpErrors.email ? "border-red-500" : ""}
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        className={errors.password ? "border-red-500 pr-10" : "pr-10"}
                       />
-                      {otpErrors.email && <p className="text-sm text-red-500">{otpErrors.email}</p>}
-                    </div>
-                    <Button type="submit" className="w-full" disabled={otpLoading}>
-                      {otpLoading ? "Sending OTP..." : "Send OTP"}
-                      {!otpLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-                    </Button>
-                  </form>
-                )}
-                {otpStep === 2 && (
-                  <form onSubmit={handleVerifyLoginOtp} className="space-y-4">
-                    {otpErrors.general && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{otpErrors.general}</AlertDescription>
-                      </Alert>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="otp">OTP</Label>
-                      <Input id="otp" name="otp" type="text" placeholder="Enter OTP" value={otp} onChange={(e) => setOtp(e.target.value)} disabled={otpLoading} className={otpErrors.otp ? "border-red-500" : ""} />
-                      {otpErrors.otp && <p className="text-sm text-red-500">{otpErrors.otp}</p>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button type="button" variant="outline" onClick={handleResendOtp} disabled={resendCountdown > 0 || resendLoading}>
-                        {resendLoading ? "Resending..." : resendCountdown > 0 ? `Resend OTP (${resendCountdown}s)` : "Resend OTP"}
+                      <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
                       </Button>
                     </div>
-                    <Button type="submit" className="w-full" disabled={otpLoading}>
-                      {otpLoading ? "Verifying..." : "Login"}
-                      {!otpLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-                    </Button>
-                  </form>
-                )}
-              </div>
+                    {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Signing in..." : "Sign In"}
+                    {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                  </Button>
+                </form>
+                <div className="flex items-center my-4">
+                  <div className="flex-grow border-t border-gray-200" />
+                  <span className="mx-2 text-xs text-gray-400">or</span>
+                  <div className="flex-grow border-t border-gray-200" />
+                </div>
+                <Button type="button" variant="outline" className="w-full" onClick={handleGoogleLogin}>
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2 inline" />
+                  Continue with Google
+                </Button>
+              </>
+            )}
+            {tab === "otp" && (
+              <>
+                <div>
+                  {otpStep === 1 && (
+                    <form onSubmit={handleSendLoginOtp} className="space-y-4">
+                      {otpErrors.general && (
+                        <Alert variant="destructive">
+                          <AlertDescription>{otpErrors.general}</AlertDescription>
+                        </Alert>
+                      )}
+                      <div className="space-y-2">
+                        <Label htmlFor="otpEmail">Email</Label>
+                        <Input
+                          id="otpEmail"
+                          name="otpEmail"
+                          type="email"
+                          placeholder="name@example.com"
+                          value={otpEmail}
+                          onChange={(e) => setOtpEmail(e.target.value)}
+                          disabled={otpLoading}
+                          className={otpErrors.email ? "border-red-500" : ""}
+                        />
+                        {otpErrors.email && <p className="text-sm text-red-500">{otpErrors.email}</p>}
+                      </div>
+                      <Button type="submit" className="w-full" disabled={otpLoading}>
+                        {otpLoading ? "Sending OTP..." : "Send OTP"}
+                        {!otpLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                      </Button>
+                    </form>
+                  )}
+                  {otpStep === 2 && (
+                    <form onSubmit={handleVerifyLoginOtp} className="space-y-4">
+                      {otpErrors.general && (
+                        <Alert variant="destructive">
+                          <AlertDescription>{otpErrors.general}</AlertDescription>
+                        </Alert>
+                      )}
+                      <div className="space-y-2">
+                        <Label htmlFor="otp">OTP</Label>
+                        <Input id="otp" name="otp" type="text" placeholder="Enter OTP" value={otp} onChange={(e) => setOtp(e.target.value)} disabled={otpLoading} className={otpErrors.otp ? "border-red-500" : ""} />
+                        {otpErrors.otp && <p className="text-sm text-red-500">{otpErrors.otp}</p>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" onClick={handleResendOtp} disabled={resendCountdown > 0 || resendLoading}>
+                          {resendLoading ? "Resending..." : resendCountdown > 0 ? `Resend OTP (${resendCountdown}s)` : "Resend OTP"}
+                        </Button>
+                      </div>
+                      <Button type="submit" className="w-full" disabled={otpLoading}>
+                        {otpLoading ? "Verifying..." : "Login"}
+                        {!otpLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                      </Button>
+                    </form>
+                  )}
+                </div>
+                <div className="flex items-center my-4">
+                  <div className="flex-grow border-t border-gray-200" />
+                  <span className="mx-2 text-xs text-gray-400">or</span>
+                  <div className="flex-grow border-t border-gray-200" />
+                </div>
+                <Button type="button" variant="outline" className="w-full" onClick={handleGoogleLogin}>
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2 inline" />
+                  Continue with Google
+                </Button>
+              </>
             )}
           </CardContent>
           <CardFooter className="flex justify-center">

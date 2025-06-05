@@ -9,7 +9,7 @@ import { Eye, EyeOff, Palette, ArrowRight, Github, Twitter, Info } from "lucide-
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { requestRegisterOtp, registerWithOtp } from "@/services/authService";
+import { requestRegisterOtp, registerWithOtp, loginWithGoogle } from "@/services/authService";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -134,22 +134,33 @@ export default function RegisterPage() {
           </CardHeader>
           <CardContent>
             {step === 1 && (
-              <form onSubmit={handleSendOtp} className="space-y-4">
-                {errors.general && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{errors.general}</AlertDescription>
-                  </Alert>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" placeholder="name@example.com" value={formData.email} onChange={handleChange} disabled={isLoading} className={errors.email ? "border-red-500" : ""} />
-                  {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+              <>
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  {errors.general && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.general}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" placeholder="name@example.com" value={formData.email} onChange={handleChange} disabled={isLoading} className={errors.email ? "border-red-500" : ""} />
+                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Sending OTP..." : "Send OTP"}
+                    {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                  </Button>
+                </form>
+                <div className="flex items-center my-4">
+                  <div className="flex-grow border-t border-gray-200" />
+                  <span className="mx-2 text-xs text-gray-400">or</span>
+                  <div className="flex-grow border-t border-gray-200" />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending OTP..." : "Send OTP"}
-                  {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                <Button type="button" variant="outline" className="w-full" onClick={loginWithGoogle}>
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2 inline" />
+                  Continue with Google
                 </Button>
-              </form>
+              </>
             )}
             {step === 2 && (
               <form onSubmit={handleRegister} className="space-y-4">

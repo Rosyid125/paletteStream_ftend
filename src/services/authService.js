@@ -79,3 +79,10 @@ export const resendLoginOtp = async (email) => {
   const response = await api.post(`/auth/login/email/resend`, { email });
   return response.data;
 };
+
+// Fungsi untuk login/register dengan Google OAuth2
+export const loginWithGoogle = () => {
+  // Ganti URL jika endpoint backend berbeda
+  const baseUrl = import.meta.env.VITE_API_URL || "";
+  window.location.href = `${baseUrl}/auth/login/google`;
+};
