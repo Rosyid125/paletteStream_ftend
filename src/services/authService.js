@@ -42,3 +42,40 @@ export const refreshToken = async () => {
 export const logout = async () => {
   await api.post(`${API_URL}/logout`);
 };
+
+// Request OTP untuk register
+export const requestRegisterOtp = async (email) => {
+  const response = await api.post(`/auth/register/otp`, { email });
+  return response.data;
+};
+
+// Register user baru dengan OTP
+export const registerWithOtp = async (data) => {
+  // Register user
+  const response = await api.post(`/auth/register`, data);
+  // Setelah register sukses, lakukan auto login
+  const { email, password } = data;
+  const loginResponse = await login({ email, password });
+  // login() sudah menyimpan user ke localStorage
+  return { registerResponse: response.data, loginResponse };
+};
+
+// Request OTP untuk login
+export const requestLoginOtp = async (email) => {
+  const response = await api.post(`/auth/login/email`, { email });
+  return response.data;
+};
+
+// Verifikasi OTP untuk login
+export const verifyLoginOtp = async (data) => {
+  const response = await api.post(`/auth/login/email/verify`, data);
+  // Save user in localStorage
+  localStorage.setItem("user", JSON.stringify(response.data.data));
+  return response.data;
+};
+
+// Resend OTP untuk login
+export const resendLoginOtp = async (email) => {
+  const response = await api.post(`/auth/login/email/resend`, { email });
+  return response.data;
+};
