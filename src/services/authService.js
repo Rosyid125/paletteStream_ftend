@@ -86,3 +86,11 @@ export const loginWithGoogle = () => {
   const baseUrl = import.meta.env.VITE_API_URL || "";
   window.location.href = `${baseUrl}/auth/login/google`;
 };
+
+// Register user baru via Google OAuth2
+export const registerWithGoogle = async (profile) => {
+  // profile: { email, given_name, family_name }
+  const response = await api.post(`/auth/register/google`, profile);
+  localStorage.setItem("user", JSON.stringify(response.data.data));
+  return response.data;
+};

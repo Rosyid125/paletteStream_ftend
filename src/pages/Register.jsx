@@ -9,7 +9,14 @@ import { Eye, EyeOff, Palette, ArrowRight, Github, Twitter, Info } from "lucide-
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { requestRegisterOtp, registerWithOtp, loginWithGoogle } from "@/services/authService";
+import { requestRegisterOtp, registerWithOtp } from "@/services/authService";
+
+const handleGoogleRegister = () => {
+  const baseUrl = import.meta.env.VITE_API_URL || "";
+  // Pastikan redirect_uri mengarah ke FE /auth/google/callback
+  const redirectUri = encodeURIComponent(window.location.origin + "/auth/google/callback");
+  window.location.href = `${baseUrl}/auth/login/google?redirect_uri=${redirectUri}`;
+};
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -156,7 +163,7 @@ export default function RegisterPage() {
                   <span className="mx-2 text-xs text-gray-400">or</span>
                   <div className="flex-grow border-t border-gray-200" />
                 </div>
-                <Button type="button" variant="outline" className="w-full" onClick={loginWithGoogle}>
+                <Button type="button" variant="outline" className="w-full" onClick={handleGoogleRegister}>
                   <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2 inline" />
                   Continue with Google
                 </Button>
