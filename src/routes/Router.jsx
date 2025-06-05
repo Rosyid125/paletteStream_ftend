@@ -23,6 +23,7 @@ import ProtectedRoute from "../components/ProtectedRoute"; // Assuming correct p
 import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import { Coins, User } from "lucide-react";
+import ForgotPassword from "@/pages/ForgotPassword";
 
 const LoadingSpinner = () => (
   <motion.div
@@ -67,6 +68,15 @@ const router = createBrowserRouter([
     ),
 
     errorElement: <Error404 />, // Optional: You might want a simpler error page here
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ForgotPassword />
+      </Suspense>
+    ),
+    errorElement: <Error404 />,
   },
 
   // Routes for authenticated users, wrapped in Layout and ProtectedRoute

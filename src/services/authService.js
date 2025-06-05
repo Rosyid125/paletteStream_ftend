@@ -94,3 +94,21 @@ export const registerWithGoogle = async (profile) => {
   localStorage.setItem("user", JSON.stringify(response.data.data));
   return response.data;
 };
+
+// Request OTP untuk lupa password
+export const forgotPasswordRequest = async (email) => {
+  const response = await api.post(`/auth/forgot-password`, { email });
+  return response.data;
+};
+
+// Verifikasi OTP lupa password
+export const forgotPasswordVerify = async ({ email, otp }) => {
+  const response = await api.post(`/auth/forgot-password/verify`, { email, otp });
+  return response.data;
+};
+
+// Reset password dengan OTP
+export const forgotPasswordReset = async ({ email, otp, newPassword }) => {
+  const response = await api.post(`/auth/forgot-password/reset`, { email, otp, newPassword });
+  return response.data;
+};
