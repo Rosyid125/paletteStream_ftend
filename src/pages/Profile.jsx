@@ -46,6 +46,7 @@ import api from "../api/axiosInstance";
 // --- Import new components from Home ---
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
+import ChatPopup from "@/components/ChatPopup";
 
 // --- Constants from Home (adapted) ---
 const ARTWORKS_PAGE_LIMIT = 6;
@@ -136,6 +137,9 @@ export default function Profile() {
   // State for Logged-in User Data
   const [CURRENT_USER_ID, setUserId] = useState(null);
   const [CURRENT_USER_DATA, setUserData] = useState(null);
+
+  // State for Chat Popup
+  const [chatUserId, setChatUserId] = useState(null);
 
   // Get logged-in user data from localStorage
   useEffect(() => {
@@ -406,7 +410,7 @@ export default function Profile() {
 
   const handleMessageClick = () => {
     if (!userProfile?.id) return;
-    navigate(`/messages/${userProfile.id}`);
+    setChatUserId(userProfile.id); // Open chat popup with this user
   };
 
   const handleViewAllChallengesClick = () => {
@@ -658,14 +662,12 @@ export default function Profile() {
                           <TooltipTrigger asChild>
                             <Button variant="outline" size="icon" className="h-8 w-8" asChild>
                               <a href={link} target="_blank" rel="noopener noreferrer" aria-label={`Link ${index + 1}`}>
-                                {" "}
-                                {getPlatformIcon(link)}{" "}
+                                {getPlatformIcon(link)}
                               </a>
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {" "}
-                            <p>{link}</p>{" "}
+                            <p>{link}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -677,41 +679,32 @@ export default function Profile() {
               {/* Followers/Following/Location */}
               <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
                 <TooltipProvider delayDuration={100}>
-                  {" "}
                   <Tooltip>
-                    {" "}
                     <TooltipTrigger asChild>
                       <div className="flex items-center text-sm cursor-default">
-                        {" "}
-                        <Users className="h-4 w-4 mr-1.5 text-muted-foreground" /> <span className="font-medium">{userProfile.followers ?? 0}</span> <span className="ml-1 text-muted-foreground">Followers</span>{" "}
+                        <Users className="h-4 w-4 mr-1.5 text-muted-foreground" /> <span className="font-medium">{userProfile.followers ?? 0}</span> <span className="ml-1 text-muted-foreground">Followers</span>
                       </div>
-                    </TooltipTrigger>{" "}
+                    </TooltipTrigger>
                     <TooltipContent>
-                      {" "}
-                      <p>People following {userProfile.username}</p>{" "}
-                    </TooltipContent>{" "}
-                  </Tooltip>{" "}
+                      <p>People following {userProfile.username}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </TooltipProvider>
                 <TooltipProvider delayDuration={100}>
-                  {" "}
                   <Tooltip>
-                    {" "}
                     <TooltipTrigger asChild>
                       <div className="flex items-center text-sm cursor-default">
-                        {" "}
-                        <Users className="h-4 w-4 mr-1.5 text-muted-foreground" /> <span className="font-medium">{userProfile.followings ?? 0}</span> <span className="ml-1 text-muted-foreground">Following</span>{" "}
+                        <Users className="h-4 w-4 mr-1.5 text-muted-foreground" /> <span className="font-medium">{userProfile.followings ?? 0}</span> <span className="ml-1 text-muted-foreground">Following</span>
                       </div>
-                    </TooltipTrigger>{" "}
+                    </TooltipTrigger>
                     <TooltipContent>
-                      {" "}
-                      <p>People {userProfile.username} follows</p>{" "}
-                    </TooltipContent>{" "}
-                  </Tooltip>{" "}
+                      <p>People {userProfile.username} follows</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </TooltipProvider>
                 {userProfile.location && (
                   <div className="flex items-center text-sm">
-                    {" "}
-                    <MapPin className="h-4 w-4 mr-1.5 text-muted-foreground" /> <span>{userProfile.location}</span>{" "}
+                    <MapPin className="h-4 w-4 mr-1.5 text-muted-foreground" /> <span>{userProfile.location}</span>
                   </div>
                 )}
               </div>
@@ -721,14 +714,12 @@ export default function Profile() {
                 <div className="flex justify-between items-center mb-1">
                   <h3 className="text-sm font-medium text-muted-foreground">Level Progress</h3>
                   <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                    {" "}
-                    {currentExp} / {nextThreshold} XP{" "}
+                    {currentExp} / {nextThreshold} XP
                   </span>
                 </div>
                 <Progress value={levelProgressPercentage} className="h-2 bg-muted" />
                 <p className="text-xs text-muted-foreground text-right">
-                  {" "}
-                  {xpNeededForNextLevel} XP to Level {(userProfile.level || 1) + 1}{" "}
+                  {xpNeededForNextLevel} XP to Level {(userProfile.level || 1) + 1}
                 </p>
               </div>
             </div>
@@ -742,32 +733,27 @@ export default function Profile() {
               <>
                 <Card className="bg-muted/50 border-none shadow-sm hover:bg-muted/70 transition-colors duration-200">
                   <CardContent className="flex flex-col items-center justify-center p-3 h-full text-center">
-                    {" "}
-                    <Image className="h-5 w-5 text-indigo-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.totalUploads}</span> <span className="text-xs text-muted-foreground mt-0.5">Uploads</span>{" "}
+                    <Image className="h-5 w-5 text-indigo-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.totalUploads}</span> <span className="text-xs text-muted-foreground mt-0.5">Uploads</span>
                   </CardContent>
                 </Card>
                 <Card className="bg-muted/50 border-none shadow-sm hover:bg-muted/70 transition-colors duration-200">
                   <CardContent className="flex flex-col items-center justify-center p-3 h-full text-center">
-                    {" "}
-                    <Heart className="h-5 w-5 text-red-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.totalLikes}</span> <span className="text-xs text-muted-foreground mt-0.5">Likes Rec.</span>{" "}
+                    <Heart className="h-5 w-5 text-red-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.totalLikes}</span> <span className="text-xs text-muted-foreground mt-0.5">Likes Rec.</span>
                   </CardContent>
                 </Card>
                 <Card className="bg-muted/50 border-none shadow-sm hover:bg-muted/70 transition-colors duration-200">
                   <CardContent className="flex flex-col items-center justify-center p-3 h-full text-center">
-                    {" "}
-                    <MessageCircle className="h-5 w-5 text-blue-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.totalComments}</span> <span className="text-xs text-muted-foreground mt-0.5">Comments</span>{" "}
+                    <MessageCircle className="h-5 w-5 text-blue-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.totalComments}</span> <span className="text-xs text-muted-foreground mt-0.5">Comments</span>
                   </CardContent>
                 </Card>
                 <Card className="bg-muted/50 border-none shadow-sm hover:bg-muted/70 transition-colors duration-200">
                   <CardContent className="flex flex-col items-center justify-center p-3 h-full text-center">
-                    {" "}
-                    <Trophy className="h-5 w-5 text-orange-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.challengesParticipated}</span> <span className="text-xs text-muted-foreground mt-0.5">Challenges</span>{" "}
+                    <Trophy className="h-5 w-5 text-orange-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.challengesParticipated}</span> <span className="text-xs text-muted-foreground mt-0.5">Challenges</span>
                   </CardContent>
                 </Card>
                 <Card className="bg-muted/50 border-none shadow-sm hover:bg-muted/70 transition-colors duration-200">
                   <CardContent className="flex flex-col items-center justify-center p-3 h-full text-center">
-                    {" "}
-                    <Crown className="h-5 w-5 text-amber-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.challengesWon}</span> <span className="text-xs text-muted-foreground mt-0.5">Wins</span>{" "}
+                    <Crown className="h-5 w-5 text-amber-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.challengesWon}</span> <span className="text-xs text-muted-foreground mt-0.5">Wins</span>
                   </CardContent>
                 </Card>
               </>
@@ -1169,6 +1155,9 @@ export default function Profile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Chat Popup - Rendered at the bottom of the profile page */}
+      {chatUserId && <ChatPopup openUserId={chatUserId} onClose={() => setChatUserId(null)} />}
     </div>
   );
 }

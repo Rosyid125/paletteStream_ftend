@@ -1,15 +1,13 @@
 import api from "../api/axiosInstance";
 
-const API_URL = `/auth`; // Sesuaikan dengan URL API kamu
+const API_URL = `/auth`;
 
 // Fungsi untuk register dan auto login
 export const register = async (data) => {
   const response = await api.post(`${API_URL}/register`, data);
 
-  // Save user in localStorage
   localStorage.setItem("user", JSON.stringify(response.data.data));
 
-  // Auto login setelah berhasil register
   const { email, password } = data;
   const loginResponse = await login({ email, password });
 
@@ -20,27 +18,39 @@ export const register = async (data) => {
 export const login = async (data) => {
   const response = await api.post(`${API_URL}/login`, data);
 
-  // Save user in localStorage
   localStorage.setItem("user", JSON.stringify(response.data.data));
 
-  return response.data;
+  return {
+    ...response.data,
+  };
 };
 
 // Fungsi untuk fetch data user yang sedang login (endpoint /me)
 export const fetchMe = async () => {
   const response = await api.get(`${API_URL}/me`);
-  return response.data; // Mengembalikan data pengguna yang sedang login
+  // Simpan user info di localStorage
+  localStorage.setItem("user", JSON.stringify(response.data.data));
+  // Kembalikan data user agar bisa diakses langsung
+  return response.data;
 };
 
-// Fungsi untuk refresh token (tanpa mengambil dari localStorage)
+// Fungsi untuk mendapatkan accessToken dan refreshToken dari backend untuk websocket
+export const refreshTokenAndGet = async () => {
+  const response = await api.post(`${API_URL}/ws/refresh-token-and-get`);
+  return response.data;
+};
+
+// Fungsi untuk refresh token (otomatis pakai cookie, accessToken baru akan dikirim di response)
 export const refreshToken = async () => {
   const response = await api.post(`${API_URL}/refresh-token`);
-  return response.data; // Token baru otomatis tersimpan dalam cookies
+  // Kembalikan accessToken baru agar bisa di-set ke state app
+  return response.data;
 };
 
-// Fungsi untuk logout (menghapus session di backend)
 export const logout = async () => {
   await api.post(`${API_URL}/logout`);
+  // Hapus user info di localStorage saat logout
+  localStorage.removeItem("user");
 };
 
 // Request OTP untuk register
@@ -56,7 +66,6 @@ export const registerWithOtp = async (data) => {
   // Setelah register sukses, lakukan auto login
   const { email, password } = data;
   const loginResponse = await login({ email, password });
-  // login() sudah menyimpan user ke localStorage
   return { registerResponse: response.data, loginResponse };
 };
 
@@ -69,9 +78,12 @@ export const requestLoginOtp = async (email) => {
 // Verifikasi OTP untuk login
 export const verifyLoginOtp = async (data) => {
   const response = await api.post(`/auth/login/email/verify`, data);
-  // Save user in localStorage
+  // Simpan user info di localStorage setelah login sukses
   localStorage.setItem("user", JSON.stringify(response.data.data));
-  return response.data;
+  // Kembalikan data user
+  return {
+    ...response.data,
+  };
 };
 
 // Resend OTP untuk login
@@ -81,33 +93,23 @@ export const resendLoginOtp = async (email) => {
 };
 
 // Fungsi untuk login/register dengan Google OAuth2
-export const loginWithGoogle = () => {
-  // Ganti URL jika endpoint backend berbeda
+export const loginWithGoogle = async () => {
   const baseUrl = import.meta.env.VITE_API_URL || "";
   window.location.href = `${baseUrl}/auth/login/google`;
+  // Jalankan fetchMe
+  await fetchMe();
 };
 
-// Register user baru via Google OAuth2
-export const registerWithGoogle = async (profile) => {
-  // profile: { email, given_name, family_name }
-  const response = await api.post(`/auth/register/google`, profile);
-  localStorage.setItem("user", JSON.stringify(response.data.data));
-  return response.data;
-};
-
-// Request OTP untuk lupa password
 export const forgotPasswordRequest = async (email) => {
   const response = await api.post(`/auth/forgot-password`, { email });
   return response.data;
 };
 
-// Verifikasi OTP lupa password
 export const forgotPasswordVerify = async ({ email, otp }) => {
   const response = await api.post(`/auth/forgot-password/verify`, { email, otp });
   return response.data;
 };
 
-// Reset password dengan OTP
 export const forgotPasswordReset = async ({ email, otp, newPassword }) => {
   const response = await api.post(`/auth/forgot-password/reset`, { email, otp, newPassword });
   return response.data;

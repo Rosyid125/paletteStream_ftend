@@ -225,16 +225,20 @@ export default function Navbar() {
                     </Tooltip>
                   </TooltipProvider>
 
-                  {/* Messages (Using static data for now) */}
+                  {/* Messages */}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="relative">
-                          <MessageSquare className="h-5 w-5" />
-                          {staticCounters.messages > 0 && (
-                            <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] text-white hover:bg-blue-600 dark:hover:bg-blue-800">{staticCounters.messages}</Badge>
-                          )}
-                        </Button>
+                        <Link to="/chat">
+                          <Button variant="ghost" size="icon" className="relative">
+                            <MessageSquare className="h-5 w-5" />
+                            {staticCounters.messages > 0 && (
+                              <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] text-white hover:bg-blue-600 dark:hover:bg-blue-800">
+                                {staticCounters.messages}
+                              </Badge>
+                            )}
+                          </Button>
+                        </Link>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>You have {staticCounters.messages} messages</p>

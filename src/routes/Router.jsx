@@ -24,6 +24,7 @@ import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import { Coins, User } from "lucide-react";
 import ForgotPassword from "@/pages/ForgotPassword";
+import Chat from "@/pages/chat";
 
 const LoadingSpinner = () => (
   <motion.div
@@ -246,6 +247,17 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
               <UserResult /> {/* Assuming this is the correct component */}
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      // Chat full tab page
+      {
+        path: "chat",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <Chat />
             </ProtectedRoute>
           </Suspense>
         ),

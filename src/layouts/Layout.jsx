@@ -5,6 +5,7 @@ import ShadcnSidebar from "@/components/ShadcnSidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar"; //Mengapa menggunakan kurung karena dalam satu file ada banyak fungsi
 import Cookies from "js-cookie";
+import AuthSessionRefresher from "@/components/AuthSessionRefresher";
 
 export default function Layout() {
   // Ambil cookie yang disimpan untuk menentukan apakah sidebar terbuka atau tidak
@@ -12,6 +13,7 @@ export default function Layout() {
 
   return (
     <SidebarProvider defaultOpen={theme}>
+      <AuthSessionRefresher />
       <div className="wrapper w-full h-full">
         <Navbar className="Navbar" />
         <div className="main-content flex">
