@@ -576,8 +576,8 @@ export default function Home() {
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className={`${getTypeColor(post.type)} capitalize`}>
-                                {post.type || "Unknown"}
+                              <Badge asChild variant="outline" className={`${getTypeColor(post.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(post.type)}&page=1&limit=9`)}>
+                                <span>{post.type || "Unknown"}</span>
                               </Badge>
                               {/* --- *** Conditionally render DropdownMenu only if the logged-in user owns the post *** --- */}
                               {userId === post.userId && (
@@ -613,12 +613,24 @@ export default function Home() {
                           <h3 className="text-lg font-semibold">{post.title}</h3>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{post.description}</p>
                           {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {post.tags.map((tag, tagIndex) => (
-                                <Badge key={tagIndex} variant="secondary" className="text-xs capitalize">
-                                  #{tag}
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {post.tags.slice(0, 3).map((tag, tagIndex) => (
+                                <Badge asChild key={tagIndex} variant="secondary" className="text-xs capitalize cursor-pointer" onClick={() => navigate(`/posts/tags?page=1&limit=9&query=${encodeURIComponent(tag)}`)}>
+                                  <span>#{tag}</span>
                                 </Badge>
                               ))}
+                              {post.tags.length > 3 && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-xs cursor-default">
+                                      ...
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Tags: {post.tags.join(", ")}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                           )}
                         </CardContent>

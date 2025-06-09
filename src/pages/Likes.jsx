@@ -490,8 +490,8 @@ export default function LikedPosts() {
                       {/* Added space-y */}
                       {/* Display Type */}
                       {post.type && (
-                        <Badge variant="outline" className={`text-xs capitalize font-medium ${getTypeColor(post.type)}`}>
-                          {post.type}
+                        <Badge asChild variant="outline" className={`${getTypeColor(post.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(post.type)}&page=1&limit=9`)}>
+                          <span>{post.type || "Unknown"}</span>
                         </Badge>
                       )}
                       {/* Display Title */}
@@ -514,8 +514,8 @@ export default function LikedPosts() {
                           {" "}
                           {/* Added pt-1 */}
                           {post.tags.slice(0, 3).map((tag, tagIndex) => (
-                            <Badge key={tagIndex} variant="secondary" className="text-xs capitalize">
-                              #{tag}
+                            <Badge asChild key={tagIndex} variant="secondary" className="text-xs capitalize cursor-pointer" onClick={() => navigate(`/posts/tags?page=1&limit=9&query=${encodeURIComponent(tag)}`)}>
+                              <span>#{tag}</span>
                             </Badge>
                           ))}
                           {post.tags.length > 3 && (

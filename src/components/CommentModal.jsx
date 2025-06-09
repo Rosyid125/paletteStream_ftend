@@ -11,6 +11,7 @@ import { MessageSquare, CornerDownRight, Trash2 } from "lucide-react";
 import api from "./../api/axiosInstance"; // Adjust path if necessary
 import { Textarea } from "@/components/ui/textarea";
 import { ImageCarousel } from "@/components/ImageCarousel";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 // Helper function to format image URLs (Tetap sama)
 const formatImageUrl = (imagePath) => {
@@ -53,6 +54,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
 
   const commentObserver = useRef();
   const replyObservers = useRef({});
+  const navigate = useNavigate(); // Initialize useNavigate
 
   // --- Fetching Comments & Post Info (NEW) ---
   const loadComments = useCallback(
@@ -560,7 +562,11 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                   <div>
                     <div className="font-semibold text-sm leading-tight">{postInfo.username}</div>
                     <div className="text-xs text-muted-foreground">
-                      Lvl {postInfo.level || 1} • {postInfo.type} • <span>{postInfo.createdAt}</span>
+                      Lvl {postInfo.level || 1} •
+                      <span className="cursor-pointer underline hover:text-primary" onClick={() => navigate(`/posts/type?query=${encodeURIComponent(postInfo.type)}&page=1&limit=9`)}>
+                        {postInfo.type}
+                      </span>
+                      • <span>{postInfo.createdAt}</span>
                     </div>
                   </div>
                 </div>
@@ -576,7 +582,11 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                 {Array.isArray(postInfo.tags) && postInfo.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-1">
                     {postInfo.tags.map((tag, idx) => (
-                      <span key={tag + idx} className="bg-muted px-2 py-0.5 rounded text-xs text-primary-700 dark:text-primary-300">
+                      <span
+                        key={tag + idx}
+                        className="bg-muted px-2 py-0.5 rounded text-xs text-primary-700 dark:text-primary-300 cursor-pointer hover:underline"
+                        onClick={() => navigate(`/posts/tags?page=1&limit=9&query=${encodeURIComponent(tag)}`)}
+                      >
                         #{tag}
                       </span>
                     ))}

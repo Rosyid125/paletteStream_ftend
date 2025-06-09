@@ -500,8 +500,8 @@ export default function BookmarkedPosts() {
                     {/* Card Content tetap sama */}
                     <CardContent className="pt-3 pb-2 px-3 flex-grow space-y-1.5">
                       {post.type && (
-                        <Badge variant="outline" className={`text-xs capitalize font-medium ${getTypeColor(post.type)}`}>
-                          {post.type}
+                        <Badge asChild variant="outline" className={`${getTypeColor(post.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(post.type)}&page=1&limit=9`)}>
+                          <span>{post.type || "Unknown"}</span>
                         </Badge>
                       )}
                       <h3 className="text-base font-semibold line-clamp-2">{post.title}</h3>
@@ -518,8 +518,8 @@ export default function BookmarkedPosts() {
                       {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 pt-1">
                           {post.tags.slice(0, 3).map((tag, tagIndex) => (
-                            <Badge key={tagIndex} variant="secondary" className="text-xs capitalize">
-                              #{tag}
+                            <Badge asChild key={tagIndex} variant="secondary" className="text-xs capitalize cursor-pointer" onClick={() => navigate(`/posts/tags?page=1&limit=9&query=${encodeURIComponent(tag)}`)}>
+                              <span>#{tag}</span>
                             </Badge>
                           ))}
                           {post.tags.length > 3 && (

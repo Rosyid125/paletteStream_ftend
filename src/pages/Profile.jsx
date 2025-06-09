@@ -865,21 +865,20 @@ export default function Profile() {
                           <div>
                             <p className="font-medium text-sm">{artwork.username}</p>
                             <p className="text-xs text-muted-foreground">Level {artwork.level || 1}</p>
-                            <p className="text-xs text-muted-foreground">{artwork.createdAt}</p> {/* Display formatted date */}
+                            <p className="text-xs text-muted-foreground">{artwork.createdAt}</p>
                           </div>
                         </div>
                         {/* Type Badge and Delete Dropdown */}
                         <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className={`${getTypeColor(artwork.type)} capitalize`}>
-                            {artwork.type || "Unknown"}
+                          <Badge asChild variant="outline" className={`${getTypeColor(artwork.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(artwork.type)}&page=1&limit=9`)}>
+                            <span>{artwork.type || "Unknown"}</span>
                           </Badge>
                           {/* Show delete only if logged-in user IS the artwork owner */}
                           {CURRENT_USER_ID === artwork.userId && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                                  {" "}
-                                  <MoreHorizontal className="h-4 w-4" />{" "}
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
@@ -907,9 +906,8 @@ export default function Profile() {
                       {artwork.tags && Array.isArray(artwork.tags) && artwork.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {artwork.tags.map((tag, tagIndex) => (
-                            <Badge key={tagIndex} variant="secondary" className="text-xs capitalize">
-                              {" "}
-                              #{tag}{" "}
+                            <Badge asChild key={tagIndex} variant="secondary" className="text-xs capitalize cursor-pointer" onClick={() => navigate(`/posts/tags?page=1&limit=9&query=${encodeURIComponent(tag)}`)}>
+                              <span>#{tag}</span>
                             </Badge>
                           ))}
                         </div>

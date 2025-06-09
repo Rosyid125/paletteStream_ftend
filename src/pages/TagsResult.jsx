@@ -402,6 +402,7 @@ export default function TagsResult() {
 
 // --- Artwork Card Component (Copied from Discover/TopArtworks) ---
 function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, currentUserId }) {
+  const navigate = useNavigate(); // Get navigate function from props
   return (
     <Card className="overflow-hidden flex flex-col h-full">
       <CardHeader className="pb-2 space-y-0">
@@ -418,8 +419,8 @@ function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, 
             </div>
           </Link>
           <div className="flex items-center space-x-2 flex-shrink-0">
-            <Badge variant="outline" className={`${getTypeColor(artwork.type)} capitalize`}>
-              {artwork.type || "Unknown"}
+            <Badge asChild variant="outline" className={`${getTypeColor(artwork.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(artwork.type)}&page=1&limit=9`)}>
+              <span>{artwork.type || "Unknown"}</span>
             </Badge>
           </div>
         </div>
@@ -433,8 +434,8 @@ function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, 
         {artwork.tags && artwork.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {artwork.tags.map((tag, tagIndex) => (
-              <Badge key={tagIndex} variant="secondary" className="text-xs capitalize">
-                #{tag}
+              <Badge asChild key={tagIndex} variant="secondary" className="text-xs capitalize cursor-pointer" onClick={() => navigate(`/posts/tags?page=1&limit=9&query=${encodeURIComponent(tag)}`)}>
+                <span>#{tag}</span>
               </Badge>
             ))}
           </div>
