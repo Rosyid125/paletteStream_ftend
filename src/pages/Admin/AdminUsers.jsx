@@ -115,19 +115,12 @@ export default function AdminUsers() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className={
-                          u.status === "active"
-                            ? "hover:bg-orange-100 dark:hover:bg-orange-900"
-                            : "hover:bg-green-100 dark:hover:bg-green-900"
-                        }
+                        className={u.status === "active" ? "hover:bg-orange-100 dark:hover:bg-orange-900" : "hover:bg-green-100 dark:hover:bg-green-900"}
                         onClick={() => handleBan(u.id)}
                         aria-label={u.status === "active" ? "Ban" : "Unban"}
                         title={u.status === "active" ? "Ban user" : "Unban user"}
                       >
-                        <Ban className={
-                          "w-4 h-4 " +
-                          (u.status === "active" ? "text-orange-500" : "text-green-500")
-                        } />
+                        <Ban className={"w-4 h-4 " + (u.status === "active" ? "text-orange-500" : "text-green-500")} />
                       </Button>
                       <Button size="icon" variant="ghost" className="hover:bg-red-100 dark:hover:bg-red-900" onClick={() => handleDelete(u.id)} aria-label="Delete">
                         <Trash2 className="w-4 h-4 text-red-500" />

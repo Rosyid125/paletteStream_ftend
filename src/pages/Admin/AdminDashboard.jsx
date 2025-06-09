@@ -3,17 +3,7 @@ import { useEffect, useState } from "react";
 import { fetchAdminDashboard, fetchAdminTrends } from "@/services/adminService";
 import { Bar, Line } from "react-chartjs-2";
 import { Loader2 } from "lucide-react";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend);
 
