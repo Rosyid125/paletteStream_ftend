@@ -77,7 +77,7 @@ export default function LoginPage() {
 
     try {
       // Panggil API login
-      const response = await login(formData); // Kirim formData ke fungsi login
+      const response = await login(formData, navigate); // Kirim formData ke fungsi login
 
       // Jika login berhasil, kita terima token atau data lainnya
       toast({
@@ -86,7 +86,7 @@ export default function LoginPage() {
       });
 
       // Redirect user ke halaman utama setelah login berhasil
-      navigate("/home");
+      // navigate("/home");
     } catch (error) {
       setErrors({
         general: error.response.data.message || "Registration failed. Please try again.",

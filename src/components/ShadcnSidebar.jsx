@@ -46,13 +46,17 @@ export default function ShadcnSidebar() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null); // State to hold userId
+  const [role, setRole] = useState(null); // State to hold user role
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     let userIdFromStorage = null;
+    let roleFromStorage = null;
     if (storedUser) {
       try {
-        userIdFromStorage = JSON.parse(storedUser)?.id;
+        const parsed = JSON.parse(storedUser);
+        userIdFromStorage = parsed?.id;
+        roleFromStorage = parsed?.role;
       } catch (e) {
         console.error("Failed to parse user from localStorage in Sidebar:", e);
         localStorage.removeItem("user"); // Clear invalid data
@@ -60,6 +64,7 @@ export default function ShadcnSidebar() {
     }
 
     setUserId(userIdFromStorage); // Set userId state
+    setRole(roleFromStorage); // Set role state
 
     const fetchMiniProfile = async () => {
       if (!userIdFromStorage) {
@@ -95,7 +100,7 @@ export default function ShadcnSidebar() {
   }, []); // Runs once on mount
 
   // Menu items with separate groups
-  const items = [
+  let items = [
     {
       title: "Home",
       url: "/home",
@@ -140,11 +145,11 @@ export default function ShadcnSidebar() {
     },
     {
       title: "Profile",
-      url: `/profile/${userId}`, // Dynamically set profile URL
-      icon: Avatar, // Using Avatar component itself as icon placeholder
+      url: `/profile/${userId}`,
+      icon: Avatar,
       group: "User's",
       color: "text-purple-500",
-      isAvatar: true, // Flag to render Avatar component instead of Lucide icon
+      isAvatar: true,
     },
     {
       title: "Bookmarked",
@@ -161,6 +166,34 @@ export default function ShadcnSidebar() {
       color: "text-green-500",
     },
   ];
+
+  // Tambahkan menu admin jika role admin (dari localStorage, bukan miniProfile)
+  if (role === "admin") {
+    items = [
+      {
+        title: "Admin Dashboard",
+        url: "/admin/dashboard",
+        icon: Trophy,
+        group: "Admin",
+        color: "text-red-500",
+      },
+      {
+        title: "User Management",
+        url: "/admin/users",
+        icon: Users,
+        group: "Admin",
+        color: "text-blue-700",
+      },
+      {
+        title: "Post Management",
+        url: "/admin/posts",
+        icon: FileText,
+        group: "Admin",
+        color: "text-amber-700",
+      },
+      ...items,
+    ];
+  }
 
   const groupedItems = items.reduce((acc, item) => {
     if (item.title === "Profile" && item.url !== `/profile/${userId}`) {
@@ -187,6 +220,8 @@ export default function ShadcnSidebar() {
         return "border-l-amber-500";
       case "User's":
         return "border-l-blue-500";
+      case "Admin":
+        return "border-l-red-500"; // Warna border untuk grup Admin
       default:
         return "border-l-primary";
     }

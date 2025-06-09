@@ -25,16 +25,12 @@ import { motion } from "framer-motion";
 import { Coins, User } from "lucide-react";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Chat from "@/pages/chat";
-
-const LoadingSpinner = () => (
-  <motion.div
-    className="fixed inset-0 flex justify-center items-center bg-background/80 z-50" // Added background and z-index
-    animate={{ rotate: 360 }}
-    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-  >
-    <Coins className="w-10 h-10 text-primary" /> {/* Use primary color */}
-  </motion.div>
-);
+import AdminRoute from "@/components/admin/AdminRoute";
+import AdminDashboard from "@/pages/Admin/AdminDashboard";
+import AdminUsers from "@/pages/Admin/AdminUsers";
+import AdminPosts from "@/pages/Admin/AdminPosts";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import AdminProtectedRoute from "@/components/AdminProtectedRoute"; // Assuming correct path
 
 const router = createBrowserRouter([
   // Route for the Landing Page (unauthenticated users primarily)
@@ -262,8 +258,36 @@ const router = createBrowserRouter([
           </Suspense>
         ),
       },
-      // Add a catch-all or redirect within the authenticated layout if needed
-      // e.g., { path: "*", element: <Navigate to="/home" replace /> }
+      {
+        path: "admin/dashboard",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <AdminProtectedRoute>
+              <AdminDashboard />
+            </AdminProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: "admin/users",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <AdminProtectedRoute>
+              <AdminUsers />
+            </AdminProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: "admin/posts",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <AdminProtectedRoute>
+              <AdminPosts />
+            </AdminProtectedRoute>
+          </Suspense>
+        ),
+      },
     ],
   },
 ]);

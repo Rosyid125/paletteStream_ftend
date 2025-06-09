@@ -15,11 +15,22 @@ export const register = async (data) => {
 };
 
 // Fungsi untuk login
-export const login = async (data) => {
+export const login = async (data, navigate) => {
   const response = await api.post(`${API_URL}/login`, data);
 
   localStorage.setItem("user", JSON.stringify(response.data.data));
 
+  console.log("Login data:", response.data.data.role);
+
+  const role = response.data.data.role;
+
+  // Jika ada navigate, arahkan ke halaman yang sesuai
+  if (role === "admin" && navigate) {
+    navigate("/admin/dashboard");
+    console.log("Navigating to admin dashboard");
+  } else if (navigate) {
+    navigate("/home");
+  }
   return {
     ...response.data,
   };
