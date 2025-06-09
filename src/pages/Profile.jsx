@@ -123,7 +123,9 @@ export default function Profile() {
 
   // State for dummy data
   const [badges, setBadges] = useState(null);
-  const [achievements, setAchievements] = useState(null);
+  const [achievements, setAchievements] = useState([]);
+  const [achievementsLoading, setAchievementsLoading] = useState(true);
+  const [achievementsError, setAchievementsError] = useState(null);
   const [challengeHistory, setChallengeHistory] = useState(null);
 
   const [activeTab, setActiveTab] = useState("artworks");
@@ -346,6 +348,27 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, userProfile, loading, error, hasMoreArtworks, artworksLoading, fetchArtworksPage]); // Keep dependencies including fetchArtworksPage
 
+  // --- Effect to fetch achievements for the profile user ---
+  useEffect(() => {
+    setAchievementsLoading(true);
+    setAchievementsError(null);
+    api
+      .get(`/achievements/user/${userId}`)
+      .then((res) => {
+        if (res.data && res.data.success && Array.isArray(res.data.data)) {
+          setAchievements(res.data.data);
+        } else {
+          setAchievements([]);
+          setAchievementsError("Failed to fetch achievements.");
+        }
+      })
+      .catch((err) => {
+        setAchievements([]);
+        setAchievementsError(err.response?.data?.message || err.message || "Failed to fetch achievements.");
+      })
+      .finally(() => setAchievementsLoading(false));
+  }, [userId]);
+
   // --- Effect to set dummy data (runs once) ---
   useEffect(() => {
     // ... (dummy data setting remains the same) ...
@@ -353,12 +376,6 @@ export default function Profile() {
       { id: 1, name: "Early Bird", description: "Joined the platform early.", date: "2023-01-15", icon: "🐦" },
       { id: 2, name: "Art Lover", description: "Liked 50 artworks.", date: "2023-03-20", icon: "❤️" },
       { id: 3, name: "Commentator", description: "Made 100 comments.", date: "2023-05-10", icon: "💬" },
-    ]);
-    setAchievements([
-      { id: 1, name: "First Upload", progress: 100, completed: true },
-      { id: 2, name: "100 Likes", progress: 100, completed: true },
-      { id: 3, name: "Participate in Challenge", progress: 100, completed: true },
-      { id: 4, name: "Win Challenge", progress: 50, completed: false },
     ]);
     setChallengeHistory([
       { id: 1, title: "Summer Art Challenge", artwork: "Seascape", result: "Top 10", date: "2023-06-20", thumbnail: "/placeholder.svg" },
@@ -1044,26 +1061,41 @@ export default function Profile() {
         </TabsContent>
 
         <TabsContent value="achievements" className="mt-6">
-          {/* ... Achievements content (no change needed) ... */}
           <Card className="border-t-4 border-t-green-500">
             <CardHeader>
-              {" "}
-              <CardTitle>Achievements Progress</CardTitle> <CardDescription>Track progress towards platform goals.</CardDescription>{" "}
+              <CardTitle>Achievements Progress</CardTitle>
+              <CardDescription>Track progress towards platform goals.</CardDescription>
             </CardHeader>
             <CardContent>
-              {achievements && achievements.length > 0 ? (
+              {achievementsLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-6 w-full rounded-md" />
+                  ))}
+                </div>
+              ) : achievementsError ? (
+                <div className="text-xs text-red-500 py-2">{achievementsError}</div>
+              ) : achievements.length > 0 ? (
                 <ScrollArea className="h-[400px] pr-4 -mr-4">
                   <div className="space-y-4">
-                    {achievements.map((ach) => (
-                      <div key={ach.id} className="flex items-center space-x-3 p-3 rounded-md bg-muted/40">
-                        <div className={`p-1.5 rounded-full ${ach.completed ? "bg-green-500/20" : "bg-muted"}`}>{ach.completed ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Star className="h-5 w-5 text-amber-500" />}</div>
-                        <div className="flex-1">
-                          {" "}
-                          <p className={`font-medium text-sm ${ach.completed ? "text-foreground" : "text-muted-foreground"}`}>{ach.name}</p> <Progress value={ach.progress} className="h-1.5 mt-1" />{" "}
+                    {achievements.map((ach) => {
+                      const progress = ach.progress || 0;
+                      const goal = ach.goal || 1;
+                      const status = ach.status || "locked";
+                      return (
+                        <div key={ach.id} className="flex items-center space-x-3 p-3 rounded-md bg-muted/40">
+                          <div className={`p-1.5 rounded-full ${status === "completed" ? "bg-green-500/20" : status === "in_progress" ? "bg-amber-400/20" : "bg-muted"}`}>
+                            {status === "completed" ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : status === "in_progress" ? <Star className="h-5 w-5 text-amber-500" /> : <Award className="h-5 w-5 text-gray-400" />}
+                          </div>
+                          <div className="flex-1">
+                            <p className={`font-medium text-sm ${status === "completed" ? "text-foreground" : status === "in_progress" ? "text-muted-foreground" : "text-gray-400"}`}>{ach.title}</p>
+                            <p className="text-xs text-muted-foreground mb-1">{ach.description}</p>
+                            <Progress value={Math.round((progress / goal) * 100)} className="h-1.5 mt-1" />
+                          </div>
+                          <span className="text-xs font-mono text-muted-foreground w-12 text-right">{status === "completed" ? "100%" : `${Math.round((progress / goal) * 100)}%`}</span>
                         </div>
-                        <span className="text-xs font-mono text-muted-foreground w-12 text-right">{ach.progress}%</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               ) : (

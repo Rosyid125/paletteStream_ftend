@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Heart, MessageCircle, Bookmark, Award, Clock, CheckCircle2, Trophy, Star, FlameIcon as Fire, TrendingUp, MoreHorizontal, Trash2, UserPlus, UserCheck, Loader2 } from "lucide-react"; // Tambahkan UserPlus, UserCheck, Loader2, Trash2
+import { Heart, MessageCircle, Bookmark, Award, Clock, CheckCircle2, Trophy, Star, Flame as FlameIcon, TrendingUp, MoreHorizontal, Trash2, UserPlus, UserCheck, Loader2 } from "lucide-react"; // Tambahkan UserPlus, UserCheck, Loader2, Trash2
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +22,7 @@ import { CommentModal } from "@/components/CommentModal";
 
 // --- Import instance Axios ---
 import api from "./../api/axiosInstance"; // Pastikan path ini benar
+import { Flame as Fire } from "lucide-react";
 
 // --- Constants ---
 const POSTS_PER_PAGE = 9;
@@ -57,6 +58,11 @@ export default function Home() {
   // --- State for User ID ---
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null); // State to store user data if needed
+
+  // --- State untuk Achievements (from backend) ---
+  const [achievements, setAchievements] = useState([]);
+  const [achievementsLoading, setAchievementsLoading] = useState(true);
+  const [achievementsError, setAchievementsError] = useState(null);
 
   const observer = useRef();
 
@@ -106,6 +112,33 @@ export default function Home() {
       setRecommendedUsersHasMore(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  // --- Fetch achievements for the logged-in user ---
+  useEffect(() => {
+    if (!userId) {
+      setAchievements([]);
+      setAchievementsLoading(false);
+      setAchievementsError(null);
+      return;
+    }
+    setAchievementsLoading(true);
+    setAchievementsError(null);
+    api
+      .get(`/achievements/user/${userId}`)
+      .then((res) => {
+        if (res.data && res.data.success && Array.isArray(res.data.data)) {
+          setAchievements(res.data.data);
+        } else {
+          setAchievements([]);
+          setAchievementsError("Failed to fetch achievements.");
+        }
+      })
+      .catch((err) => {
+        setAchievements([]);
+        setAchievementsError(err.response?.data?.message || err.message || "Failed to fetch achievements.");
+      })
+      .finally(() => setAchievementsLoading(false));
   }, [userId]);
 
   // --- Helper function to format image URLs ---
@@ -429,12 +462,17 @@ export default function Home() {
     { id: 3, title: "Rising Star", description: "Reached Level 5", icon: <TrendingUp className="h-4 w-4 text-green-500" /> },
     { id: 4, title: "Bookworm", description: "Read 5 novels", icon: <Bookmark className="h-4 w-4 text-blue-500" /> },
   ];
-  const achievements = [
-    { id: 1, name: "Illustrator Initiate", progress: 5, total: 10, completed: false },
-    { id: 2, name: "Manga Mania", progress: 2, total: 5, completed: false },
-    { id: 3, name: "Daily Creator", progress: 7, total: 7, completed: true },
-    { id: 4, name: "Feedback Champion", progress: 25, total: 50, completed: false },
-  ];
+
+  // --- Mapping icon string ke komponen lucide-react
+  const ICONS_MAP = {
+    heart: Heart,
+    flame: FlameIcon,
+    star: Star,
+    trophy: Trophy,
+    award: Award,
+    bookmark: Bookmark,
+    // tambahkan jika backend menambah icon baru
+  };
 
   // --- Return JSX ---
   return (
@@ -693,7 +731,7 @@ export default function Home() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* --- Active Challenges Card (No Changes) --- */}
+          {/* --- Active Challenges Card (No Changes) --- 
           <Card className="border-t-4 border-t-primary">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
@@ -725,9 +763,7 @@ export default function Home() {
                 View All Challenges
               </Button>
             </CardFooter>
-          </Card>
-
-          {/* --- Gamification Hub Card (No Changes) --- */}
+          </Card> */}
           <Card className="border-t-4 border-t-amber-500">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
@@ -775,28 +811,46 @@ export default function Home() {
               <Separator className="my-4" />
               <div>
                 <h3 className="font-medium mb-3 text-sm">Achievements</h3>
-                <ScrollArea className="h-[150px] pr-3">
-                  <div className="space-y-3">
-                    {achievements.map((achievement) => (
-                      <div key={achievement.id} className="flex items-center justify-between p-1.5 rounded-md hover:bg-muted/50 transition-colors text-xs">
-                        <div className="w-full pr-2">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium">{achievement.name}</p>
-                            <Badge variant={achievement.completed ? "default" : "outline"} className={`h-4 px-1.5 text-[10px] ${achievement.completed ? "bg-green-600/20 text-green-700 border-green-600/30" : ""}`}>
-                              {achievement.completed ? <CheckCircle2 className="h-3 w-3 mr-1" /> : null} {achievement.completed ? "Done" : `${Math.round((achievement.progress / achievement.total) * 100)}%`}
-                            </Badge>
+                <ScrollArea className="h-[220px]">
+                  <div className="space-y-3 px-2">
+                    {achievements.length === 0 && !achievementsLoading && <p className="text-xs text-muted-foreground">No achievements yet.</p>}
+
+                    {achievements.map((achievement) => {
+                      const LucideIcon = ICONS_MAP[achievement.icon] || Award;
+                      const percent = achievement.goal > 0 ? (achievement.progress / achievement.goal) * 100 : 0;
+                      const isCompleted = achievement.status === "completed";
+
+                      // ✂️ Batasi panjang judul & deskripsi
+                      const shortTitle = achievement.title.length > 24 ? achievement.title.slice(0, 22) + "…" : achievement.title;
+
+                      const shortDesc = achievement.description.length > 40 ? achievement.description.slice(0, 38) + "…" : achievement.description;
+
+                      return (
+                        <div key={achievement.id} className="flex items-start p-1.5 rounded-md hover:bg-muted/50 transition-colors text-xs w-full">
+                          <div className="flex-shrink-0 h-6 w-6 mr-2 rounded-full bg-muted flex items-center justify-center">
+                            <LucideIcon className={`h-4 w-4 ${isCompleted ? "text-green-600" : "text-muted-foreground"}`} />
                           </div>
-                          <Progress value={(achievement.progress / achievement.total) * 100} className={`h-1 w-full mt-1 ${achievement.completed ? "[&>*]:bg-green-500" : ""}`} />
+
+                          <div className="flex flex-col w-full">
+                            <div className="flex items-center justify-between w-full">
+                              <p className="font-medium text-xs truncate">{shortTitle}</p>
+                              <Badge variant={isCompleted ? "default" : "outline"} className={`h-4 px-1.5 text-[10px] shrink-0 ${isCompleted ? "bg-green-600/20 text-green-700 border-green-600/30" : ""}`}>
+                                {isCompleted ? "Completed" : `${Math.round(percent)}%`}
+                              </Badge>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground truncate" title={achievement.description}>
+                              {shortDesc}
+                            </p>
+                            <Progress value={percent} className={`h-1 mt-1 ${isCompleted ? "[&>*]:bg-green-500" : ""}`} />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               </div>
             </CardContent>
           </Card>
-
-          {/* --- *** Recommended for You Card (PAGINATION IMPLEMENTED) *** --- */}
           <Card className="border-t-4 border-t-blue-500">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
