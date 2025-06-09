@@ -78,11 +78,7 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
         if (postData) {
           setPostInfo(postData);
         }
-        const fetchedComments = Array.isArray(commentsData)
-          ? commentsData
-          : !commentsData
-            ? []
-            : commentsData;
+        const fetchedComments = Array.isArray(commentsData) ? commentsData : !commentsData ? [] : commentsData;
         setComments((prev) => (isInitial ? fetchedComments : [...prev, ...fetchedComments]));
         setCommentPage(pageToLoad + 1);
         setHasMoreComments(fetchedComments.length === COMMENTS_PER_PAGE);
@@ -580,7 +576,9 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                 {Array.isArray(postInfo.tags) && postInfo.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-1">
                     {postInfo.tags.map((tag, idx) => (
-                      <span key={tag+idx} className="bg-muted px-2 py-0.5 rounded text-xs text-primary-700 dark:text-primary-300">#{tag}</span>
+                      <span key={tag + idx} className="bg-muted px-2 py-0.5 rounded text-xs text-primary-700 dark:text-primary-300">
+                        #{tag}
+                      </span>
                     ))}
                   </div>
                 )}
