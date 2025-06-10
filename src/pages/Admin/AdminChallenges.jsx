@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar"; // Assuming you have this from shadcn/ui
@@ -24,12 +25,21 @@ import {
   X,
   Upload,
   CheckCircle2,
+  Crop,
+  Eye,
+  Heart,
+  Medal,
+  Award,
+  Star,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { getAllChallenges, createChallenge, updateChallenge, deleteChallenge, closeChallenge, selectWinners, getChallengeById } from "@/services/challengeService";
+import { toast } from "sonner";
+import { getAllChallenges, createChallenge, updateChallenge, deleteChallenge, closeChallenge, selectWinners, autoSelectWinners, getChallengeById } from "@/services/challengeService";
 import api from "@/api/axiosInstance";
 import { format } from "date-fns"; // For date formatting
 import { cn } from "@/lib/utils"; // For className utilities
+import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+import { CommentModal } from "@/components/CommentModal";
 
 export default function AdminChallenges() {
   const [challenges, setChallenges] = useState([]);
@@ -49,15 +59,31 @@ export default function AdminChallenges() {
   // State for Date/Time Picker
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(""); // Stores HH:mm
-
   // State for Image Preview
   const [badgePreview, setBadgePreview] = useState(null);
 
+  // State for Image Cropping
+  const [imgSrcForCrop, setImgSrcForCrop] = useState("");
+  const [crop, setCrop] = useState();
+  const [completedCrop, setCompletedCrop] = useState();
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [originalFile, setOriginalFile] = useState(null);
+  const [croppedBadgeFile, setCroppedBadgeFile] = useState(null);
+  const imgRef = useRef(null);
+  const hiddenFileInputRef = useRef(null);
   const [selectedWinners, setSelectedWinners] = useState([]);
   const [adminNote, setAdminNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [selectionMode, setSelectionMode] = useState("manual"); // "manual" or "auto"
+  const [maxWinners, setMaxWinners] = useState(3);
+  const [existingWinners, setExistingWinners] = useState([]);
+  const [viewWinnersModalOpen, setViewWinnersModalOpen] = useState(false);
+  // CommentModal state
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [selectedPostForComment, setSelectedPostForComment] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const { toast } = useToast();
+  // Removed useToast hook since we're using sonner toast directly
 
   const formatDateDisplay = (dateString) => {
     if (!dateString) return "N/A";
@@ -70,7 +96,6 @@ export default function AdminChallenges() {
       minute: "2-digit",
     });
   };
-
   const getFullImageUrl = (imagePath) => {
     if (!imagePath) return null; // Return null if no path for preview logic
     if (imagePath.startsWith("http") || imagePath.startsWith("blob:")) return imagePath;
@@ -84,6 +109,49 @@ export default function AdminChallenges() {
     return `${baseURL}/${cleanPath}`;
   };
 
+  // Helper function to generate cropped image blob
+  const getCroppedImg = async (image, crop, fileName) => {
+    const canvas = document.createElement("canvas");
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    canvas.width = Math.floor(crop.width * scaleX);
+    canvas.height = Math.floor(crop.height * scaleY);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("No 2d context");
+
+    const pixelRatio = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(crop.width * scaleX * pixelRatio);
+    canvas.height = Math.floor(crop.height * scaleY * pixelRatio);
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    ctx.imageSmoothingQuality = "high";
+
+    const cropX = crop.x * scaleX;
+    const cropY = crop.y * scaleY;
+    const centerX = image.naturalWidth / 2;
+    const centerY = image.naturalHeight / 2;
+
+    ctx.save();
+    ctx.translate(-cropX, -cropY);
+    ctx.translate(centerX, centerY);
+    ctx.translate(-centerX, -centerY);
+    ctx.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight, 0, 0, image.naturalWidth, image.naturalHeight);
+    ctx.restore();
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Canvas is empty"));
+            return;
+          }
+          blob.name = fileName;
+          resolve(blob);
+        },
+        "image/png",
+        1
+      );
+    });
+  };
   const resetForm = useCallback(() => {
     setFormData({ title: "", description: "", deadline: "", badge_img: null });
     setSelectedChallenge(null);
@@ -93,25 +161,34 @@ export default function AdminChallenges() {
       URL.revokeObjectURL(badgePreview);
     }
     setBadgePreview(null);
-  }, [badgePreview]);
 
+    // Reset cropping state
+    if (imgSrcForCrop && imgSrcForCrop.startsWith("blob:")) {
+      URL.revokeObjectURL(imgSrcForCrop);
+    }
+    setImgSrcForCrop("");
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    setIsCropModalOpen(false);
+    setOriginalFile(null);
+    setCroppedBadgeFile(null);
+  }, [badgePreview, imgSrcForCrop]);
   const fetchChallenges = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getAllChallenges();
       if (response.data.success) {
         setChallenges(response.data.data);
+      } else {
+        toast.error(response.data.message || "Failed to load challenges");
       }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to load challenges",
-        variant: "destructive",
-      });
+      const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to load challenges");
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   const loadChallengeDetail = async (challengeId) => {
     try {
@@ -121,11 +198,7 @@ export default function AdminChallenges() {
         setWinnersModalOpen(true);
       }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to load challenge details",
-        variant: "destructive",
-      });
+      toast.error("Failed to load challenge details");
     }
   };
 
@@ -142,34 +215,93 @@ export default function AdminChallenges() {
       // setFormData(prev => ({ ...prev, deadline: `${datePart}T00:00` }));
     }
   }, [selectedDate, selectedTime]);
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setFormData((prev) => ({ ...prev, badge_img: file }));
-
-    if (badgePreview && badgePreview.startsWith("blob:")) {
-      URL.revokeObjectURL(badgePreview);
-    }
-
     if (file) {
-      setBadgePreview(URL.createObjectURL(file));
-    } else {
-      // If file is deselected in edit mode, revert to original challenge badge
-      if (editModalOpen && selectedChallenge?.badge_img) {
-        setBadgePreview(getFullImageUrl(selectedChallenge.badge_img));
-      } else {
-        setBadgePreview(null);
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Error",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
       }
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setCrop(undefined);
+      setCompletedCrop(undefined);
+      setOriginalFile(file);
+
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        setImgSrcForCrop(reader.result?.toString() || "");
+        setIsCropModalOpen(true);
+      });
+      reader.readAsDataURL(file);
+
+      // Clear the input to allow re-uploading the same file
+      e.target.value = "";
     }
   };
 
-  const handleCreateChallenge = async () => {
-    if (!formData.title || !formData.description || !formData.deadline) {
+  // Cropper Modal: Center crop
+  function onImageLoad(e) {
+    const { width, height } = e.currentTarget;
+    setCrop(centerCrop(makeAspectCrop({ unit: "%", width: 90 }, 1, width, height), width, height));
+  }
+  // Cropper Modal: Handle crop
+  const handleCropImage = async () => {
+    const image = imgRef.current;
+    if (!image || !completedCrop || !originalFile) {
+      toast.error("Could not crop image");
+      return;
+    }
+
+    try {
+      const croppedBlob = await getCroppedImg(image, completedCrop, originalFile.name);
+      const croppedFile = new File([croppedBlob], originalFile.name, {
+        type: croppedBlob.type,
+        lastModified: Date.now(),
+      });
+
+      setCroppedBadgeFile(croppedFile);
+      setFormData((prev) => ({ ...prev, badge_img: croppedFile }));
+
+      const previewUrl = URL.createObjectURL(croppedBlob);
+      if (badgePreview && badgePreview.startsWith("blob:")) {
+        URL.revokeObjectURL(badgePreview);
+      }
+      setBadgePreview(previewUrl);
+
+      if (imgSrcForCrop.startsWith("blob:")) {
+        URL.revokeObjectURL(imgSrcForCrop);
+      }
+      setImgSrcForCrop("");
+      setIsCropModalOpen(false);
+
+      toast({
+        title: "Success",
+        description: "Badge image cropped successfully",
+      });
+    } catch (e) {
+      console.error("Cropping failed:", e);
       toast({
         title: "Error",
-        description: "Please fill all required fields (Title, Description, Deadline Date & Time)",
+        description: "Failed to crop image",
         variant: "destructive",
       });
+    }
+  };
+  const handleCreateChallenge = async () => {
+    if (!formData.title || !formData.description || !formData.deadline) {
+      toast.error("Please fill all required fields (Title, Description, Deadline Date & Time)");
       return;
     }
     if (formData.deadline && formData.deadline.split("T")[1] === "00:00" && !selectedTime) {
@@ -184,39 +316,32 @@ export default function AdminChallenges() {
       submitData.append("description", formData.description);
       submitData.append("deadline", formData.deadline); // Already in YYYY-MM-DDTHH:mm
 
-      if (formData.badge_img) {
-        submitData.append("badge_img", formData.badge_img);
+      if (croppedBadgeFile) {
+        submitData.append("badge_img", croppedBadgeFile);
       }
-
       const response = await createChallenge(submitData);
 
       if (response.data.success) {
-        toast({
-          title: "Success",
-          description: "Challenge created successfully",
-        });
+        toast.success("Challenge created successfully");
         setCreateModalOpen(false);
         // resetForm(); // Called by onOpenChange
         fetchChallenges();
+      } else {
+        // Handle validation errors from backend
+        const errorMessage = response.data.errors && typeof response.data.errors === "object" ? Object.values(response.data.errors).flat().join(", ") : response.data.message || "Failed to create challenge";
+        toast.error(errorMessage);
       }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: err.response?.data?.message || "Failed to create challenge",
-        variant: "destructive",
-      });
+      // Handle network errors or unexpected responses
+      const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to create challenge");
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
-
   const handleEditChallenge = async () => {
     if (!formData.title || !formData.description || !formData.deadline) {
-      toast({
-        title: "Error",
-        description: "Please fill all required fields (Title, Description, Deadline Date & Time)",
-        variant: "destructive",
-      });
+      toast.error("Please fill all required fields (Title, Description, Deadline Date & Time)");
       return;
     }
     try {
@@ -225,102 +350,129 @@ export default function AdminChallenges() {
       submitData.append("title", formData.title);
       submitData.append("description", formData.description);
       submitData.append("deadline", formData.deadline);
-
-      if (formData.badge_img instanceof File) {
-        submitData.append("badge_img", formData.badge_img);
+      if (croppedBadgeFile instanceof File) {
+        submitData.append("badge_img", croppedBadgeFile);
       }
-
       const response = await updateChallenge(selectedChallenge.id, submitData);
 
       if (response.data.success) {
-        toast({
-          title: "Success",
-          description: "Challenge updated successfully",
-        });
+        toast.success("Challenge updated successfully");
         setEditModalOpen(false);
         // resetForm(); // Called by onOpenChange
         fetchChallenges();
+      } else {
+        // Handle validation errors from backend
+        const errorMessage = response.data.errors && typeof response.data.errors === "object" ? Object.values(response.data.errors).flat().join(", ") : response.data.message || "Failed to update challenge";
+        toast.error(errorMessage);
       }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: err.response?.data?.message || "Failed to update challenge",
-        variant: "destructive",
-      });
+      // Handle network errors or unexpected responses
+      const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to update challenge");
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
-
   const handleCloseChallenge = async (challengeId) => {
-    // ... (no changes needed here)
     try {
-      await closeChallenge(challengeId);
-      toast({
-        title: "Success",
-        description: "Challenge closed successfully",
-      });
-      fetchChallenges();
+      const response = await closeChallenge(challengeId);
+      if (response.data.success) {
+        toast.success("Challenge closed successfully");
+        fetchChallenges();
+      } else {
+        toast.error(response.data.message || "Failed to close challenge");
+      }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: err.response?.data?.message || "Failed to close challenge",
-        variant: "destructive",
-      });
+      const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to close challenge");
+      toast.error(errorMessage);
     }
   };
-
   const handleDeleteChallenge = async (challengeId) => {
-    // ... (no changes needed here)
     if (!confirm("Are you sure you want to delete this challenge?")) return;
 
     try {
-      await deleteChallenge(challengeId);
-      toast({
-        title: "Success",
-        description: "Challenge deleted successfully",
-      });
-      fetchChallenges();
+      const response = await deleteChallenge(challengeId);
+      if (response.data.success) {
+        toast.success("Challenge deleted successfully");
+        fetchChallenges();
+      } else {
+        toast.error(response.data.message || "Failed to delete challenge");
+      }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: err.response?.data?.message || "Failed to delete challenge",
-        variant: "destructive",
-      });
+      const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to delete challenge");
+      toast.error(errorMessage);
     }
   };
-
   const handleSelectWinners = async () => {
-    // ... (no changes needed here)
-    if (selectedWinners.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one winner",
-        variant: "destructive",
-      });
+    if (selectionMode === "manual" && selectedWinners.length === 0) {
+      toast.error("Please select at least one winner");
+      return;
+    }
+
+    if (selectionMode === "auto" && (!maxWinners || maxWinners < 1)) {
+      toast.error("Please specify a valid number of winners (minimum 1)");
       return;
     }
 
     try {
       setSubmitting(true);
-      const response = await selectWinners(selectedChallenge.id, selectedWinners, adminNote || "Congratulations!");
+      let response;
 
-      if (response.data.success) {
-        toast({
-          title: "Success",
-          description: `Awarded badges to ${selectedWinners.length} winners`,
+      if (selectionMode === "manual") {
+        // Manual selection - create winnersData array with userId, postId, and rank
+        const winnersData = selectedWinners.map((userId, index) => {
+          // Find the submission for this user
+          const submission = selectedChallenge.challengePosts?.find((post) => post.user_id === userId);
+
+          return {
+            userId: userId,
+            postId: submission?.post_id || submission?.post?.id,
+            rank: index + 1, // 1-based ranking
+          };
         });
+
+        response = await selectWinners(selectedChallenge.id, winnersData, adminNote || "Congratulations on winning the challenge!");
+      } else {
+        // Auto selection based on likes
+        response = await autoSelectWinners(selectedChallenge.id, maxWinners, adminNote || "Auto-selected by system based on like count");
+      }
+
+      // Handle new API response structure with success/errors
+      if (response.data.success) {
+        toast.success(selectionMode === "manual" ? `Successfully selected ${selectedWinners.length} winners` : `Successfully auto-selected ${maxWinners} winners`);
         setWinnersModalOpen(false);
         setSelectedWinners([]);
         setAdminNote("");
+        setSelectionMode("manual");
+        setMaxWinners(3);
         fetchChallenges();
+      } else {
+        // Handle validation errors from backend
+
+        // Check for specific "winners already selected" error
+        if (response.data.message === "Winners have already been selected for this challenge") {
+          toast.error("Winners have already been selected for this challenge.", {
+            duration: 5000,
+          });
+        } else {
+          // Handle other validation errors
+          const errorMessage = response.data.errors && typeof response.data.errors === "object" ? Object.values(response.data.errors).flat().join(", ") : response.data.message || "Failed to select winners";
+          toast.error(errorMessage);
+        }
       }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: err.response?.data?.message || "Failed to select winners",
-        variant: "destructive",
-      });
+      // Handle network errors or unexpected responses
+
+      // Check for specific "winners already selected" error
+      if (err.response?.status === 400 && err.response?.data?.message === "Winners have already been selected for this challenge") {
+        toast.error("Winners have already been selected for this challenge.", {
+          duration: 5000,
+        });
+      } else {
+        // Handle other errors
+        const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to select winners");
+        toast.error(errorMessage);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -330,7 +482,6 @@ export default function AdminChallenges() {
     resetForm(); // Ensure form is clean before opening
     setCreateModalOpen(true);
   };
-
   const openEditModal = (challenge) => {
     resetForm(); // Clean slate
     setSelectedChallenge(challenge);
@@ -356,18 +507,63 @@ export default function AdminChallenges() {
     setEditModalOpen(true);
   };
 
+  // Handler for opening comment modal
+  const handleOpenCommentModal = (post) => {
+    setSelectedPostForComment(post);
+    setCommentModalOpen(true);
+  };
+  // Handler for closing comment modal
+  const handleCloseCommentModal = () => {
+    setCommentModalOpen(false);
+    setSelectedPostForComment(null);
+  }; // Handler for viewing existing winners
+  const handleViewWinners = async (challengeId) => {
+    try {
+      setLoading(true);
+      const [challengeResponse, winnersResponse] = await Promise.all([getChallengeById(challengeId), api.get(`/challenges/${challengeId}/winners`)]);
+
+      if (challengeResponse.data.success && winnersResponse.data.success) {
+        setSelectedChallenge(challengeResponse.data.data);
+        setExistingWinners(winnersResponse.data.data);
+        setViewWinnersModalOpen(true);
+      } else {
+        toast.error("Failed to load challenge or winners data");
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to load winners");
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     fetchChallenges();
   }, [fetchChallenges]);
 
+  // Get current user from localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(parsedUser);
+      } catch (error) {
+        console.error("Failed to parse user data from localStorage:", error);
+        setCurrentUser(null);
+      }
+    }
+  }, []);
   // Cleanup effect for blob URLs when component unmounts
   useEffect(() => {
     return () => {
       if (badgePreview && badgePreview.startsWith("blob:")) {
         URL.revokeObjectURL(badgePreview);
       }
+      if (imgSrcForCrop && imgSrcForCrop.startsWith("blob:")) {
+        URL.revokeObjectURL(imgSrcForCrop);
+      }
     };
-  }, [badgePreview]);
+  }, [badgePreview, imgSrcForCrop]);
 
   if (loading) {
     // ... (skeleton loading state - no changes)
@@ -404,7 +600,6 @@ export default function AdminChallenges() {
         <Label htmlFor={isEdit ? "edit_title" : "title"}>Title *</Label>
         <Input id={isEdit ? "edit_title" : "title"} value={formData.title} onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))} placeholder="Challenge title" />
       </div>
-
       <div>
         <Label htmlFor={isEdit ? "edit_description" : "description"}>Description *</Label>
         <Textarea
@@ -415,7 +610,6 @@ export default function AdminChallenges() {
           rows={3}
         />
       </div>
-
       <div>
         <Label htmlFor={isEdit ? "edit_deadline_date" : "deadline_date"}>Deadline *</Label>
         <div className="flex gap-2">
@@ -441,18 +635,23 @@ export default function AdminChallenges() {
           <Input id={isEdit ? "edit_deadline_time" : "deadline_time"} type="time" className="w-[120px]" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} />
         </div>
         {formData.deadline && <p className="text-xs text-muted-foreground mt-1">Selected: {formatDateDisplay(formData.deadline)}</p>}
-      </div>
-
+      </div>{" "}
       <div>
-        <Label htmlFor={isEdit ? "edit_badge_img" : "badge_img"}>{isEdit ? "Update Badge Image" : "Badge Image"}</Label>
-        <Input id={isEdit ? "edit_badge_img" : "badge_img"} type="file" accept="image/*" onChange={handleFileChange} />
+        <Label>{isEdit ? "Update Badge Image" : "Badge Image"}</Label>
+        <div className="flex items-center gap-4 mt-2">
+          <div className="w-20 h-20 border rounded-md flex items-center justify-center bg-muted overflow-hidden">
+            {badgePreview ? <img src={badgePreview} alt="Badge Preview" className="w-full h-full object-cover" /> : <Upload className="w-8 h-8 text-muted-foreground" />}
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => hiddenFileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" />
+            {isEdit ? "Change Badge" : "Upload Badge"}
+          </Button>
+          <input ref={hiddenFileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+        </div>
         <p className="text-xs text-muted-foreground mt-1">
           {isEdit ? "Leave empty to keep current badge image. " : ""}
-          PNG, JPG, GIF - max 5MB.
+          PNG, JPG, GIF - max 5MB. Image will be cropped to square format.
         </p>
-        <div className="mt-2 w-32 h-32 border rounded-md flex items-center justify-center bg-muted overflow-hidden">
-          {badgePreview ? <img src={badgePreview} alt="Badge Preview" className="w-full h-full object-cover" /> : <Upload className="w-10 h-10 text-muted-foreground" />}
-        </div>
       </div>
     </>
   );
@@ -502,9 +701,9 @@ export default function AdminChallenges() {
           </div>
         </CardHeader>
       </Card>
-
       {/* Challenges List */}
       <div className="grid gap-6">
+        {" "}
         {challenges.map((challenge) => (
           <ChallengeManagementCard
             key={challenge.id}
@@ -513,12 +712,13 @@ export default function AdminChallenges() {
             onDelete={handleDeleteChallenge}
             onClose={handleCloseChallenge}
             onSelectWinners={loadChallengeDetail}
+            onViewWinners={handleViewWinners}
+            onOpenCommentModal={handleOpenCommentModal}
             getFullImageUrl={getFullImageUrl}
             formatDate={formatDateDisplay}
           />
         ))}
       </div>
-
       {/* Edit Modal */}
       <Dialog
         open={editModalOpen}
@@ -542,64 +742,127 @@ export default function AdminChallenges() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-
+      </Dialog>{" "}
       {/* Winners Selection Modal */}
       <Dialog open={winnersModalOpen} onOpenChange={setWinnersModalOpen}>
-        {/* ... (Winner Modal Content - No changes needed based on request) ... */}
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Select Winners</DialogTitle>
             <DialogDescription>Choose winners for "{selectedChallenge?.title}"</DialogDescription>
           </DialogHeader>
 
           {selectedChallenge && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <Label htmlFor="admin_note">Admin Note</Label>
                 <Textarea id="admin_note" value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Congratulations message for winners" rows={2} />
               </div>
 
-              <div>
-                <Label>Select Winners from Submissions:</Label>
-                {selectedChallenge.challengePosts?.length > 0 ? (
-                  <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border p-2 rounded-md">
-                    {selectedChallenge.challengePosts?.map((submission) => (
-                      <div key={submission.id} className="flex items-center space-x-3 p-2 rounded hover:bg-muted">
-                        <input
-                          type="checkbox"
-                          className="form-checkbox h-4 w-4 text-primary"
-                          checked={selectedWinners.includes(submission.user_id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedWinners((prev) => [...prev, submission.user_id]);
-                            } else {
-                              setSelectedWinners((prev) => prev.filter((id) => id !== submission.user_id));
-                            }
-                          }}
-                        />
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={getFullImageUrl(submission.post?.user?.profile?.avatar)} />
-                          <AvatarFallback>{submission.post?.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{submission.post?.user?.profile?.username || "Unknown User"}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{submission.post?.title || "Untitled Post"}</p>
-                        </div>
-                        {submission.post?.images?.[0] && (
-                          <img
-                            src={getFullImageUrl(submission.post.images[0].image_url || submission.post.images[0])} // Adjust if image_url is nested
-                            alt={submission.post.title || "Submission image"}
-                            className="w-12 h-12 rounded object-cover"
-                          />
-                        )}
+              {/* Selection Mode Tabs */}
+              <Tabs value={selectionMode} onValueChange={setSelectionMode}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="manual">Manual Selection</TabsTrigger>
+                  <TabsTrigger value="auto">Auto Selection</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="manual" className="space-y-4">
+                  <div>
+                    <Label>Select Winners from Submissions:</Label>
+                    {selectedChallenge.challengePosts?.length > 0 ? (
+                      <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border p-2 rounded-md">
+                        {selectedChallenge.challengePosts
+                          ?.sort((a, b) => (b.post?.likeCount || b.post?.likes_count || 0) - (a.post?.likeCount || a.post?.likes_count || 0))
+                          ?.map((submission, index) => (
+                            <div key={submission.id} className="flex items-center space-x-3 p-2 rounded hover:bg-muted">
+                              <input
+                                type="checkbox"
+                                className="form-checkbox h-4 w-4 text-primary"
+                                checked={selectedWinners.includes(submission.user_id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedWinners((prev) => [...prev, submission.user_id]);
+                                  } else {
+                                    setSelectedWinners((prev) => prev.filter((id) => id !== submission.user_id));
+                                  }
+                                }}
+                              />
+                              <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full text-xs font-medium">#{index + 1}</div>
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={getFullImageUrl(submission.post?.user?.profile?.avatar)} />
+                                <AvatarFallback>{submission.post?.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{submission.post?.user?.profile?.username || "Unknown User"}</p>
+                                <p className="text-xs text-muted-foreground truncate max-w-[200px]">{submission.post?.title || "Untitled Post"}</p>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <div className="flex items-center gap-1">
+                                    <Heart className="h-3 w-3 text-red-500" />
+                                    <span className="text-xs text-muted-foreground">{submission.post?.likeCount || submission.post?.likes_count || 0} likes</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button size="sm" variant="outline" onClick={() => handleOpenCommentModal(submission.post)} className="h-7 px-2">
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  View
+                                </Button>
+                                {submission.post?.images?.[0] && (
+                                  <img
+                                    src={getFullImageUrl(submission.post.images[0].image_url || submission.post.images[0])}
+                                    alt={submission.post.title || "Submission image"}
+                                    className="w-12 h-12 rounded object-cover cursor-pointer"
+                                    onClick={() => handleOpenCommentModal(submission.post)}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          ))}
                       </div>
-                    ))}
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2">No submissions for this challenge yet.</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-2">No submissions for this challenge yet.</p>
-                )}
-              </div>
+                </TabsContent>
+
+                <TabsContent value="auto" className="space-y-4">
+                  <div>
+                    <Label htmlFor="max_winners">Number of Winners</Label>
+                    <Input id="max_winners" type="number" min="1" max={selectedChallenge.challengePosts?.length || 1} value={maxWinners} onChange={(e) => setMaxWinners(parseInt(e.target.value) || 1)} className="w-32 mt-1" />
+                    <p className="text-xs text-muted-foreground mt-1">System will automatically select winners based on highest like count</p>
+                  </div>
+
+                  {selectedChallenge.challengePosts?.length > 0 && (
+                    <div>
+                      <Label>Preview Top Posts (sorted by likes):</Label>
+                      <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border p-2 rounded-md bg-muted/30">
+                        {selectedChallenge.challengePosts
+                          ?.sort((a, b) => (b.post?.likeCount || b.post?.likes_count || 0) - (a.post?.likeCount || a.post?.likes_count || 0))
+                          ?.slice(0, maxWinners)
+                          ?.map((submission, index) => (
+                            <div key={submission.id} className="flex items-center space-x-3 p-2 rounded bg-background">
+                              <div className="flex items-center justify-center w-8 h-8 bg-yellow-500 text-white rounded-full text-xs font-bold">#{index + 1}</div>
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={getFullImageUrl(submission.post?.user?.profile?.avatar)} />
+                                <AvatarFallback>{submission.post?.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{submission.post?.user?.profile?.username || "Unknown User"}</p>
+                                <p className="text-xs text-muted-foreground truncate max-w-[200px]">{submission.post?.title || "Untitled Post"}</p>
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Heart className="h-3 w-3 text-red-500" />
+                                  <span className="text-xs font-medium">{submission.post?.likeCount || submission.post?.likes_count || 0} likes</span>
+                                </div>
+                              </div>
+                              {submission.post?.images?.[0] && (
+                                <img src={getFullImageUrl(submission.post.images[0].image_url || submission.post.images[0])} alt={submission.post.title || "Submission image"} className="w-12 h-12 rounded object-cover" />
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           )}
 
@@ -607,19 +870,158 @@ export default function AdminChallenges() {
             <Button variant="outline" onClick={() => setWinnersModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSelectWinners} disabled={submitting || selectedWinners.length === 0}>
-              {submitting ? "Selecting..." : `Select ${selectedWinners.length} Winner(s)`}
+            <Button onClick={handleSelectWinners} disabled={submitting || (selectionMode === "manual" && selectedWinners.length === 0)}>
+              {submitting ? "Selecting..." : selectionMode === "manual" ? `Select ${selectedWinners.length} Winner(s)` : `Auto-Select ${maxWinners} Winner(s)`}
+            </Button>{" "}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>{" "}
+      {/* View Existing Winners Modal */}
+      <Dialog open={viewWinnersModalOpen} onOpenChange={setViewWinnersModalOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Challenge Winners</DialogTitle>
+            <DialogDescription>Winners for "{selectedChallenge?.title}"</DialogDescription>
+          </DialogHeader>
+
+          {existingWinners.length > 0 ? (
+            <div className="space-y-4">
+              {existingWinners
+                .sort((a, b) => a.rank - b.rank)
+                .map((winner) => (
+                  <Card key={winner.id} className="p-4">
+                    <div className="flex items-start gap-4">
+                      {/* Rank Badge */}
+                      <div className="flex-shrink-0">
+                        <Badge
+                          className={`px-2 py-1 ${
+                            winner.rank === 1
+                              ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                              : winner.rank === 2
+                              ? "bg-gray-500/10 text-gray-600 border-gray-500/20"
+                              : winner.rank === 3
+                              ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                              : "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                          }`}
+                        >
+                          {winner.rank === 1 ? <Crown className="h-4 w-4 mr-1" /> : winner.rank === 2 ? <Medal className="h-4 w-4 mr-1" /> : winner.rank === 3 ? <Award className="h-4 w-4 mr-1" /> : <Star className="h-4 w-4 mr-1" />}#
+                          {winner.rank}
+                        </Badge>
+                      </div>
+
+                      {/* User Info */}
+                      <div className="flex items-center gap-3 flex-1">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={getFullImageUrl(winner.user?.profile?.avatar)} />
+                          <AvatarFallback>{winner.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <h4 className="font-semibold">{winner.user?.profile?.username || `${winner.user?.firstName} ${winner.user?.lastName}`.trim() || "Unknown User"}</h4>
+                          <div className="space-y-1">
+                            {winner.admin_note && (
+                              <div className="p-2 bg-muted/50 rounded-md">
+                                <p className="text-sm text-muted-foreground">{winner.admin_note}</p>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              {winner.final_score && (
+                                <div className="flex items-center gap-1">
+                                  <Heart className="h-3 w-3 text-red-500" />
+                                  <span>{winner.final_score} likes when selected</span>
+                                </div>
+                              )}
+                              {winner.selected_at && <span>Selected on {new Date(winner.selected_at).toLocaleDateString()}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Post Preview */}
+                      <div className="flex items-center gap-2">
+                        {winner.post?.images?.[0] && (
+                          <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
+                            <img
+                              src={getFullImageUrl(winner.post.images[0].image_url || winner.post.images[0])}
+                              alt={winner.post.title || "Winning post"}
+                              className="w-full h-full object-cover cursor-pointer"
+                              onClick={() => handleOpenCommentModal(winner.post)}
+                            />
+                          </div>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => handleOpenCommentModal(winner.post)}>
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Post
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Crown className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Winners Selected</h3>
+              <p className="text-muted-foreground">This challenge doesn't have any winners yet.</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewWinnersModalOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Image Cropping Modal */}
+      <Dialog open={isCropModalOpen} onOpenChange={setIsCropModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Crop Badge Image</DialogTitle>
+            <DialogDescription>Adjust the crop area for the badge image (1:1 aspect ratio recommended)</DialogDescription>
+          </DialogHeader>
+          {imgSrcForCrop && (
+            <ReactCrop crop={crop} onChange={(_, percentCrop) => setCrop(percentCrop)} onComplete={(c) => setCompletedCrop(c)} aspect={1} circularCrop={false}>
+              <img ref={imgRef} alt="Crop preview" src={imgSrcForCrop} style={{ transform: `scale(1) rotate(0deg)` }} onLoad={onImageLoad} />
+            </ReactCrop>
+          )}
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsCropModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCropImage} disabled={!completedCrop?.width || !completedCrop?.height}>
+              <Crop className="mr-2 h-4 w-4" />
+              Crop & Apply
+            </Button>{" "}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>{" "}
+      {/* Comment Modal */}
+      {selectedPostForComment && (
+        <CommentModal
+          postId={selectedPostForComment.id}
+          isOpen={commentModalOpen}
+          onClose={handleCloseCommentModal}
+          postTitle={selectedPostForComment.title}
+          currentUser={
+            currentUser
+              ? {
+                  id: currentUser.id,
+                  username: currentUser.username || `${currentUser.first_name} ${currentUser.last_name}`.trim() || "Admin",
+                  avatar: currentUser.avatar,
+                  level: currentUser.level || 1,
+                }
+              : null
+          }
+          onCommentAdded={() => {}} // No need to refresh anything for admin view
+        />
+      )}
     </div>
   );
 }
 
 // Challenge Management Card Component
-function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelectWinners, getFullImageUrl, formatDate }) {
-  // ... (ChallengeManagementCard - no changes needed based on request) ...
+function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelectWinners, onViewWinners, onOpenCommentModal, getFullImageUrl, formatDate }) {
+  // ...existing code...
   const isActive = !challenge.is_closed && new Date(challenge.deadline) > new Date();
   const submissionCount = challenge.challengePosts?.length || 0;
   const winnersCount = challenge.userBadges?.length || 0;
@@ -678,18 +1080,16 @@ function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelec
               )}
               {!isActive && submissionCount > 0 && winnersCount === 0 && (
                 <DropdownMenuItem onClick={() => onSelectWinners(challenge.id)}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> {/* Changed icon for clarity */}
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
                   Select Winners
                 </DropdownMenuItem>
+              )}{" "}
+              {!isActive && submissionCount > 0 && winnersCount > 0 && (
+                <DropdownMenuItem onClick={() => onViewWinners(challenge.id)}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Winners
+                </DropdownMenuItem>
               )}
-              {!isActive &&
-                submissionCount > 0 &&
-                winnersCount > 0 && ( // Option to re-select winners
-                  <DropdownMenuItem onClick={() => onSelectWinners(challenge.id)}>
-                    <Crown className="h-4 w-4 mr-2" />
-                    View/Re-select Winners
-                  </DropdownMenuItem>
-                )}
               <DropdownMenuItem onClick={() => onDelete(challenge.id)} className="text-red-600 focus:text-red-600 focus:bg-red-500/10">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
@@ -705,16 +1105,13 @@ function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelec
             <h4 className="text-sm font-semibold">Recent Submissions ({submissionCount})</h4>
             <div className="flex gap-2 overflow-x-auto pb-2">
               {challenge.challengePosts?.slice(0, 6).map((submission) => (
-                <div key={submission.id} className="flex-shrink-0 group">
-                  <div className="w-16 h-16 rounded-md overflow-hidden bg-muted relative">
-                    {submission.post?.images?.[0] && (
-                      <img
-                        src={getFullImageUrl(submission.post.images[0].image_url || submission.post.images[0])} // Adjust if image_url is nested
-                        alt={submission.post.title || "Submission"}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {/* You could add an overlay on hover here if needed */}
+                <div key={submission.id} className="flex-shrink-0 group cursor-pointer" onClick={() => onOpenCommentModal(submission.post)}>
+                  <div className="w-16 h-16 rounded-md overflow-hidden bg-muted relative hover:ring-2 hover:ring-primary transition-all">
+                    {submission.post?.images?.[0] && <img src={getFullImageUrl(submission.post.images[0].image_url || submission.post.images[0])} alt={submission.post.title || "Submission"} className="w-full h-full object-cover" />}
+                    {/* Overlay on hover */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Eye className="h-4 w-4 text-white" />
+                    </div>
                   </div>
                   <p className="text-xs text-center mt-1 truncate w-16 group-hover:underline">{submission.post?.user?.profile?.username || "User"}</p>
                 </div>

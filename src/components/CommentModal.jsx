@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-// Import Trash2 icon for delete button
-import { MessageSquare, CornerDownRight, Trash2 } from "lucide-react";
-import api from "./../api/axiosInstance"; // Adjust path if necessary
+// Import icons for delete, like, and bookmark functionality
+import { MessageSquare, CornerDownRight, Trash2, Heart, Bookmark } from "lucide-react";
+import api from "@/api/axiosInstance";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageCarousel } from "@/components/ImageCarousel";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 
 // Helper function to format image URLs (Tetap sama)
 const formatImageUrl = (imagePath) => {
@@ -51,6 +51,9 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
   const [showReplyInput, setShowReplyInput] = useState({});
   // State to track which comment/reply is being deleted (optional, for loading state on button)
   const [deletingId, setDeletingId] = useState(null);
+  // State for like and bookmark functionality
+  const [isLiking, setIsLiking] = useState(false);
+  const [isBookmarking, setIsBookmarking] = useState(false);
 
   const commentObserver = useRef();
   const replyObservers = useRef({});
@@ -450,6 +453,103 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
     [replies, comments] // Dependency: replies object and comments array
   );
 
+  // --- Handling Like Post ---
+  const handleLikePost = useCallback(async () => {
+    if (!currentUser?.id || isLiking || !postInfo) return;
+
+    setIsLiking(true);
+    setError(null);
+
+    // Store original state for rollback
+    const originalLikeStatus = postInfo.postLikeStatus;
+    const originalLikeCount = postInfo.likeCount;
+
+    // Optimistic update
+    setPostInfo((prev) => ({
+      ...prev,
+      postLikeStatus: !prev.postLikeStatus,
+      likeCount: prev.postLikeStatus ? prev.likeCount - 1 : prev.likeCount + 1,
+    }));
+
+    try {
+      const response = await api.post("/likes/create-delete", {
+        postId: postId,
+        userId: currentUser.id,
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to update like status.");
+      }
+
+      console.log("Like status updated successfully");
+    } catch (err) {
+      console.error("Error updating like status:", err);
+      let errorMsg = "An error occurred while updating like status.";
+      if (err.response?.data?.message) {
+        errorMsg = `Failed to update like: ${err.response.data.message}`;
+      } else if (err.message) {
+        errorMsg = `Failed to update like: ${err.message}`;
+      }
+      setError(errorMsg);
+
+      // Rollback optimistic update
+      setPostInfo((prev) => ({
+        ...prev,
+        postLikeStatus: originalLikeStatus,
+        likeCount: originalLikeCount,
+      }));
+    } finally {
+      setIsLiking(false);
+    }
+  }, [currentUser, isLiking, postInfo, postId]);
+
+  // --- Handling Bookmark Post ---
+  const handleBookmarkPost = useCallback(async () => {
+    if (!currentUser?.id || isBookmarking || !postInfo) return;
+
+    setIsBookmarking(true);
+    setError(null);
+
+    // Store original state for rollback
+    const originalBookmarkStatus = postInfo.bookmarkStatus;
+
+    // Optimistic update
+    setPostInfo((prev) => ({
+      ...prev,
+      bookmarkStatus: !prev.bookmarkStatus,
+    }));
+
+    try {
+      const response = await api.post("/bookmarks/create-delete", {
+        postId: postId,
+        userId: currentUser.id,
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to update bookmark status.");
+      }
+
+      console.log("Bookmark status updated successfully");
+    } catch (err) {
+      console.error("Error updating bookmark status:", err);
+      let errorMsg = "An error occurred while updating bookmark status.";
+      if (err.response?.data?.message) {
+        errorMsg = `Failed to update bookmark: ${err.response.data.message}`;
+      } else if (err.message) {
+        errorMsg = `Failed to update bookmark: ${err.message}`;
+      }
+      setError(errorMsg);
+
+      // Rollback optimistic update
+      setPostInfo((prev) => ({
+        ...prev,
+        bookmarkStatus: originalBookmarkStatus,
+      }));
+    } finally {
+      setIsBookmarking(false);
+    }
+  }, [currentUser, isBookmarking, postInfo, postId]);
+
   // --- Intersection Observer for Comments --- (Tetap sama)
   const lastCommentElementRef = useCallback(
     (node) => {
@@ -544,24 +644,25 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
       handlePostReply(commentId);
     }
   };
-
-  // --- Return JSX --- (Tetap sama - Delete buttons already included)
+  // --- Return JSX --- (Fixed for mobile responsiveness)
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col p-0">
-        <div className="flex flex-col md:flex-row h-full">
+      <DialogContent className="w-[95vw] sm:max-w-[900px] h-[95vh] sm:h-[90vh] flex flex-col p-0 max-w-none">
+        <div className="flex flex-col md:flex-row h-full min-h-0">
+          {" "}
           {/* Left: Post Detail */}
-          <div className="md:w-1/2 w-full border-b md:border-b-0 md:border-r border-muted p-6 flex flex-col gap-2 min-w-0">
+          <div className="md:w-1/2 w-full border-b md:border-b-0 md:border-r border-muted p-4 sm:p-6 flex flex-col gap-2 min-w-0 max-h-[40vh] md:max-h-none overflow-y-auto md:overflow-y-visible">
             {postInfo && (
               <>
+                {" "}
                 <div className="flex items-center gap-2 mb-1">
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
                     <AvatarImage src={formatImageUrl(postInfo.avatar)} alt={postInfo.username} />
                     <AvatarFallback>{postInfo.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <div className="font-semibold text-sm leading-tight">{postInfo.username}</div>
-                    <div className="text-xs text-muted-foreground">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-xs sm:text-sm leading-tight truncate">{postInfo.username}</div>
+                    <div className="text-xs text-muted-foreground truncate">
                       Lvl {postInfo.level || 1} •
                       <span className="cursor-pointer underline hover:text-primary" onClick={() => navigate(`/posts/type?query=${encodeURIComponent(postInfo.type)}&page=1&limit=9`)}>
                         {postInfo.type}
@@ -571,16 +672,16 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                   </div>
                 </div>
                 <div className="mb-1">
-                  <span className="font-bold text-lg leading-tight block truncate">{postInfo.title}</span>
+                  <span className="font-bold text-base sm:text-lg leading-tight block truncate">{postInfo.title}</span>
                 </div>
-                <div className="mb-2 text-sm text-muted-foreground whitespace-pre-line text-left">{postInfo.description}</div>
+                <div className="mb-2 text-xs sm:text-sm text-muted-foreground whitespace-pre-line text-left line-clamp-3 sm:line-clamp-none">{postInfo.description}</div>
                 {Array.isArray(postInfo.images) && postInfo.images.length > 0 && (
                   <div className="mb-2">
                     <ImageCarousel images={postInfo.images} title={postInfo.title} className="rounded-lg border" />
                   </div>
-                )}
+                )}{" "}
                 {Array.isArray(postInfo.tags) && postInfo.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-1">
+                  <div className="flex flex-wrap gap-1 mb-2">
                     {postInfo.tags.map((tag, idx) => (
                       <span
                         key={tag + idx}
@@ -592,16 +693,47 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                     ))}
                   </div>
                 )}
+                {/* Like and Bookmark buttons */}
+                <div className="flex items-center gap-4 pt-2 border-t border-muted">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`flex items-center gap-2 h-8 px-3 ${postInfo.postLikeStatus ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-red-500"}`}
+                    onClick={handleLikePost}
+                    disabled={isLiking || !currentUser}
+                  >
+                    <Heart className={`h-4 w-4 ${postInfo.postLikeStatus ? "fill-current" : ""}`} />
+                    <span className="text-sm">{postInfo.likeCount || 0}</span>
+                    {isLiking && <span className="text-xs">...</span>}
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`flex items-center gap-2 h-8 px-3 ${postInfo.bookmarkStatus ? "text-blue-500 hover:text-blue-600" : "text-muted-foreground hover:text-blue-500"}`}
+                    onClick={handleBookmarkPost}
+                    disabled={isBookmarking || !currentUser}
+                  >
+                    <Bookmark className={`h-4 w-4 ${postInfo.bookmarkStatus ? "fill-current" : ""}`} />
+                    <span className="text-sm">{postInfo.bookmarkStatus ? "Saved" : "Save"}</span>
+                    {isBookmarking && <span className="text-xs">...</span>}
+                  </Button>
+
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="text-sm">{postInfo.commentCount || 0}</span>
+                  </div>
+                </div>
               </>
             )}
-          </div>
+          </div>{" "}
           {/* Right: Comments */}
-          <div className="md:w-1/2 w-full flex flex-col max-h-[90vh]">
-            <DialogHeader className="p-6 pb-4 border-b md:border-b-0">
-              <DialogTitle className="text-left">Comments on "{postInfo?.title || postTitle}"</DialogTitle>
+          <div className="md:w-1/2 w-full flex flex-col min-h-0 flex-1">
+            <DialogHeader className="p-4 sm:p-6 pb-4 border-b md:border-b-0 flex-shrink-0">
+              <DialogTitle className="text-left text-sm sm:text-base">Comments on "{postInfo?.title || postTitle}"</DialogTitle>
               {error && <DialogDescription className="text-sm text-red-600 pt-2">{error}</DialogDescription>}
             </DialogHeader>
-            <ScrollArea className="flex-grow p-6 pt-0 overflow-y-auto">
+            <ScrollArea className="flex-1 p-4 sm:p-6 pt-0 overflow-y-auto min-h-0">
               <div className="space-y-4">
                 {/* Error display moved to header, but could be kept here too */}
 
@@ -628,26 +760,25 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                   const isLastComment = comments.length === index + 1;
                   // Check if the current user owns this comment
                   const canDeleteComment = currentUser && currentUser.id === comment.user_id;
-
                   return (
                     <div key={comment.id || `comment-${index}`} ref={isLastComment ? lastCommentElementRef : null}>
-                      <div className="flex space-x-3 py-3">
-                        <Avatar className="h-10 w-10 flex-shrink-0">
+                      <div className="flex space-x-2 sm:space-x-3 py-3">
+                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
                           <AvatarImage src={formatImageUrl(comment.avatar)} alt={comment.username} />
                           <AvatarFallback>{comment.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                         </Avatar>
-                        <div className="flex-grow">
+                        <div className="flex-grow min-w-0">
                           <div className="flex items-baseline space-x-2">
-                            <span className="font-semibold text-sm">{comment.username}</span>
-                            <span className="text-xs text-muted-foreground">• Lvl {comment.level || 1}</span>
+                            <span className="font-semibold text-sm truncate">{comment.username}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">• Lvl {comment.level || 1}</span>
                           </div>
-                          <p className="text-sm mt-0.5 whitespace-pre-wrap">{comment.content}</p>
-                          <div className="flex items-center space-x-3 mt-1.5 text-xs text-muted-foreground">
-                            <span>{comment.created_at instanceof Date ? comment.created_at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : comment.created_at}</span>
-                            <button onClick={() => toggleReplyInput(comment.id)} className="hover:text-primary font-medium" aria-label={`Reply to ${comment.username}`}>
+                          <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{comment.content}</p>{" "}
+                          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
+                            <span className="truncate">{comment.created_at instanceof Date ? comment.created_at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : comment.created_at}</span>
+                            <button onClick={() => toggleReplyInput(comment.id)} className="hover:text-primary font-medium flex-shrink-0" aria-label={`Reply to ${comment.username}`}>
                               Reply
                             </button>
-                            <button onClick={() => toggleReplies(comment.id)} className="hover:text-primary font-medium" aria-expanded={!!visibleReplies[comment.id]}>
+                            <button onClick={() => toggleReplies(comment.id)} className="hover:text-primary font-medium flex-shrink-0" aria-expanded={!!visibleReplies[comment.id]}>
                               {visibleReplies[comment.id] ? "Hide" : "View"} Replies ({comment.replies_count || 0}){loadingReplies[comment.id] ? "..." : ""}
                             </button>
                             {/* --- DELETE COMMENT BUTTON --- */}
@@ -663,66 +794,63 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                                 {deletingId === comment.id ? <span className="px-1">Deleting...</span> : <Trash2 className="h-3.5 w-3.5" />}
                               </Button>
                             )}
-                          </div>
-                          {/* Reply Input Area remains the same */}
+                          </div>{" "}
+                          {/* Reply Input Area - Mobile optimized */}
                           {showReplyInput[comment.id] && (
-                            <div className="mt-2 flex space-x-2 items-start">
-                              <div className="flex-grow">
-                                <Textarea
-                                  placeholder={`Replying to ${comment.username}...`}
-                                  value={newReply[comment.id] || ""}
-                                  onChange={(e) => setNewReply((prev) => ({ ...prev, [comment.id]: e.target.value }))}
-                                  onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
-                                  rows={2}
-                                  className="text-sm resize-none"
-                                  aria-label={`Reply input for comment by ${comment.username}`}
-                                />
-                                <div className="flex justify-end space-x-2 mt-1.5">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-2 text-xs"
-                                    onClick={() => {
-                                      setShowReplyInput((prev) => ({ ...prev, [comment.id]: false }));
-                                      setNewReply((prev) => ({ ...prev, [comment.id]: "" }));
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handlePostReply(comment.id)} disabled={postingReply[comment.id] || !newReply[comment.id]?.trim()}>
-                                    {postingReply[comment.id] ? "Posting..." : "Reply"}
-                                  </Button>
-                                </div>
+                            <div className="mt-2 space-y-2">
+                              <Textarea
+                                placeholder={`Replying to ${comment.username}...`}
+                                value={newReply[comment.id] || ""}
+                                onChange={(e) => setNewReply((prev) => ({ ...prev, [comment.id]: e.target.value }))}
+                                onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
+                                rows={2}
+                                className="text-sm resize-none w-full"
+                                aria-label={`Reply input for comment by ${comment.username}`}
+                              />
+                              <div className="flex justify-end space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() => {
+                                    setShowReplyInput((prev) => ({ ...prev, [comment.id]: false }));
+                                    setNewReply((prev) => ({ ...prev, [comment.id]: "" }));
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handlePostReply(comment.id)} disabled={postingReply[comment.id] || !newReply[comment.id]?.trim()}>
+                                  {postingReply[comment.id] ? "Posting..." : "Reply"}
+                                </Button>
                               </div>
                             </div>
-                          )}
-                          {/* Replies Section */}
+                          )}{" "}
+                          {/* Replies Section - Mobile optimized */}
                           {visibleReplies[comment.id] && (
-                            <div className="mt-3 pl-8 border-l-2 border-muted ml-5" aria-live="polite">
+                            <div className="mt-3 pl-4 sm:pl-8 border-l-2 border-muted ml-2 sm:ml-5" aria-live="polite">
                               {/* Display Replies */}
                               {(replies[comment.id] || []).map((reply, replyIndex, arr) => {
                                 // Check if the current user owns this reply
                                 const canDeleteReply = currentUser && currentUser.id === reply.user_id;
                                 const isLastReply = replyIndex === arr.length - 1;
-
                                 return (
                                   <div
                                     key={reply.id || `reply-${comment.id}-${replyIndex}`}
-                                    className="flex space-x-3 py-2"
+                                    className="flex space-x-2 sm:space-x-3 py-2"
                                     ref={isLastReply ? createReplyRefCallback(comment.id) : null} // Use the factory function
                                   >
-                                    <Avatar className="h-8 w-8 flex-shrink-0">
+                                    <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
                                       <AvatarImage src={formatImageUrl(reply.avatar)} alt={reply.username} />
                                       <AvatarFallback>{reply.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                                     </Avatar>
-                                    <div className="flex-grow">
+                                    <div className="flex-grow min-w-0">
                                       <div className="flex items-baseline space-x-2">
-                                        <span className="font-semibold text-xs">{reply.username}</span>
-                                        <span className="text-xs text-muted-foreground">• Lvl {reply.level || 1}</span>
+                                        <span className="font-semibold text-xs truncate">{reply.username}</span>
+                                        <span className="text-xs text-muted-foreground flex-shrink-0">• Lvl {reply.level || 1}</span>
                                       </div>
-                                      <p className="text-sm mt-0.5 whitespace-pre-wrap">{reply.content}</p>
-                                      <div className="flex items-center space-x-3 mt-1 text-xs text-muted-foreground">
-                                        <span>{reply.created_at instanceof Date ? reply.created_at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : reply.created_at}</span>
+                                      <p className="text-xs sm:text-sm mt-0.5 whitespace-pre-wrap break-words">{reply.content}</p>
+                                      <div className="flex items-center space-x-2 sm:space-x-3 mt-1 text-xs text-muted-foreground">
+                                        <span className="truncate">{reply.created_at instanceof Date ? reply.created_at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : reply.created_at}</span>
                                         {/* --- DELETE REPLY BUTTON --- */}
                                         {canDeleteReply && (
                                           <Button
@@ -742,11 +870,10 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                                   </div>
                                 );
                               })}
-                              {/* Loading/Button Replies structure remains the same */}
-                              {loadingReplies[comment.id] && <p className="text-xs text-muted-foreground text-center py-2">Loading replies...</p>}
+                              {/* Loading/Button Replies structure remains the same */} {loadingReplies[comment.id] && <p className="text-xs text-muted-foreground text-center py-2">Loading replies...</p>}
                               {!loadingReplies[comment.id] && hasMoreReplies[comment.id] && (
                                 // Load more button now uses the current page state correctly
-                                <Button variant="link" size="sm" className="w-full h-6 text-xs mt-1" onClick={() => loadReplies(comment.id, replyPage[commentId])}>
+                                <Button variant="link" size="sm" className="w-full h-6 text-xs mt-1" onClick={() => loadReplies(comment.id, replyPage[comment.id])}>
                                   Load More Replies
                                 </Button>
                               )}
@@ -764,22 +891,22 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                 {/* Loading/Button Comments remains the same */}
                 {loadingComments && comments.length > 0 && <p className="text-sm text-muted-foreground text-center py-4">Loading more comments...</p>}
                 {!loadingComments && !hasMoreComments && comments.length > 0 && <p className="text-sm text-muted-foreground text-center py-4 italic">End of comments</p>}
-              </div>
+              </div>{" "}
             </ScrollArea>
-            <DialogFooter className="p-6 pt-4 border-t flex-shrink-0">
-              <div className="flex w-full space-x-3 items-start">
+            <DialogFooter className="p-4 sm:p-6 pt-4 border-t flex-shrink-0">
+              <div className="flex w-full space-x-2 sm:space-x-3 items-start">
                 <div className="flex-grow space-y-2">
                   <Textarea
                     placeholder="Add a comment... (Press Enter to send, Shift+Enter for new line)"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyDown={handleCommentKeyDown}
-                    rows={3}
-                    className="resize-none"
+                    rows={2}
+                    className="resize-none text-sm"
                     aria-label="New comment input"
                     disabled={postingComment} // Optionally disable while posting
                   />
-                  <Button onClick={handlePostComment} disabled={postingComment || !newComment.trim()} className="w-full sm:w-auto float-right">
+                  <Button onClick={handlePostComment} disabled={postingComment || !newComment.trim()} className="w-full sm:w-auto sm:ml-auto text-sm">
                     {postingComment ? "Posting..." : "Post Comment"}
                   </Button>
                 </div>

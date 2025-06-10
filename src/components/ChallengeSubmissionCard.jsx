@@ -9,17 +9,31 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 export default function ChallengeSubmissionCard({ submission, showRanking = false, rank = null }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const post = submission.post;
-
   const getFullImageUrl = (imagePath) => {
-    if (!imagePath) return "/placeholder.svg";
+    // Handle null, undefined, or non-string values
+    if (!imagePath || typeof imagePath !== "string") return "/placeholder.svg";
+
+    // Handle empty strings
+    if (imagePath.trim() === "") return "/placeholder.svg";
+
+    // Handle absolute URLs
     if (imagePath.startsWith("http")) return imagePath;
 
     const baseURL = import.meta.env.VITE_API_URL || "";
     const cleanPath = imagePath.replace(/\\/g, "/");
 
+    // For storage files, use the API URL directly without removing /api
+    // This handles paths like "storage/avatars/filename.jpg"
+    if (cleanPath.startsWith("storage/")) {
+      return `${baseURL}/${cleanPath}`;
+    }
+
+    // For other paths that start with /, remove /api from base URL
     if (cleanPath.startsWith("/")) {
       return baseURL.replace("/api", "") + cleanPath;
     }
+
+    // For relative paths, add them to the base URL without /api
     return `${baseURL.replace("/api", "")}/${cleanPath}`;
   };
 
@@ -68,9 +82,9 @@ export default function ChallengeSubmissionCard({ submission, showRanking = fals
       <div className="relative h-48 overflow-hidden bg-muted">
         {post?.images?.[0] && (
           <>
-            {!imageLoaded && <div className="absolute inset-0 bg-muted animate-pulse" />}
+            {!imageLoaded && <div className="absolute inset-0 bg-muted animate-pulse" />}{" "}
             <img
-              src={getFullImageUrl(post.images[0])}
+              src={getFullImageUrl(post.images[0].image_url || post.images[0])}
               alt={post.title || "Untitled"}
               className={`
                 w-full h-full object-cover transition-all duration-300
@@ -113,17 +127,16 @@ export default function ChallengeSubmissionCard({ submission, showRanking = fals
               <AvatarFallback className="text-xs">{post?.user?.firstName?.[0] || "U"}</AvatarFallback>
             </Avatar>
             <span className="text-sm text-muted-foreground truncate">{post?.user?.profile?.username || "Unknown"}</span>
-          </div>
-
+          </div>{" "}
           {/* Post Stats */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground flex-shrink-0">
             <div className="flex items-center gap-1">
               <Heart className="h-3 w-3" />
-              <span>{post?.likes_count || 0}</span>
+              <span>{post?.likeCount || post?.likes_count || 0}</span>
             </div>
             <div className="flex items-center gap-1">
               <MessageCircle className="h-3 w-3" />
-              <span>{post?.comments_count || 0}</span>
+              <span>{post?.commentCount || post?.comments_count || 0}</span>
             </div>
           </div>
         </div>

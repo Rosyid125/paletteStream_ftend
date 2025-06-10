@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import ChallengeSubmissionCard from "@/components/ChallengeSubmissionCard";
+import { CommentModal } from "@/components/CommentModal";
 import api from "@/api/axiosInstance";
 
 export default function ChallengeDetail() {
@@ -34,6 +35,8 @@ export default function ChallengeDetail() {
   const [selectedPost, setSelectedPost] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [selectedPostForComment, setSelectedPostForComment] = useState(null);
 
   // Load challenge detail
   const fetchChallengeDetail = async () => {
@@ -88,13 +91,12 @@ export default function ChallengeDetail() {
       console.error("Failed to fetch user history:", err);
     }
   };
-
   // Load user posts
   const fetchUserPosts = async () => {
     if (!user) return;
 
     try {
-      const response = await api.get("/posts/my-posts");
+      const response = await api.get(`/posts/${user.id}`);
       if (response.data.success) {
         setUserPosts(response.data.data);
       }
@@ -121,6 +123,18 @@ export default function ChallengeDetail() {
       toast.error(err.response?.data?.message || "Failed to submit post");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Handle view post in comment modal
+  const handleViewPost = (postId) => {
+    console.log("[ChallengeDetail] handleViewPost called with postId:", postId, "userPosts:", userPosts);
+    const post = userPosts.find((p) => p.id.toString() === postId);
+    if (post) {
+      setSelectedPostForComment(post);
+      setCommentModalOpen(true);
+    } else {
+      console.warn("[ChallengeDetail] Post not found for postId:", postId);
     }
   };
 
@@ -201,7 +215,6 @@ export default function ChallengeDetail() {
           <p className="text-muted-foreground">Challenge Details</p>
         </div>
       </div>
-
       {/* Hero Section */}
       <Card className="overflow-hidden">
         <div className="relative">
@@ -290,7 +303,6 @@ export default function ChallengeDetail() {
           )}
         </CardFooter>
       </Card>
-
       {/* Tabs Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
@@ -365,10 +377,24 @@ export default function ChallengeDetail() {
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Submissions</span>
                 <span className="text-sm font-medium">{challenge.challengePosts?.length || 0}</span>
-              </div>
+              </div>{" "}
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Winners</span>
                 <span className="text-sm font-medium">{winners.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Total Likes</span>
+                <span className="text-sm font-medium flex items-center">
+                  <Heart className="h-3 w-3 mr-1" />
+                  {challenge.challengePosts?.reduce((total, submission) => total + (submission.post?.likeCount || submission.post?.likes_count || 0), 0) || 0}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Total Comments</span>
+                <span className="text-sm font-medium flex items-center">
+                  <MessageCircle className="h-3 w-3 mr-1" />
+                  {challenge.challengePosts?.reduce((total, submission) => total + (submission.post?.commentCount || submission.post?.comments_count || 0), 0) || 0}
+                </span>
               </div>
               <Separator />
               <div className="flex justify-between">
@@ -382,8 +408,7 @@ export default function ChallengeDetail() {
             </CardContent>
           </Card>
         </div>
-      </div>
-
+      </div>{" "}
       {/* Submit Post Modal */}
       {user && (
         <SubmitPostModal
@@ -395,6 +420,20 @@ export default function ChallengeDetail() {
           onSelectedPostChange={setSelectedPost}
           onSubmit={handleSubmitPost}
           submitting={submitting}
+          onViewPost={handleViewPost}
+        />
+      )}
+      {/* Comment Modal for Post Preview */}
+      {commentModalOpen && selectedPostForComment && (
+        <CommentModal
+          postId={selectedPostForComment.id}
+          isOpen={commentModalOpen}
+          onClose={() => {
+            setCommentModalOpen(false);
+            setSelectedPostForComment(null);
+          }}
+          postTitle={selectedPostForComment.title}
+          currentUser={user}
         />
       )}
     </div>
@@ -412,7 +451,12 @@ function SubmissionGrid({ submissions }) {
   );
 }
 
-function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPost, onSelectedPostChange, onSubmit, submitting }) {
+function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPost, onSelectedPostChange, onSubmit, submitting, onViewPost }) {
+  // Debug: log saat tombol View Post diklik
+  const handleViewPostClick = () => {
+    console.log("[SubmitPostModal] View Post clicked, selectedPost:", selectedPost);
+    onViewPost(selectedPost);
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -432,7 +476,7 @@ function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPos
                 {userPosts.map((post) => (
                   <SelectItem key={post.id} value={post.id.toString()}>
                     <div className="flex items-center">
-                      {post.images?.[0] && <img src={getFullImageUrl(post.images[0])} alt={post.title} className="w-6 h-6 rounded object-cover mr-2" />}
+                      {post.images?.[0] && <img src={getFullImageUrl(post.images[0].image_url || post.images[0])} alt={post.title} className="w-6 h-6 rounded object-cover mr-2" />}
                       <span className="truncate">{post.title || "Untitled Post"}</span>
                     </div>
                   </SelectItem>
@@ -448,10 +492,18 @@ function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPos
           )}
         </div>
 
-        <DialogFooter className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+        <DialogFooter className="flex justify-between gap-2 mt-6">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            {selectedPost && (
+              <Button variant="outline" onClick={handleViewPostClick}>
+                <Eye className="h-4 w-4 mr-1" />
+                View Post
+              </Button>
+            )}
+          </div>
           <Button onClick={onSubmit} disabled={!selectedPost || submitting}>
             {submitting ? (
               <>
@@ -497,14 +549,29 @@ const formatDate = (dateString) => {
 };
 
 const getFullImageUrl = (imagePath) => {
-  if (!imagePath) return "/placeholder.svg";
+  // Handle null, undefined, or non-string values
+  if (!imagePath || typeof imagePath !== "string") return "/placeholder.svg";
+
+  // Handle empty strings
+  if (imagePath.trim() === "") return "/placeholder.svg";
+
+  // Handle absolute URLs
   if (imagePath.startsWith("http")) return imagePath;
 
   const baseURL = import.meta.env.VITE_API_URL || "";
   const cleanPath = imagePath.replace(/\\/g, "/");
 
+  // For storage files, use the API URL directly without removing /api
+  // This handles paths like "storage/avatars/filename.jpg"
+  if (cleanPath.startsWith("storage/")) {
+    return `${baseURL}/${cleanPath}`;
+  }
+
+  // For other paths that start with /, remove /api from base URL
   if (cleanPath.startsWith("/")) {
     return baseURL.replace("/api", "") + cleanPath;
   }
+
+  // For relative paths, add them to the base URL without /api
   return `${baseURL.replace("/api", "")}/${cleanPath}`;
 };

@@ -43,9 +43,21 @@ export const closeChallenge = (id) => api.put(`/challenges/${id}/close`);
 // Admin Endpoints - Hapus challenge
 export const deleteChallenge = (id) => api.delete(`/challenges/${id}`);
 
-// Admin Endpoints - Pilih pemenang
-export const selectWinners = (challengeId, winnerUserIds, adminNote) =>
+// Admin Endpoints - Pilih pemenang secara manual
+export const selectWinners = (challengeId, winnersData, adminNote) =>
   api.post(`/challenges/${challengeId}/select-winners`, {
-    winnerUserIds,
+    winnersData,
     adminNote,
   });
+
+// Admin Endpoints - Auto-select winners berdasarkan likes
+export const autoSelectWinners = (challengeId, maxWinners, adminNote) =>
+  api.post(`/challenges/${challengeId}/auto-select-winners`, {
+    maxWinners,
+    adminNote,
+  });
+
+// Note: Winner editing and removal endpoints have been deprecated by backend
+
+// User Endpoints - Get user's wins
+export const getUserWins = () => api.get("/user/wins");

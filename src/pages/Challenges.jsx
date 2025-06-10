@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { CommentModal } from "@/components/CommentModal";
 import api from "@/api/axiosInstance";
 
 export default function Challenges() {
@@ -32,7 +33,10 @@ export default function Challenges() {
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [selectedPost, setSelectedPost] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [selectedPostForComment, setSelectedPostForComment] = useState(null);
 
+  // Get user from localStorage
   const { user } = useAuth();
 
   // Load semua challenges
@@ -76,13 +80,12 @@ export default function Challenges() {
       console.error("Failed to fetch user history:", err);
     }
   };
-
   // Load user posts untuk submission
   const fetchUserPosts = async () => {
     if (!user) return;
 
     try {
-      const response = await api.get("/posts/my-posts");
+      const response = await api.get(`/posts/${user.id}`);
       if (response.data.success) {
         setUserPosts(response.data.data);
       }
@@ -90,7 +93,6 @@ export default function Challenges() {
       console.error("Failed to fetch user posts:", err);
     }
   };
-
   // Handle submit post to challenge
   const handleSubmitPost = async () => {
     if (!selectedPost || !selectedChallenge) return;
@@ -109,6 +111,15 @@ export default function Challenges() {
       toast.error(err.response?.data?.message || "Failed to submit post");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Handle view post in comment modal
+  const handleViewPost = (postId) => {
+    const post = userPosts.find((p) => p.id.toString() === postId);
+    if (post) {
+      setSelectedPostForComment(post);
+      setCommentModalOpen(true);
     }
   };
 
@@ -183,7 +194,6 @@ export default function Challenges() {
           </div>
         </CardHeader>
       </Card>
-
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Challenges List - 2/3 width */}
@@ -209,10 +219,24 @@ export default function Challenges() {
                     onViewDetails={(challengeId) => navigate(`/challenges/${challengeId}`)}
                     userHistory={userHistory}
                     user={user}
+                    onOpenCommentModal={(post) => {
+                      setSelectedPostForComment(post);
+                      setCommentModalOpen(true);
+                    }}
                   />
                 </TabsContent>
                 <TabsContent value="completed" className="mt-6">
-                  <ChallengesList challenges={getFilteredChallenges()} showWinners={true} onViewDetails={(challengeId) => navigate(`/challenges/${challengeId}`)} userHistory={userHistory} user={user} />
+                  <ChallengesList
+                    challenges={getFilteredChallenges()}
+                    showWinners={true}
+                    onViewDetails={(challengeId) => navigate(`/challenges/${challengeId}`)}
+                    userHistory={userHistory}
+                    user={user}
+                    onOpenCommentModal={(post) => {
+                      setSelectedPostForComment(post);
+                      setCommentModalOpen(true);
+                    }}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -223,12 +247,9 @@ export default function Challenges() {
         <div className="space-y-6">
           {/* User Stats */}
           {user && <UserStatsCard userHistory={userHistory} />}
-
-          {/* Quick Actions */}
-          <QuickActionsCard />
+          <QuickActionsCard user={user} /> {/* <-- Tambahkan prop user di sini */}
         </div>
-      </div>
-
+      </div>{" "}
       {/* Submit Post Modal */}
       {user && (
         <SubmitPostModal
@@ -240,6 +261,20 @@ export default function Challenges() {
           onSelectedPostChange={setSelectedPost}
           onSubmit={handleSubmitPost}
           submitting={submitting}
+          onViewPost={handleViewPost}
+        />
+      )}
+      {/* Comment Modal for Post Preview */}
+      {selectedPostForComment && (
+        <CommentModal
+          postId={selectedPostForComment.id}
+          isOpen={commentModalOpen}
+          onClose={() => {
+            setCommentModalOpen(false);
+            setSelectedPostForComment(null);
+          }}
+          postTitle={selectedPostForComment.title}
+          currentUser={user}
         />
       )}
     </div>
@@ -247,7 +282,7 @@ export default function Challenges() {
 }
 
 // Components
-function ChallengesList({ challenges, onSubmit, onViewDetails, showWinners, userHistory, user }) {
+function ChallengesList({ challenges, onSubmit, onViewDetails, showWinners, userHistory, user, onOpenCommentModal }) {
   if (challenges.length === 0) {
     return (
       <div className="text-center py-12">
@@ -261,13 +296,13 @@ function ChallengesList({ challenges, onSubmit, onViewDetails, showWinners, user
   return (
     <div className="space-y-6">
       {challenges.map((challenge) => (
-        <ChallengeCard key={challenge.id} challenge={challenge} onSubmit={onSubmit} onViewDetails={onViewDetails} showWinners={showWinners} userHistory={userHistory} user={user} />
+        <ChallengeCard key={challenge.id} challenge={challenge} onSubmit={onSubmit} onViewDetails={onViewDetails} showWinners={showWinners} userHistory={userHistory} user={user} onOpenCommentModal={onOpenCommentModal} />
       ))}
     </div>
   );
 }
 
-function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHistory, user }) {
+function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHistory, user, onOpenCommentModal }) {
   const timeRemaining = getTimeRemaining(challenge.deadline);
   const isExpired = timeRemaining === "Expired";
   const isActive = !challenge.is_closed && !isExpired;
@@ -339,8 +374,7 @@ function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHi
             <p className="text-sm font-medium">Created by {challenge.creator?.profile?.username || "Admin"}</p>
             <p className="text-xs text-muted-foreground">{formatDate(challenge.created_at)}</p>
           </div>
-        </div>
-
+        </div>{" "}
         {/* Submissions Preview */}
         {challenge.challengePosts && challenge.challengePosts.length > 0 && (
           <div className="mb-4">
@@ -352,8 +386,15 @@ function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHi
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="w-16 h-16 rounded-md overflow-hidden bg-muted cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
-                            {submission.post?.images?.[0] && <img src={getFullImageUrl(submission.post.images[0])} alt={submission.post.title} className="w-full h-full object-cover" />}
+                          <div
+                            className="w-16 h-16 rounded-md overflow-hidden bg-muted cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                            onClick={() => {
+                              if (submission.post && onOpenCommentModal) {
+                                onOpenCommentModal(submission.post);
+                              }
+                            }}
+                          >
+                            {submission.post?.images?.[0] && <img src={getFullImageUrl(submission.post.images[0].image_url || submission.post.images[0])} alt={submission.post.title} className="w-full h-full object-cover" />}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -373,7 +414,6 @@ function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHi
             </ScrollArea>
           </div>
         )}
-
         {/* Winners Section (untuk completed challenges) */}
         {showWinners && challenge.userBadges && challenge.userBadges.length > 0 && (
           <div className="mb-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
@@ -492,7 +532,7 @@ function UserStatsCard({ userHistory }) {
   );
 }
 
-function QuickActionsCard() {
+function QuickActionsCard({ user }) {
   const navigate = useNavigate();
 
   return (
@@ -512,7 +552,7 @@ function QuickActionsCard() {
           <Star className="h-4 w-4 mr-2" />
           Browse All Challenges
         </Button>
-        <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => navigate("/profile")}>
+        <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => navigate("/profile/" + user.id)}>
           <Award className="h-4 w-4 mr-2" />
           My Submissions
         </Button>
@@ -521,7 +561,7 @@ function QuickActionsCard() {
   );
 }
 
-function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPost, onSelectedPostChange, onSubmit, submitting }) {
+function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPost, onSelectedPostChange, onSubmit, submitting, onViewPost }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -538,10 +578,11 @@ function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPos
                 <SelectValue placeholder="Choose a post to submit" />
               </SelectTrigger>
               <SelectContent>
+                {" "}
                 {userPosts.map((post) => (
                   <SelectItem key={post.id} value={post.id.toString()}>
                     <div className="flex items-center">
-                      {post.images?.[0] && <img src={getFullImageUrl(post.images[0])} alt={post.title} className="w-6 h-6 rounded object-cover mr-2" />}
+                      {post.images?.[0] && <img src={getFullImageUrl(post.images[0].image_url || post.images[0])} alt={post.title} className="w-6 h-6 rounded object-cover mr-2" />}
                       <span className="truncate">{post.title || "Untitled Post"}</span>
                     </div>
                   </SelectItem>
@@ -557,10 +598,18 @@ function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPos
           )}
         </div>
 
-        <DialogFooter className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+        <DialogFooter className="flex justify-between gap-2 mt-6">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            {selectedPost && (
+              <Button variant="outline" onClick={() => onViewPost(selectedPost)}>
+                <Eye className="h-4 w-4 mr-1" />
+                View Post
+              </Button>
+            )}
+          </div>
           <Button onClick={onSubmit} disabled={!selectedPost || submitting}>
             {submitting ? (
               <>
@@ -606,14 +655,23 @@ const formatDate = (dateString) => {
 };
 
 const getFullImageUrl = (imagePath) => {
-  if (!imagePath) return "/placeholder.svg";
+  if (!imagePath || typeof imagePath !== "string") return "/placeholder.svg";
   if (imagePath.startsWith("http")) return imagePath;
 
   const baseURL = import.meta.env.VITE_API_URL || "";
   const cleanPath = imagePath.replace(/\\/g, "/");
 
+  // For storage files, use the API URL directly without removing /api
+  // This handles paths like "storage/avatars/filename.jpg"
+  if (cleanPath.startsWith("storage/")) {
+    return `${baseURL}/${cleanPath}`;
+  }
+
+  // For other paths that start with /, remove /api from base URL
   if (cleanPath.startsWith("/")) {
     return baseURL.replace("/api", "") + cleanPath;
   }
+
+  // For relative paths, add them to the base URL without /api
   return `${baseURL.replace("/api", "")}/${cleanPath}`;
 };

@@ -47,8 +47,7 @@ export default function WeeklyWinners() {
       return baseURL + cleanPath;
     }
     return `${baseURL}/${cleanPath}`;
-  };
-  // Load challenges dan winners
+  }; // Load challenges dan winners
   const fetchChallengesAndWinners = async () => {
     try {
       setLoading(true);
@@ -59,24 +58,25 @@ export default function WeeklyWinners() {
       if (challengesResponse.data.success) {
         const allChallenges = challengesResponse.data.data;
 
-        // Filter hanya challenges yang sudah closed dan ada pemenang
-        const completedChallenges = allChallenges.filter((challenge) => challenge.is_closed && challenge.userBadges && challenge.userBadges.length > 0);
+        // Filter hanya challenges yang sudah closed
+        const closedChallenges = allChallenges.filter((challenge) => challenge.is_closed);
 
-        setChallenges(completedChallenges);
-
-        // Fetch winners untuk setiap challenge yang sudah selesai
+        // Fetch winners untuk setiap challenge yang sudah closed
         const winnersData = {};
-        for (const challenge of completedChallenges) {
+        const challengesWithWinners = [];
+
+        for (const challenge of closedChallenges) {
           try {
             const winnersResponse = await getChallengeWinners(challenge.id);
-            if (winnersResponse.data.success) {
+            if (winnersResponse.data.success && winnersResponse.data.data.length > 0) {
               winnersData[challenge.id] = winnersResponse.data.data;
+              challengesWithWinners.push(challenge);
             }
           } catch (err) {
             console.error(`Failed to fetch winners for challenge ${challenge.id}:`, err);
           }
         }
-
+        setChallenges(challengesWithWinners);
         setChallengeWinners(winnersData);
       }
     } catch (err) {
@@ -283,12 +283,13 @@ function ChallengeWinnersCard({ challenge, winners, getFullImageUrl, formatDate 
             <h4 className="text-lg font-semibold flex items-center">
               <Crown className="h-5 w-5 text-yellow-500 mr-2" />
               Winners
-            </h4>
-
+            </h4>{" "}
             <div className="grid gap-4">
-              {winners.map((winner, index) => (
-                <WinnerCard key={winner.id || index} winner={winner} rank={index + 1} getFullImageUrl={getFullImageUrl} />
-              ))}
+              {winners
+                .sort((a, b) => a.rank - b.rank) // Sort by rank
+                .map((winner) => (
+                  <WinnerCard key={winner.id} winner={winner} rank={winner.rank} getFullImageUrl={getFullImageUrl} />
+                ))}
             </div>
           </div>
         ) : (
@@ -349,25 +350,32 @@ function WinnerCard({ winner, rank, getFullImageUrl }) {
             <div className="flex-1">
               <h4 className="font-semibold">{winner.user?.profile?.username || `${winner.user?.firstName} ${winner.user?.lastName}`.trim() || "Unknown User"}</h4>
               <p className="text-sm text-muted-foreground">{winner.admin_note || "Congratulations!"}</p>
-              {winner.created_at && <p className="text-xs text-muted-foreground">Awarded on {new Date(winner.created_at).toLocaleDateString()}</p>}
+              <div className="flex items-center gap-3 mt-1">
+                {winner.final_score && (
+                  <div className="flex items-center gap-1">
+                    <Heart className="h-3 w-3 text-red-500" />
+                    <span className="text-xs text-muted-foreground">{winner.final_score} likes when selected</span>
+                  </div>
+                )}
+                {winner.selected_at && <p className="text-xs text-muted-foreground">Selected on {new Date(winner.selected_at).toLocaleDateString()}</p>}
+              </div>
             </div>
           </div>
           {/* Winning Post Preview */}
-          {winner.challengePost?.post && (
+          {winner.post && (
             <div className="flex-shrink-0">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="w-16 h-16 rounded-md overflow-hidden bg-muted cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
-                      {winner.challengePost.post.images?.[0] && (
-                        <ImageCarousel images={[getFullImageUrl(winner.challengePost.post.images[0])]} title={winner.challengePost.post.title || "Winning Post"} className="w-full h-full rounded-md" />
-                      )}
+                      {winner.post.images?.[0] && <ImageCarousel images={[getFullImageUrl(winner.post.images[0].image_url || winner.post.images[0])]} title={winner.post.title || "Winning Post"} className="w-full h-full rounded-md" />}
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
                     <div className="max-w-xs">
-                      <p className="font-medium">{winner.challengePost.post.title || "Untitled"}</p>
+                      <p className="font-medium">{winner.post.title || "Untitled"}</p>
                       <p className="text-xs text-muted-foreground">Winning submission</p>
+                      {winner.final_score && <p className="text-xs text-muted-foreground">{winner.final_score} likes</p>}
                     </div>
                   </TooltipContent>
                 </Tooltip>
