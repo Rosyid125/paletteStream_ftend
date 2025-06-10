@@ -9,6 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext"; // Assuming you have this co
 import { Switch } from "@/components/ui/switch";
 import { Link, useNavigate } from "react-router-dom"; // Use useNavigate for programmatic navigation
 import { logout } from "@/services/authService"; // Import logout service
+import ChallengeNotifications from "@/components/ChallengeNotifications";
 import api from "./../api/axiosInstance"; // Import the custom axios instance
 
 // Helper function to format image URLs
@@ -204,26 +205,11 @@ export default function Navbar() {
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/*  User is Logged In and Profile is Loaded  */}
+              {/*  User is Logged In and Profile is Loaded  */}{" "}
               {!isLoading && miniProfile && (
                 <>
-                  {/* Notifications (Using static data for now) */}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="relative">
-                          <Bell className="h-5 w-5" />
-                          {staticCounters.notifications > 0 && (
-                            <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{staticCounters.notifications}</Badge>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>You have {staticCounters.notifications} notifications</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  {/* Challenge Notifications */}
+                  <ChallengeNotifications />
 
                   {/* Messages */}
                   <TooltipProvider>

@@ -166,7 +166,6 @@ export default function ShadcnSidebar() {
       color: "text-green-500",
     },
   ];
-
   // Tambahkan menu admin jika role admin (dari localStorage, bukan miniProfile)
   if (role === "admin") {
     items = [
@@ -190,6 +189,13 @@ export default function ShadcnSidebar() {
         icon: FileText,
         group: "Admin",
         color: "text-amber-700",
+      },
+      {
+        title: "Challenge Management",
+        url: "/admin/challenges",
+        icon: Award,
+        group: "Admin",
+        color: "text-green-600",
       },
       ...items,
     ];

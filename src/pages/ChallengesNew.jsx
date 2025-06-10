@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useContext } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +13,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAllChallenges, getActiveChallenges, getChallengeById, getChallengeLeaderboard, getChallengeWinners, submitPostToChallenge, getUserChallengeHistory } from "@/services/challengeService";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/contexts/AuthContext";
+import { AuthContext } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import api from "@/api/axiosInstance";
 
 export default function Challenges() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("active");
   const [challenges, setChallenges] = useState([]);
   const [activeChallenges, setActiveChallenges] = useState([]);
@@ -33,7 +31,7 @@ export default function Challenges() {
   const [selectedPost, setSelectedPost] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const { user } = useAuth();
+  const { user } = useContext(AuthContext);
 
   // Load semua challenges
   const fetchChallenges = async () => {
@@ -198,7 +196,8 @@ export default function Challenges() {
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="active">Active</TabsTrigger>
                   <TabsTrigger value="completed">Completed</TabsTrigger>
-                </TabsList>{" "}
+                </TabsList>
+
                 <TabsContent value="active" className="mt-6">
                   <ChallengesList
                     challenges={getFilteredChallenges()}
@@ -206,13 +205,13 @@ export default function Challenges() {
                       setSelectedChallenge(challenge);
                       setSubmitModalOpen(true);
                     }}
-                    onViewDetails={(challengeId) => navigate(`/challenges/${challengeId}`)}
                     userHistory={userHistory}
                     user={user}
                   />
                 </TabsContent>
+
                 <TabsContent value="completed" className="mt-6">
-                  <ChallengesList challenges={getFilteredChallenges()} showWinners={true} onViewDetails={(challengeId) => navigate(`/challenges/${challengeId}`)} userHistory={userHistory} user={user} />
+                  <ChallengesList challenges={getFilteredChallenges()} showWinners={true} userHistory={userHistory} user={user} />
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -247,7 +246,7 @@ export default function Challenges() {
 }
 
 // Components
-function ChallengesList({ challenges, onSubmit, onViewDetails, showWinners, userHistory, user }) {
+function ChallengesList({ challenges, onSubmit, showWinners, userHistory, user }) {
   if (challenges.length === 0) {
     return (
       <div className="text-center py-12">
@@ -261,13 +260,13 @@ function ChallengesList({ challenges, onSubmit, onViewDetails, showWinners, user
   return (
     <div className="space-y-6">
       {challenges.map((challenge) => (
-        <ChallengeCard key={challenge.id} challenge={challenge} onSubmit={onSubmit} onViewDetails={onViewDetails} showWinners={showWinners} userHistory={userHistory} user={user} />
+        <ChallengeCard key={challenge.id} challenge={challenge} onSubmit={onSubmit} showWinners={showWinners} userHistory={userHistory} user={user} />
       ))}
     </div>
   );
 }
 
-function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHistory, user }) {
+function ChallengeCard({ challenge, onSubmit, showWinners, userHistory, user }) {
   const timeRemaining = getTimeRemaining(challenge.deadline);
   const isExpired = timeRemaining === "Expired";
   const isActive = !challenge.is_closed && !isExpired;
@@ -327,6 +326,7 @@ function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHi
           </div>
         </div>
       </div>
+
       {/* Challenge Content */}
       <CardContent className="pt-4">
         {/* Creator Info */}
@@ -408,10 +408,11 @@ function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHi
             </div>
           </div>
         )}
-      </CardContent>{" "}
+      </CardContent>
+
       {/* Challenge Actions */}
       <CardFooter className="flex justify-between border-t">
-        <Button variant="outline" size="sm" onClick={() => onViewDetails?.(challenge.id)}>
+        <Button variant="outline" size="sm">
           <Eye className="h-4 w-4 mr-1" />
           View Details
         </Button>
@@ -493,8 +494,6 @@ function UserStatsCard({ userHistory }) {
 }
 
 function QuickActionsCard() {
-  const navigate = useNavigate();
-
   return (
     <Card className="border-t-4 border-t-blue-500">
       <CardHeader className="pb-4">
@@ -504,15 +503,15 @@ function QuickActionsCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => navigate("/weekly-winners")}>
+        <Button variant="outline" className="w-full justify-start" size="sm">
           <Trophy className="h-4 w-4 mr-2" />
           View All Winners
         </Button>
-        <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => navigate("/challenges")}>
+        <Button variant="outline" className="w-full justify-start" size="sm">
           <Star className="h-4 w-4 mr-2" />
-          Browse All Challenges
+          Challenge Leaderboard
         </Button>
-        <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => navigate("/profile")}>
+        <Button variant="outline" className="w-full justify-start" size="sm">
           <Award className="h-4 w-4 mr-2" />
           My Submissions
         </Button>

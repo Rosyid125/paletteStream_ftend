@@ -6,6 +6,7 @@ import Home from "@/pages/Home";
 import Profile from "@/pages/Profile";
 import Discover from "@/pages/Discover";
 import Challenges from "@/pages/Challenges";
+import ChallengeDetail from "@/pages/ChallengeDetail";
 import TopArtists from "@/pages/TopArtists";
 import TopArtworks from "@/pages/TopArtworks";
 import WeeklyWinners from "@/pages/WeeklyWinners";
@@ -29,6 +30,7 @@ import AdminRoute from "@/components/admin/AdminRoute";
 import AdminDashboard from "@/pages/Admin/AdminDashboard";
 import AdminUsers from "@/pages/Admin/AdminUsers";
 import AdminPosts from "@/pages/Admin/AdminPosts";
+import AdminChallenges from "@/pages/Admin/AdminChallenges";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute"; // Assuming correct path
 
@@ -126,6 +128,16 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
               <Challenges />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: "challenges/:id",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <ChallengeDetail />
             </ProtectedRoute>
           </Suspense>
         ),
@@ -284,6 +296,16 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <AdminProtectedRoute>
               <AdminPosts />
+            </AdminProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: "admin/challenges",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <AdminProtectedRoute>
+              <AdminChallenges />
             </AdminProtectedRoute>
           </Suspense>
         ),
