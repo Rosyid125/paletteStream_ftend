@@ -1,5 +1,6 @@
 // --- Import necessary components and hooks ---
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ const POSTS_PER_PAGE = 12;
 
 export default function LikedPosts() {
   const { user } = useAuth(); // Get user from AuthContext
+  const navigate = useNavigate(); // Add navigate hook
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);

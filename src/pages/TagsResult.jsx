@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Tag, Heart, MessageCircle, Bookmark, Loader2, MoreHorizontal, Edit, Trash2, Flag } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
