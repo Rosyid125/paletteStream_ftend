@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 // --- Import new components ---
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
+import { useNotificationHandler } from "@/hooks/useNotificationHandler";
 import { EditPost } from "@/components/EditPost";
 import { ReportPostModal } from "@/components/ReportPostModal";
 
@@ -34,6 +35,9 @@ const RECOMMENDED_USERS_LIMIT = 5; // *** NEW: Limit for recommended users per p
 export default function Home() {
   const navigate = useNavigate(); // Hook untuk navigasi
   const { user } = useAuth(); // Get user from AuthContext
+
+  // Handle notification redirects and highlighting
+  useNotificationHandler();
 
   // --- State untuk Posts (Feed) ---
   const [posts, setPosts] = useState([]);
@@ -532,7 +536,7 @@ export default function Home() {
                       return null;
                     }
                     return (
-                      <Card key={`${post.id}-${index}`} className="overflow-hidden" ref={isLastElement ? lastPostElementRef : null}>
+                      <Card key={`${post.id}-${index}`} id={`post-${post.id}`} className="overflow-hidden" ref={isLastElement ? lastPostElementRef : null}>
                         <CardHeader className="pb-2 space-y-0">
                           <div className="flex justify-between items-start">
                             <div className="flex items-center space-x-2">

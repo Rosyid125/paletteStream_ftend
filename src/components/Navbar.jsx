@@ -9,7 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext"; // Assuming you have this co
 import { Switch } from "@/components/ui/switch";
 import { Link, useNavigate } from "react-router-dom"; // Use useNavigate for programmatic navigation
 import { logout } from "@/services/authService"; // Import logout service
-import ChallengeNotifications from "@/components/ChallengeNotifications";
+import NotificationDropdown from "@/components/NotificationDropdown";
 import api from "./../api/axiosInstance"; // Import the custom axios instance
 
 // Helper function to format image URLs
@@ -44,11 +44,9 @@ export default function Navbar() {
   const [error, setError] = useState(null);
 
   const navigate = useNavigate(); // Hook for navigation
-
-  // --- Static Data (Notifications/Messages - Not in mini-profile endpoint) ---
+  // --- Static Data (Messages - Not in mini-profile endpoint) ---
   // Consider fetching this from a separate endpoint if available
   const staticCounters = {
-    notifications: 3,
     messages: 2,
   };
   // --- End Static Data ---
@@ -147,6 +145,7 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        {" "}
         {/* Desktop Navigation Links (Consider moving to separate component if complex) */}
         <div className={`hidden items-center space-x-1 md:flex`}>
           <Link to="/home">
@@ -164,9 +163,13 @@ export default function Navbar() {
               Challenges
             </Button>
           </Link>
+          <Link to="/notifications">
+            <Button variant="ghost" className="text-sm font-medium">
+              Notifications
+            </Button>
+          </Link>
           {/* Add more links as needed */}
         </div>
-
         {/* Right side Actions (Mobile Menu trigger might go here) */}
         <div className="flex items-center gap-1 md:gap-2 ml-auto">
           {/* Conditionally render based on userId */}
@@ -208,8 +211,8 @@ export default function Navbar() {
               {/*  User is Logged In and Profile is Loaded  */}{" "}
               {!isLoading && miniProfile && (
                 <>
-                  {/* Challenge Notifications */}
-                  <ChallengeNotifications />
+                  {/* Notification Dropdown */}
+                  <NotificationDropdown />
 
                   {/* Messages */}
                   <TooltipProvider>
@@ -218,16 +221,11 @@ export default function Navbar() {
                         <Link to="/chat">
                           <Button variant="ghost" size="icon" className="relative">
                             <MessageSquare className="h-5 w-5" />
-                            {staticCounters.messages > 0 && (
-                              <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] text-white hover:bg-blue-600 dark:hover:bg-blue-800">
-                                {staticCounters.messages}
-                              </Badge>
-                            )}
                           </Button>
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>You have {staticCounters.messages} messages</p>
+                        <p>Click to view your messages</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

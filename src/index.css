@@ -128,3 +128,45 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Notification highlight animations */
+.notification-highlight {
+  animation: notificationGlow 3s ease-in-out;
+  border: 2px solid hsl(var(--primary));
+  border-radius: 8px;
+}
+
+@keyframes notificationGlow {
+  0% {
+    box-shadow: 0 0 0 0 hsla(var(--primary), 0.7);
+    background-color: hsla(var(--primary), 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px hsla(var(--primary), 0);
+    background-color: hsla(var(--primary), 0.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 hsla(var(--primary), 0);
+    background-color: transparent;
+  }
+}
+.notification-highlight {
+  animation: notificationGlow 3s ease-in-out;
+  border: 2px solid hsl(var(--primary));
+  border-radius: 8px;
+}
+
+@keyframes notificationGlow {
+  0% {
+    box-shadow: 0 0 0 0 hsla(var(--primary), 0.7);
+    background-color: hsla(var(--primary), 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px hsla(var(--primary), 0);
+    background-color: hsla(var(--primary), 0.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 hsla(var(--primary), 0);
+    background-color: transparent;
+  }
+}

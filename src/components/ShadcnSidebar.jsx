@@ -1,4 +1,4 @@
-import { Home, Compass, Award, BookMarked, FileText, Users, Trophy, Palette, Heart } from "lucide-react";
+import { Home, Compass, Award, BookMarked, FileText, Users, Trophy, Palette, Heart, Bell } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -150,6 +150,20 @@ export default function ShadcnSidebar() {
       group: "User's",
       color: "text-purple-500",
       isAvatar: true,
+    },
+    {
+      title: "Chat",
+      url: "/chat",
+      icon: Users,
+      group: "User's",
+      color: "text-blue-400",
+    },
+    {
+      title: "Notifications",
+      url: "/notifications",
+      icon: Bell,
+      group: "User's",
+      color: "text-pink-500",
     },
     {
       title: "Bookmarked",

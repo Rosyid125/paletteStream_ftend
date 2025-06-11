@@ -18,6 +18,8 @@ import TypeResult from "@/pages/TypeResult"; // Assuming this is the correct pat
 import UserResult from "@/pages/UserResult"; // Assuming this is the correct path
 import Likes from "@/pages/Likes";
 import Landing from "@/pages/Landing";
+import Notifications from "@/pages/Notifications";
+import NotificationTest from "@/pages/NotificationTest";
 import Error404 from "@/errors/Error404/Error404";
 import ProtectedRoute from "../components/ProtectedRoute"; // Assuming correct path
 import React, { Suspense } from "react";
@@ -190,6 +192,26 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
               <Bookmarks />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: "notifications",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: "notification-test",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <NotificationTest />
             </ProtectedRoute>
           </Suspense>
         ),
