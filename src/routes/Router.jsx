@@ -32,6 +32,7 @@ import AdminPosts from "@/pages/Admin/AdminPosts";
 import AdminChallenges from "@/pages/Admin/AdminChallenges";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute"; // Assuming correct path
+import TopArtworks from "@/pages/TopArtworks";
 
 const router = createBrowserRouter([
   // Route for the Landing Page (unauthenticated users primarily)
@@ -147,6 +148,16 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
               <TopArtists />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: "top-artworks",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <TopArtworks />
             </ProtectedRoute>
           </Suspense>
         ),
