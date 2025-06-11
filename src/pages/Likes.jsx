@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock, Loader2, Edit } from "lucide-react"; // Added Loader2, ensured Trash2, MoreHorizontal, Edit are present
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock, Loader2, Edit, Flag } from "lucide-react"; // Added Loader2, ensured Trash2, MoreHorizontal, Edit, Flag are present
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
 import { EditPost } from "@/components/EditPost";
+import { ReportPostModal } from "@/components/ReportPostModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Instance Axios
 import api from "./../api/axiosInstance";
@@ -23,6 +25,7 @@ import api from "./../api/axiosInstance";
 const POSTS_PER_PAGE = 12;
 
 export default function LikedPosts() {
+  const { user } = useAuth(); // Get user from AuthContext
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -37,6 +40,9 @@ export default function LikedPosts() {
   // --- NEW: State for Edit Post Modal ---
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState(null); // Store the post to be edited
+  // --- NEW: State for Report Post Modal ---
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [postToReport, setPostToReport] = useState(null); // Store the post to be reported
   // USER DATA AND USER ID
   const [USER_DATA, setUserData] = useState(null);
   const [USER_ID, setUserId] = useState(null);
@@ -322,6 +328,12 @@ export default function LikedPosts() {
   };
   // --- *** End of Edit Post Functions *** ---
 
+  // --- NEW: Report Post Handler ---
+  const handleReportPost = (post) => {
+    setPostToReport(post);
+    setIsReportModalOpen(true);
+  };
+
   // --- Intersection Observer Setup ---
   const lastPostElementRef = useCallback(
     (node) => {
@@ -466,42 +478,53 @@ export default function LikedPosts() {
                             </div>
                           </div>
                         </HoverCardContent>
-                      </HoverCard>
-
-                      {/* --- *** Delete Dropdown (Conditional Render) *** --- */}
-                      {USER_ID === post.userId && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground flex-shrink-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>{" "}
-                          <DropdownMenuContent align="end">
-                            {/* --- *** Edit Post Menu Item *** --- */}
+                      </HoverCard>{" "}
+                      {/* --- *** Edit/Delete/Report Dropdown *** --- */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground flex-shrink-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>{" "}
+                        <DropdownMenuContent align="end">
+                          {USER_ID === post.userId ? (
+                            // Show Edit/Delete for post owner
+                            <>
+                              <DropdownMenuItem
+                                className="cursor-pointer"
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  handleEditPost(post);
+                                }}
+                              >
+                                <Edit className="mr-2 h-4 w-4" /> Edit Post
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  setPostToDelete(post.id);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete Post
+                              </DropdownMenuItem>
+                            </>
+                          ) : (
+                            // Show Report for other users
                             <DropdownMenuItem
                               className="cursor-pointer"
                               onSelect={(e) => {
                                 e.preventDefault();
-                                handleEditPost(post);
+                                handleReportPost(post);
                               }}
                             >
-                              <Edit className="mr-2 h-4 w-4" /> Edit Post
+                              {" "}
+                              <Flag className="mr-2 h-4 w-4" /> Report Post
                             </DropdownMenuItem>
-                            {/* --- *** Delete Post Menu Item *** --- */}
-                            <DropdownMenuItem
-                              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
-                              onSelect={(e) => {
-                                e.preventDefault(); // Prevent menu closing immediately
-                                setPostToDelete(post.id); // Set the ID of the post to delete
-                                setIsDeleteDialogOpen(true); // Open the confirmation dialog
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete Post
-                            </DropdownMenuItem>
-                            {/* Add other options like 'Edit Post' here later if needed */}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </CardHeader>
 
                     {/* Image Carousel */}
@@ -662,7 +685,7 @@ export default function LikedPosts() {
           // Format avatar URL for current user in modal
           currentUser={USER_DATA ? { id: USER_DATA.id, username: USER_DATA.username, avatar: formatImageUrl(USER_DATA.avatar), level: USER_DATA.level || 1 } : null}
         />
-      )}
+      )}{" "}
       {/* --- *** Edit Post Modal *** --- */}
       {isEditPostOpen && postToEdit && (
         <EditPost
@@ -673,6 +696,18 @@ export default function LikedPosts() {
           }}
           post={postToEdit}
           onPostUpdated={handlePostUpdated}
+        />
+      )}{" "}
+      {/* --- *** Report Post Modal *** --- */}
+      {isReportModalOpen && postToReport && (
+        <ReportPostModal
+          isOpen={isReportModalOpen}
+          onClose={() => {
+            setIsReportModalOpen(false);
+            setPostToReport(null);
+          }}
+          post={postToReport}
+          currentUser={user}
         />
       )}
       {/* --- *** Delete Confirmation Dialog *** --- */}
@@ -693,7 +728,26 @@ export default function LikedPosts() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>{" "}
+      {/* --- *** Report Post Modal *** --- */}
+      {isReportModalOpen && postToReport && (
+        <ReportPostModal
+          isOpen={isReportModalOpen}
+          onClose={() => {
+            setIsReportModalOpen(false);
+            setPostToReport(null);
+          }}
+          post={postToReport}
+          currentUser={user}
+          onReported={() => {
+            setIsReportModalOpen(false);
+            setPostToReport(null);
+            // Optionally, show a success message or refresh posts
+            setError("Post reported successfully.");
+            setTimeout(() => setError(null), 3000); // Hide message after 3 seconds
+          }}
+        />
+      )}
     </>
   );
 }

@@ -8,11 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ImageCarousel } from "@/components/ImageCarousel";
 import { CommentModal } from "@/components/CommentModal";
 import { LikesHoverCard } from "@/components/LikesHoverCard";
-import { Search, Heart, MessageCircle, Bookmark, Loader2, MoreHorizontal, Edit, Trash2 } from "lucide-react"; // Added Search icon
+import { Search, Heart, MessageCircle, Bookmark, Loader2, MoreHorizontal, Edit, Trash2, Flag } from "lucide-react"; // Added Search icon
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EditPost } from "@/components/EditPost";
+import { ReportPostModal } from "@/components/ReportPostModal";
+import { useAuth } from "@/contexts/AuthContext";
 import api from "../api/axiosInstance";
 import { toast } from "sonner"; // Optional: for feedback
 
@@ -58,6 +60,7 @@ const getTypeColor = (type) => {
 // --- Component Start ---
 export default function TitleDescriptionResult() {
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get user from AuthContext
   const [searchParams] = useSearchParams(); // Hook to get URL query parameters
 
   // Get search parameters from URL
@@ -72,39 +75,21 @@ export default function TitleDescriptionResult() {
   const [loading, setLoading] = useState(false); // For initial page load / query change
   const [loadingMore, setLoadingMore] = useState(false); // For subsequent page loads
   const [error, setError] = useState(null);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-  // State for interactions
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // State for interactions
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
-  const [CURRENT_USER_ID, setUserId] = useState(null);
-  const [CURRENT_USER_DATA, setUserData] = useState(null);
-
+  const CURRENT_USER_ID = user?.id;
   // --- *** NEW: Edit Post State *** ---
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState(null);
   // --- *** End of Edit Post State *** ---
 
+  // --- *** NEW: Report Post State *** ---
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [postToReport, setPostToReport] = useState(null);
+  // --- *** End of Report Post State *** ---
   // Ref for Intersection Observer
   const observer = useRef();
-
-  // Get logged-in user data from localStorage
-  useEffect(() => {
-    const storedUserData = localStorage.getItem("user");
-    if (storedUserData) {
-      try {
-        const parsedData = JSON.parse(storedUserData);
-        setUserData(parsedData);
-        setUserId(parsedData?.id);
-      } catch (error) {
-        console.error("Failed to parse user data:", error);
-        setUserData(null);
-        setUserId(null);
-      }
-    } else {
-      setUserData(null);
-      setUserId(null);
-    }
-  }, []);
 
   // --- Fetching Logic ---
   const fetchResults = useCallback(
@@ -281,9 +266,14 @@ export default function TitleDescriptionResult() {
     setPostToEdit(post);
     setIsEditPostOpen(true);
   };
-
   const handlePostUpdated = (postId, updatedData) => {
     setResults((prevResults) => prevResults.map((post) => (post.id === postId ? { ...post, ...updatedData } : post)));
+  };
+
+  // --- *** NEW: Report Post Function *** ---
+  const handleReportPost = (post) => {
+    setPostToReport(post);
+    setIsReportModalOpen(true);
   };
 
   const handleDeletePost = async (postId) => {
@@ -379,6 +369,7 @@ export default function TitleDescriptionResult() {
                 ref={results.length === index + 1 ? lastResultRef : null}
                 key={`${artwork.id}-${index}`} // Use index in key for potential non-unique IDs across pages
               >
+                {" "}
                 <ArtworkCard
                   artwork={artwork}
                   onLikeToggle={handleLikeToggle}
@@ -386,6 +377,7 @@ export default function TitleDescriptionResult() {
                   onCommentClick={openCommentModal}
                   onEditPost={handleEditPost}
                   onDeletePost={handleDeletePost}
+                  onReportPost={handleReportPost}
                   currentUserId={CURRENT_USER_ID}
                 />
               </div>
@@ -429,7 +421,7 @@ export default function TitleDescriptionResult() {
             setSelectedPostForModal(null);
           }}
           onCommentAdded={handleCommentAdded}
-          currentUser={CURRENT_USER_DATA ? { id: CURRENT_USER_DATA.id, username: CURRENT_USER_DATA.username, avatar: getFullStorageUrl(CURRENT_USER_DATA.avatar), level: CURRENT_USER_DATA.level || 1 } : null}
+          currentUser={user ? { id: user.id, username: user.username, avatar: getFullStorageUrl(user.avatar), level: user.level || 1 } : null}
         />
       )}
       {/* --- *** NEW: Edit Post Modal *** --- */}{" "}
@@ -444,14 +436,26 @@ export default function TitleDescriptionResult() {
           onPostUpdated={handlePostUpdated}
         />
       )}
-      {/* --- *** End of Edit Post Modal *** --- */}
+      {/* --- *** End of Edit Post Modal *** --- */} {/* --- *** NEW: Report Post Modal *** --- */}
+      {isReportModalOpen && postToReport && (
+        <ReportPostModal
+          isOpen={isReportModalOpen}
+          onClose={() => {
+            setIsReportModalOpen(false);
+            setPostToReport(null);
+          }}
+          post={postToReport}
+          currentUser={user}
+        />
+      )}
+      {/* --- *** End of Report Post Modal *** --- */}
     </div>
   );
 }
 
 // --- Artwork Card Component (Copied from Discover/TopArtworks) ---
 // (Make sure props match what's passed)
-function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, onEditPost, onDeletePost, currentUserId }) {
+function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, onEditPost, onDeletePost, onReportPost, currentUserId }) {
   const navigate = useNavigate(); // Get navigate function from useNavigate hook
   return (
     <Card className="overflow-hidden flex flex-col h-full">
@@ -471,27 +475,34 @@ function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, 
           <div className="flex items-center space-x-2 flex-shrink-0">
             <Badge variant="outline" className={`${getTypeColor(artwork.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(artwork.type)}&page=1&limit=9`)}>
               <span>{artwork.type || "Unknown"}</span>
-            </Badge>
-            {/* --- *** NEW: Dropdown Menu for Edit/Delete *** --- */}
-            {currentUserId === artwork.userId && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onEditPost(artwork)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Post
+            </Badge>{" "}
+            {/* --- *** NEW: Dropdown Menu for Edit/Delete/Report *** --- */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {currentUserId === artwork.userId ? (
+                  <>
+                    <DropdownMenuItem onClick={() => onEditPost(artwork)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Post
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDeletePost(artwork.id)} className="text-red-600">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Post
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={() => onReportPost(artwork)}>
+                    <Flag className="mr-2 h-4 w-4" />
+                    Report Post
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onDeletePost(artwork.id)} className="text-red-600">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Post
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {/* --- *** End of Dropdown Menu *** --- */}
           </div>
         </div>

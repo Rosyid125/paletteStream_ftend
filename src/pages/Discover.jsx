@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Heart, X, MessageCircle, Bookmark, Loader2, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Search, Heart, X, MessageCircle, Bookmark, Loader2, MoreHorizontal, Edit, Trash2, Flag } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -16,8 +16,10 @@ import { ImageCarousel } from "@/components/ImageCarousel";
 import { CommentModal } from "@/components/CommentModal";
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { EditPost } from "@/components/EditPost";
+import { ReportPostModal } from "@/components/ReportPostModal";
 import api from "../api/axiosInstance";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 // --- Constants ---
 const ARTWORKS_PAGE_LIMIT = 9;
@@ -63,6 +65,7 @@ const getTypeColor = (type) => {
 // --- Component Start ---
 export default function Discover() {
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get user from AuthContext
   const [artworks, setArtworks] = useState([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(ARTWORKS_PAGE_LIMIT);
@@ -72,8 +75,7 @@ export default function Discover() {
   const [error, setError] = useState(null);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
-  const [CURRENT_USER_ID, setUserId] = useState(null);
-  const [CURRENT_USER_DATA, setUserData] = useState(null);
+  const CURRENT_USER_ID = user?.id;
   const observer = useRef();
   const [searchType, setSearchType] = useState("post");
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,29 +84,14 @@ export default function Discover() {
   const [selectedType, setSelectedType] = useState("");
   const popularTags = ["fantasy", "digital", "portrait", "landscape", "character", "anime", "scifi", "traditional", "concept", "fanart"];
   const artworkTypes = ["illustration", "manga", "novel"];
-
   // --- *** NEW: Edit Post State *** ---
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState(null);
   // --- *** End of Edit Post State *** ---
-
-  useEffect(() => {
-    const storedUserData = localStorage.getItem("user");
-    if (storedUserData) {
-      try {
-        const parsedData = JSON.parse(storedUserData);
-        setUserData(parsedData);
-        setUserId(parsedData?.id);
-      } catch (error) {
-        console.error("Failed to parse user data from localStorage:", error);
-        setUserData(null);
-        setUserId(null);
-      }
-    } else {
-      setUserData(null);
-      setUserId(null);
-    }
-  }, []);
+  // --- *** NEW: Report Post State *** ---
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [postToReport, setPostToReport] = useState(null);
+  // --- *** End of Report Post State *** ---
 
   const fetchArtworks = useCallback(
     async (pageNum) => {
@@ -375,7 +362,6 @@ export default function Discover() {
   const handleCommentAdded = (postId) => {
     setArtworks((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p)));
   };
-
   // --- *** NEW: Edit and Delete Post Functions *** ---
   const handleEditPost = (post) => {
     setPostToEdit(post);
@@ -384,6 +370,12 @@ export default function Discover() {
 
   const handlePostUpdated = (postId, updatedData) => {
     setArtworks((prevArtworks) => prevArtworks.map((post) => (post.id === postId ? { ...post, ...updatedData } : post)));
+  };
+
+  // --- *** NEW: Report Post Function *** ---
+  const handleReportPost = (post) => {
+    setPostToReport(post);
+    setIsReportModalOpen(true);
   };
 
   const handleDeletePost = async (postId) => {
@@ -522,6 +514,7 @@ export default function Discover() {
                   onCommentClick={openCommentModal}
                   onEditPost={handleEditPost}
                   onDeletePost={handleDeletePost}
+                  onReportPost={handleReportPost}
                   currentUserId={CURRENT_USER_ID}
                 />{" "}
               </div>
@@ -553,9 +546,9 @@ export default function Discover() {
             setSelectedPostForModal(null);
           }}
           onCommentAdded={handleCommentAdded}
-          currentUser={CURRENT_USER_DATA ? { id: CURRENT_USER_DATA.id, username: CURRENT_USER_DATA.username, avatar: getFullStorageUrl(CURRENT_USER_DATA.avatar), level: CURRENT_USER_DATA.level || 1 } : null}
+          currentUser={user ? { id: user.id, username: user.username, avatar: getFullStorageUrl(user.avatar), level: user.level || 1 } : null}
         />
-      )}
+      )}{" "}
       {/* --- *** NEW: Edit Post Modal *** --- */}
       {isEditPostOpen && postToEdit && (
         <EditPost
@@ -568,13 +561,25 @@ export default function Discover() {
           onPostUpdated={handlePostUpdated}
         />
       )}
-      {/* --- *** End of Edit Post Modal *** --- */}
+      {/* --- *** End of Edit Post Modal *** --- */} {/* --- *** NEW: Report Post Modal *** --- */}
+      {isReportModalOpen && postToReport && (
+        <ReportPostModal
+          isOpen={isReportModalOpen}
+          onClose={() => {
+            setIsReportModalOpen(false);
+            setPostToReport(null);
+          }}
+          post={postToReport}
+          currentUser={user}
+        />
+      )}
+      {/* --- *** End of Report Post Modal *** --- */}
     </div>
   );
 }
 
 // --- Artwork Card Component ---
-function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, onEditPost, onDeletePost, currentUserId }) {
+function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, onEditPost, onDeletePost, onReportPost, currentUserId }) {
   const navigate = useNavigate();
   return (
     <Card className="overflow-hidden flex flex-col h-full">
@@ -590,13 +595,13 @@ function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, 
               <p className="text-xs text-muted-foreground">Level {artwork.level || 1}</p>
               <p className="text-xs text-muted-foreground">{artwork.createdAt}</p>
             </div>
-          </Link>
+          </Link>{" "}
           <div className="flex items-center space-x-2 flex-shrink-0">
             <Badge variant="outline" className={`${getTypeColor(artwork.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(artwork.type)}&page=1&limit=9`)}>
               <span>{artwork.type || "Unknown"}</span>
             </Badge>
-            {/* --- *** NEW: Dropdown Menu for Edit/Delete *** --- */}
-            {currentUserId === artwork.userId && (
+            {/* --- *** Dropdown Menu for Edit/Delete/Report *** --- */}
+            {currentUserId && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -604,14 +609,25 @@ function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, 
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onEditPost(artwork)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Post
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onDeletePost(artwork.id)} className="text-red-600">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Post
-                  </DropdownMenuItem>
+                  {currentUserId === artwork.userId ? (
+                    // Options for post owner
+                    <>
+                      <DropdownMenuItem onClick={() => onEditPost(artwork)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit Post
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDeletePost(artwork.id)} className="text-red-600">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Post
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    // Options for other users
+                    <DropdownMenuItem onClick={() => onReportPost(artwork)} className="text-red-600">
+                      <Flag className="mr-2 h-4 w-4" />
+                      Report Post
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

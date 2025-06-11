@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Heart, MessageCircle, Bookmark, Award, Clock, CheckCircle2, Trophy, Star, Flame as FlameIcon, TrendingUp, MoreHorizontal, Trash2, UserPlus, UserCheck, Loader2, Edit } from "lucide-react"; // Tambahkan UserPlus, UserCheck, Loader2, Trash2, Edit
+import { Heart, MessageCircle, Bookmark, Award, Clock, CheckCircle2, Trophy, Star, Flame as FlameIcon, TrendingUp, MoreHorizontal, Trash2, UserPlus, UserCheck, Loader2, Edit, Flag } from "lucide-react"; // Tambahkan UserPlus, UserCheck, Loader2, Trash2, Edit, Flag
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,10 +20,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
 import { EditPost } from "@/components/EditPost";
+import { ReportPostModal } from "@/components/ReportPostModal";
 
 // --- Import instance Axios ---
 import api from "./../api/axiosInstance"; // Pastikan path ini benar
 import { Flame as Fire } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // --- Constants ---
 const POSTS_PER_PAGE = 9;
@@ -31,6 +33,7 @@ const RECOMMENDED_USERS_LIMIT = 5; // *** NEW: Limit for recommended users per p
 
 export default function Home() {
   const navigate = useNavigate(); // Hook untuk navigasi
+  const { user } = useAuth(); // Get user from AuthContext
 
   // --- State untuk Posts (Feed) ---
   const [posts, setPosts] = useState([]);
@@ -54,13 +57,13 @@ export default function Home() {
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
   // --- NEW: State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
-  // --- NEW: State for Edit Post Modal ---
+  const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted  // --- NEW: State for Edit Post Modal ---
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState(null); // Store the post to be edited
-  // --- State for User ID ---
-  const [userId, setUserId] = useState(null);
-  const [userData, setUserData] = useState(null); // State to store user data if needed
+  // --- NEW: State for Report Post Modal ---
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [postToReport, setPostToReport] = useState(null); // Store the post to be reported  // --- State for User ID ---
+  const userId = user?.id;
 
   // --- State untuk Achievements (from backend) ---
   const [achievements, setAchievements] = useState([]);
@@ -68,27 +71,6 @@ export default function Home() {
   const [achievementsError, setAchievementsError] = useState(null);
 
   const observer = useRef();
-
-  // --- *** Gunakan useEffect untuk membaca localStorage saat komponen mount/lokasi berubah *** ---
-  useEffect(() => {
-    const storedUserData = localStorage.getItem("user");
-    if (storedUserData) {
-      try {
-        const parsedData = JSON.parse(storedUserData);
-        setUserData(parsedData); // Set user data if needed
-        setUserId(parsedData?.id);
-      } catch (error) {
-        console.error("Failed to parse user data from localStorage:", error);
-        // Handle error, maybe clear invalid data
-        localStorage.removeItem("user");
-        setUserData(null);
-        setUserId(null);
-      }
-    } else {
-      setUserData(null);
-      setUserId(null);
-    }
-  }, []); // Kosongkan dependency array agar hanya dijalankan saat mount
 
   // --- useEffect ini menangani pemuatan data SETELAH userId ditentukan ---
   useEffect(() => {
@@ -418,11 +400,15 @@ export default function Home() {
     setPostToEdit(post);
     setIsEditPostOpen(true);
   };
-
   const handlePostUpdated = (postId, updatedData) => {
     setPosts((prevPosts) => prevPosts.map((post) => (post.id === postId ? { ...post, ...updatedData } : post)));
   };
-  // --- *** End of Edit Post Functions *** ---
+  // --- *** End of Edit Post Functions *** ---  // --- *** NEW: Report Post Function *** ---
+  const handleReportPost = (post) => {
+    setPostToReport(post);
+    setIsReportModalOpen(true);
+  };
+  // --- *** End of Report Post Function *** ---
 
   // --- Open Comment Modal ---
   const openCommentModal = (post) => {
@@ -587,46 +573,57 @@ export default function Home() {
                                 </Link>
                                 <p className="text-xs text-muted-foreground">Level {post.level || 1}</p>
                                 <p className="text-xs text-muted-foreground">{post.createdAt}</p> {/* Consider formatting this */}
-                              </div>
+                              </div>{" "}
                             </div>
                             <div className="flex items-center space-x-2">
                               <Badge asChild variant="outline" className={`${getTypeColor(post.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(post.type)}&page=1&limit=9`)}>
                                 <span>{post.type || "Unknown"}</span>
                               </Badge>
-                              {/* --- *** Conditionally render DropdownMenu only if the logged-in user owns the post *** --- */}
-                              {userId === post.userId && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>{" "}
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {/* --- *** NEW: Edit Post Menu Item *** --- */}
+                              {/* --- *** Conditionally render DropdownMenu for Edit/Delete/Report *** --- */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {userId === post.userId ? (
+                                    // Show Edit/Delete for post owner
+                                    <>
+                                      <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          handleEditPost(post);
+                                        }}
+                                      >
+                                        <Edit className="mr-2 h-4 w-4" /> Edit Post
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          setPostToDelete(post.id);
+                                          setIsDeleteDialogOpen(true);
+                                        }}
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete Post
+                                      </DropdownMenuItem>
+                                    </>
+                                  ) : (
+                                    // Show Report for other users
                                     <DropdownMenuItem
                                       className="cursor-pointer"
                                       onSelect={(e) => {
                                         e.preventDefault();
-                                        handleEditPost(post);
+                                        handleReportPost(post);
                                       }}
                                     >
-                                      <Edit className="mr-2 h-4 w-4" /> Edit Post
+                                      <Flag className="mr-2 h-4 w-4" /> Report Post
                                     </DropdownMenuItem>
-                                    {/* --- *** NEW: Delete Post Menu Item *** --- */}
-                                    <DropdownMenuItem
-                                      className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
-                                      onSelect={(e) => {
-                                        e.preventDefault(); // Prevent menu from closing immediately
-                                        setPostToDelete(post.id); // Set the ID of the post to delete
-                                        setIsDeleteDialogOpen(true); // Open the confirmation dialog
-                                      }}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" /> Delete Post
-                                    </DropdownMenuItem>
-                                    {/* Add other options like 'Edit Post' here later if needed */}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         </CardHeader>
@@ -1019,7 +1016,7 @@ export default function Home() {
           onCommentAdded={handleCommentAdded}
           currentUser={userData ? { id: userData.id, username: userData.username, avatar: formatImageUrl(userData.avatar), level: userData.level || 1 } : null}
         />
-      )}
+      )}{" "}
       {/* --- *** NEW: Edit Post Modal *** --- */}
       {isEditPostOpen && postToEdit && (
         <EditPost
@@ -1030,6 +1027,18 @@ export default function Home() {
           }}
           post={postToEdit}
           onPostUpdated={handlePostUpdated}
+        />
+      )}{" "}
+      {/* --- *** NEW: Report Post Modal *** --- */}
+      {isReportModalOpen && postToReport && (
+        <ReportPostModal
+          isOpen={isReportModalOpen}
+          onClose={() => {
+            setIsReportModalOpen(false);
+            setPostToReport(null);
+          }}
+          post={postToReport}
+          currentUser={user}
         />
       )}
       {/* --- *** NEW: Delete Confirmation Dialog *** --- */}

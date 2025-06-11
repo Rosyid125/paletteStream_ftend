@@ -11,6 +11,12 @@ export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
 export const fetchAdminPosts = (params) => api.get("/admin/posts", { params });
 export const deletePost = (id) => api.delete(`/admin/posts/${id}`);
 
+// REPORTS
+export const fetchReportedPosts = (params) => api.get("/admin/posts/reported", { params });
+export const fetchAllReports = (params) => api.get("/admin/reports", { params });
+export const updateReportStatus = (reportId, data) => api.put(`/admin/reports/${reportId}/status`, data);
+export const getReportStats = () => api.get("/admin/reports/statistics");
+
 // DASHBOARD
 export const fetchAdminDashboard = () => api.get("/admin/dashboard");
 export const fetchAdminTrends = () => api.get("/admin/dashboard/trends");

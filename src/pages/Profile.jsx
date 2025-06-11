@@ -32,6 +32,7 @@ import {
   MoreHorizontal,
   Trash2,
   Edit,
+  Flag,
 } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -48,7 +49,9 @@ import api from "../api/axiosInstance";
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
 import { EditPost } from "@/components/EditPost";
+import { ReportPostModal } from "@/components/ReportPostModal";
 import ChatPopup from "@/components/ChatPopup";
+import { useAuth } from "@/contexts/AuthContext";
 
 // --- Constants from Home (adapted) ---
 const ARTWORKS_PAGE_LIMIT = 6;
@@ -101,6 +104,7 @@ const getPlatformIcon = (url) => {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth(); // Get current user from AuthContext
   const { userId: userIdParam } = useParams();
   const userId = Number(userIdParam); // <<< USE THIS ID for fetching the profile owner's data
 
@@ -135,10 +139,12 @@ export default function Profile() {
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState(null);
-  // --- NEW: State for Edit Post Modal ---
+  const [postToDelete, setPostToDelete] = useState(null); // --- NEW: State for Edit Post Modal ---
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState(null);
+  // --- NEW: State for Report Post Modal ---
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [postToReport, setPostToReport] = useState(null);
 
   // State for Logged-in User Data
   const [CURRENT_USER_ID, setUserId] = useState(null);
@@ -533,11 +539,17 @@ export default function Profile() {
     setPostToEdit(post);
     setIsEditPostOpen(true);
   };
-
   const handlePostUpdated = (postId, updatedData) => {
     setUserArtworks((prevArtworks) => prevArtworks.map((artwork) => (artwork.id === postId ? { ...artwork, ...updatedData } : artwork)));
   };
   // --- *** End of Edit Post Functions *** ---
+
+  // --- *** NEW: Report Post Function *** ---
+  const handleReportPost = (post) => {
+    setPostToReport(post);
+    setIsReportModalOpen(true);
+  };
+  // --- *** End of Report Post Function *** ---
 
   // --- Helper functions for styling ---
   const getTypeColor = (type) => {
@@ -886,39 +898,52 @@ export default function Profile() {
                         <div className="flex items-center space-x-2">
                           <Badge asChild variant="outline" className={`${getTypeColor(artwork.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(artwork.type)}&page=1&limit=9`)}>
                             <span>{artwork.type || "Unknown"}</span>
-                          </Badge>
-                          {/* Show delete only if logged-in user IS the artwork owner */}
-                          {CURRENT_USER_ID === artwork.userId && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>{" "}
-                              <DropdownMenuContent align="end">
-                                {/* --- *** Edit Post Menu Item *** --- */}
+                          </Badge>{" "}
+                          {/* Show Edit/Delete for owners, Report for others */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>{" "}
+                            <DropdownMenuContent align="end">
+                              {CURRENT_USER_ID === artwork.userId ? (
+                                // Show Edit/Delete for post owner
+                                <>
+                                  <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      handleEditPost(artwork);
+                                    }}
+                                  >
+                                    <Edit className="mr-2 h-4 w-4" /> Edit Post
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      setPostToDelete(artwork.id);
+                                      setIsDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Post
+                                  </DropdownMenuItem>
+                                </>
+                              ) : (
+                                // Show Report for other users
                                 <DropdownMenuItem
                                   className="cursor-pointer"
                                   onSelect={(e) => {
                                     e.preventDefault();
-                                    handleEditPost(artwork);
+                                    handleReportPost(artwork);
                                   }}
                                 >
-                                  <Edit className="mr-2 h-4 w-4" /> Edit Post
+                                  <Flag className="mr-2 h-4 w-4" /> Report Post
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
-                                  onSelect={(e) => {
-                                    e.preventDefault();
-                                    setPostToDelete(artwork.id);
-                                    setIsDeleteDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" /> Delete Post
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </CardHeader>
@@ -1188,7 +1213,7 @@ export default function Profile() {
           // Pass logged-in user details for adding comments
           currentUser={CURRENT_USER_DATA ? { id: CURRENT_USER_DATA.id, username: CURRENT_USER_DATA.username, avatar: getFullStorageUrl(CURRENT_USER_DATA.avatar), level: CURRENT_USER_DATA.level || 1 } : null}
         />
-      )}
+      )}{" "}
       {/* --- *** Edit Post Modal *** --- */}
       {isEditPostOpen && postToEdit && (
         <EditPost
@@ -1199,6 +1224,18 @@ export default function Profile() {
           }}
           post={postToEdit}
           onPostUpdated={handlePostUpdated}
+        />
+      )}{" "}
+      {/* --- *** Report Post Modal *** --- */}
+      {isReportModalOpen && postToReport && (
+        <ReportPostModal
+          isOpen={isReportModalOpen}
+          onClose={() => {
+            setIsReportModalOpen(false);
+            setPostToReport(null);
+          }}
+          post={postToReport}
+          currentUser={currentUser}
         />
       )}
       {/* Delete Confirmation Dialog */}
