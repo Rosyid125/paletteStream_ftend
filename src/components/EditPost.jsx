@@ -52,7 +52,8 @@ export function EditPost({ isOpen, onClose, post, onPostUpdated }) {
 
   // Initialize form with post data when post changes
   useEffect(() => {
-    if (post && isOpen) {      setTitle(post.title || "");
+    if (post && isOpen) {
+      setTitle(post.title || "");
       setDescription(post.description || "");
       setType(post.type || "illustration");
       setTags(Array.isArray(post.tags) ? post.tags : []);
@@ -203,7 +204,7 @@ export function EditPost({ isOpen, onClose, post, onPostUpdated }) {
       // Send tags as array
       tags.forEach((tag) => {
         formData.append("tags[]", tag);
-      });      // Handle images - all images in the array are new images
+      }); // Handle images - all images in the array are new images
       images.forEach((image, index) => {
         if (image.startsWith("data:image/")) {
           // Convert base64 to file
@@ -259,11 +260,12 @@ export function EditPost({ isOpen, onClose, post, onPostUpdated }) {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {" "}
+          <DialogHeader>
             <DialogTitle>Edit Post</DialogTitle>
             <DialogDescription>Update your post details, images, and tags. Note: All current images will be replaced with new ones you upload.</DialogDescription>
           </DialogHeader>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column - Form Fields */}
             <div className="space-y-4">
@@ -339,8 +341,8 @@ export function EditPost({ isOpen, onClose, post, onPostUpdated }) {
                 </div>
               </div>
             </div>
-
-            {/* Right Column - Images */}            <div className="space-y-4">
+            {/* Right Column - Images */}{" "}
+            <div className="space-y-4">
               <div>
                 <Label>Images (New)</Label>
                 <div
@@ -368,15 +370,9 @@ export function EditPost({ isOpen, onClose, post, onPostUpdated }) {
               {images.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
                   {images.map((image, index) => (
-                    <div key={index} className="relative group">                      <img 
-                        src={
-                          image.startsWith("data:") 
-                            ? image 
-                            : getFullStorageUrl(image)
-                        } 
-                        alt={`Preview ${index + 1}`} 
-                        className="w-full h-20 object-cover rounded border" 
-                      />
+                    <div key={index} className="relative group">
+                      {" "}
+                      <img src={image.startsWith("data:") ? image : getFullStorageUrl(image)} alt={`Preview ${index + 1}`} className="w-full h-20 object-cover rounded border" />
                       <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleRemoveImage(index)} disabled={loading}>
                         <X className="h-3 w-3" />
                       </Button>
@@ -386,7 +382,6 @@ export function EditPost({ isOpen, onClose, post, onPostUpdated }) {
               )}
             </div>
           </div>
-
           {/* Form Actions */}
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
