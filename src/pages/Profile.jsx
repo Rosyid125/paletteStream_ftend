@@ -31,6 +31,7 @@ import {
   Loader2,
   MoreHorizontal,
   Trash2,
+  Edit,
 } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -46,6 +47,7 @@ import api from "../api/axiosInstance";
 // --- Import new components from Home ---
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
+import { EditPost } from "@/components/EditPost";
 import ChatPopup from "@/components/ChatPopup";
 
 // --- Constants from Home (adapted) ---
@@ -129,12 +131,14 @@ export default function Profile() {
   const [challengeHistory, setChallengeHistory] = useState(null);
 
   const [activeTab, setActiveTab] = useState("artworks");
-
   // State for Modals
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
+  // --- NEW: State for Edit Post Modal ---
+  const [isEditPostOpen, setIsEditPostOpen] = useState(false);
+  const [postToEdit, setPostToEdit] = useState(null);
 
   // State for Logged-in User Data
   const [CURRENT_USER_ID, setUserId] = useState(null);
@@ -524,6 +528,17 @@ export default function Profile() {
     }
   };
 
+  // --- *** NEW: Edit Post Functions *** ---
+  const handleEditPost = (post) => {
+    setPostToEdit(post);
+    setIsEditPostOpen(true);
+  };
+
+  const handlePostUpdated = (postId, updatedData) => {
+    setUserArtworks((prevArtworks) => prevArtworks.map((artwork) => (artwork.id === postId ? { ...artwork, ...updatedData } : artwork)));
+  };
+  // --- *** End of Edit Post Functions *** ---
+
   // --- Helper functions for styling ---
   const getTypeColor = (type) => {
     // ... (remains the same) ...
@@ -780,7 +795,6 @@ export default function Profile() {
           </div>
         </CardContent>
       </Card>
-
       {/* --- Profile Content Tabs --- */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
@@ -880,8 +894,18 @@ export default function Profile() {
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
-                              </DropdownMenuTrigger>
+                              </DropdownMenuTrigger>{" "}
                               <DropdownMenuContent align="end">
+                                {/* --- *** Edit Post Menu Item *** --- */}
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                    handleEditPost(artwork);
+                                  }}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" /> Edit Post
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
                                   onSelect={(e) => {
@@ -1149,9 +1173,8 @@ export default function Profile() {
           </Card>
         </TabsContent>
       </Tabs>
-
       {/* --- Modals --- */}
-      {/* Comment Modal */}
+      {/* Comment Modal */}{" "}
       {isCommentModalOpen && selectedPostForModal && (
         <CommentModal
           postId={selectedPostForModal.id}
@@ -1164,6 +1187,18 @@ export default function Profile() {
           onCommentAdded={handleCommentAdded}
           // Pass logged-in user details for adding comments
           currentUser={CURRENT_USER_DATA ? { id: CURRENT_USER_DATA.id, username: CURRENT_USER_DATA.username, avatar: getFullStorageUrl(CURRENT_USER_DATA.avatar), level: CURRENT_USER_DATA.level || 1 } : null}
+        />
+      )}
+      {/* --- *** Edit Post Modal *** --- */}
+      {isEditPostOpen && postToEdit && (
+        <EditPost
+          isOpen={isEditPostOpen}
+          onClose={() => {
+            setIsEditPostOpen(false);
+            setPostToEdit(null);
+          }}
+          post={postToEdit}
+          onPostUpdated={handlePostUpdated}
         />
       )}
       {/* Delete Confirmation Dialog */}
@@ -1185,7 +1220,6 @@ export default function Profile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Chat Popup - Rendered at the bottom of the profile page */}
       {chatUserId && <ChatPopup openUserId={chatUserId} onClose={() => setChatUserId(null)} />}
     </div>

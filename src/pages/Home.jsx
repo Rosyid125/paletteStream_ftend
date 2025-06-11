@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Heart, MessageCircle, Bookmark, Award, Clock, CheckCircle2, Trophy, Star, Flame as FlameIcon, TrendingUp, MoreHorizontal, Trash2, UserPlus, UserCheck, Loader2 } from "lucide-react"; // Tambahkan UserPlus, UserCheck, Loader2, Trash2
+import { Heart, MessageCircle, Bookmark, Award, Clock, CheckCircle2, Trophy, Star, Flame as FlameIcon, TrendingUp, MoreHorizontal, Trash2, UserPlus, UserCheck, Loader2, Edit } from "lucide-react"; // Tambahkan UserPlus, UserCheck, Loader2, Trash2, Edit
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 // --- Import new components ---
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
+import { EditPost } from "@/components/EditPost";
 
 // --- Import instance Axios ---
 import api from "./../api/axiosInstance"; // Pastikan path ini benar
@@ -48,13 +49,15 @@ export default function Home() {
   const [recommendedUsersPage, setRecommendedUsersPage] = useState(1);
   const [recommendedUsersHasMore, setRecommendedUsersHasMore] = useState(true);
   const [recommendedUsersLoadingMore, setRecommendedUsersLoadingMore] = useState(false); // Loading more users
-
   // --- State for Modals ---
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
   // --- NEW: State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
+  // --- NEW: State for Edit Post Modal ---
+  const [isEditPostOpen, setIsEditPostOpen] = useState(false);
+  const [postToEdit, setPostToEdit] = useState(null); // Store the post to be edited
   // --- State for User ID ---
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null); // State to store user data if needed
@@ -410,6 +413,17 @@ export default function Home() {
   };
   // --- *** End of Delete Post Function *** ---
 
+  // --- *** NEW: Edit Post Functions *** ---
+  const handleEditPost = (post) => {
+    setPostToEdit(post);
+    setIsEditPostOpen(true);
+  };
+
+  const handlePostUpdated = (postId, updatedData) => {
+    setPosts((prevPosts) => prevPosts.map((post) => (post.id === postId ? { ...post, ...updatedData } : post)));
+  };
+  // --- *** End of Edit Post Functions *** ---
+
   // --- Open Comment Modal ---
   const openCommentModal = (post) => {
     setSelectedPostForModal({ id: post.id, title: post.title });
@@ -585,9 +599,19 @@ export default function Home() {
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
                                       <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
+                                    </Button>{" "}
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    {/* --- *** NEW: Edit Post Menu Item *** --- */}
+                                    <DropdownMenuItem
+                                      className="cursor-pointer"
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleEditPost(post);
+                                      }}
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" /> Edit Post
+                                    </DropdownMenuItem>
                                     {/* --- *** NEW: Delete Post Menu Item *** --- */}
                                     <DropdownMenuItem
                                       className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
@@ -980,8 +1004,7 @@ export default function Home() {
             </CardFooter>
           </Card>
         </div>
-      </div>
-
+      </div>{" "}
       {/* --- Modals Rendered Outside Main Layout Flow --- */}
       {/* Comment Modal */}
       {isCommentModalOpen && selectedPostForModal && (
@@ -997,7 +1020,18 @@ export default function Home() {
           currentUser={userData ? { id: userData.id, username: userData.username, avatar: formatImageUrl(userData.avatar), level: userData.level || 1 } : null}
         />
       )}
-
+      {/* --- *** NEW: Edit Post Modal *** --- */}
+      {isEditPostOpen && postToEdit && (
+        <EditPost
+          isOpen={isEditPostOpen}
+          onClose={() => {
+            setIsEditPostOpen(false);
+            setPostToEdit(null);
+          }}
+          post={postToEdit}
+          onPostUpdated={handlePostUpdated}
+        />
+      )}
       {/* --- *** NEW: Delete Confirmation Dialog *** --- */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>

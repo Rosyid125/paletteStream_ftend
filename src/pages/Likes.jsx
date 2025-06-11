@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock, Loader2 } from "lucide-react"; // Added Loader2, ensured Trash2, MoreHorizontal are present
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Trash2, Clock, Loader2, Edit } from "lucide-react"; // Added Loader2, ensured Trash2, MoreHorizontal, Edit are present
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 // Komponen yang relevan
 import { LikesHoverCard } from "@/components/LikesHoverCard";
 import { CommentModal } from "@/components/CommentModal";
+import { EditPost } from "@/components/EditPost";
 
 // Instance Axios
 import api from "./../api/axiosInstance";
@@ -28,12 +29,14 @@ export default function LikedPosts() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
-
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
   // --- State for Delete Confirmation Dialog ---
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null); // Store the ID of the post to be deleted
+  // --- NEW: State for Edit Post Modal ---
+  const [isEditPostOpen, setIsEditPostOpen] = useState(false);
+  const [postToEdit, setPostToEdit] = useState(null); // Store the post to be edited
   // USER DATA AND USER ID
   const [USER_DATA, setUserData] = useState(null);
   const [USER_ID, setUserId] = useState(null);
@@ -303,11 +306,21 @@ export default function LikedPosts() {
       setError("Could not open comments for this post.");
     }
   };
-
   // --- Callback for Comment Modal ---
   const handleCommentAdded = (postId) => {
     setPosts((prevPosts) => prevPosts.map((p) => (p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p)));
   };
+
+  // --- *** NEW: Edit Post Functions *** ---
+  const handleEditPost = (post) => {
+    setPostToEdit(post);
+    setIsEditPostOpen(true);
+  };
+
+  const handlePostUpdated = (postId, updatedData) => {
+    setPosts((prevPosts) => prevPosts.map((post) => (post.id === postId ? { ...post, ...updatedData } : post)));
+  };
+  // --- *** End of Edit Post Functions *** ---
 
   // --- Intersection Observer Setup ---
   const lastPostElementRef = useCallback(
@@ -462,8 +475,18 @@ export default function LikedPosts() {
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground flex-shrink-0">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
+                          </DropdownMenuTrigger>{" "}
                           <DropdownMenuContent align="end">
+                            {/* --- *** Edit Post Menu Item *** --- */}
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                handleEditPost(post);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Edit Post
+                            </DropdownMenuItem>
                             {/* --- *** Delete Post Menu Item *** --- */}
                             <DropdownMenuItem
                               className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
@@ -625,8 +648,7 @@ export default function LikedPosts() {
         )}
         {!loading && !hasMore && posts.length > 0 && <div className="text-center py-6 text-muted-foreground col-span-full">End of liked posts ✨</div>}
       </div>{" "}
-      {/* End Container */}
-      {/* --- Modals --- */}
+      {/* End Container */} {/* --- Modals --- */}
       {isCommentModalOpen && selectedPostForModal && (
         <CommentModal
           postId={selectedPostForModal.id}
@@ -639,6 +661,18 @@ export default function LikedPosts() {
           onCommentAdded={handleCommentAdded}
           // Format avatar URL for current user in modal
           currentUser={USER_DATA ? { id: USER_DATA.id, username: USER_DATA.username, avatar: formatImageUrl(USER_DATA.avatar), level: USER_DATA.level || 1 } : null}
+        />
+      )}
+      {/* --- *** Edit Post Modal *** --- */}
+      {isEditPostOpen && postToEdit && (
+        <EditPost
+          isOpen={isEditPostOpen}
+          onClose={() => {
+            setIsEditPostOpen(false);
+            setPostToEdit(null);
+          }}
+          post={postToEdit}
+          onPostUpdated={handlePostUpdated}
         />
       )}
       {/* --- *** Delete Confirmation Dialog *** --- */}

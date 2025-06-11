@@ -8,9 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ImageCarousel } from "@/components/ImageCarousel";
 import { CommentModal } from "@/components/CommentModal";
 import { LikesHoverCard } from "@/components/LikesHoverCard";
-import { Shapes, Heart, MessageCircle, Bookmark, Loader2 } from "lucide-react"; // Using Shapes as a generic type icon
+import { Shapes, Heart, MessageCircle, Bookmark, Loader2, MoreHorizontal, Edit, Trash2 } from "lucide-react"; // Using Shapes as a generic type icon
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { EditPost } from "@/components/EditPost";
 import api from "../api/axiosInstance";
 import { toast } from "sonner";
 
@@ -71,12 +73,16 @@ export default function TypeResult() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-
   // State for interactions
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
   const [CURRENT_USER_ID, setUserId] = useState(null);
   const [CURRENT_USER_DATA, setUserData] = useState(null);
+
+  // --- *** NEW: Edit Post State *** ---
+  const [isEditPostOpen, setIsEditPostOpen] = useState(false);
+  const [postToEdit, setPostToEdit] = useState(null);
+  // --- *** End of Edit Post State *** ---
 
   // Ref for Intersection Observer
   const observer = useRef();
@@ -260,6 +266,41 @@ export default function TypeResult() {
     setResults((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p)));
   };
 
+  // --- *** NEW: Edit and Delete Post Functions *** ---
+  const handleEditPost = (post) => {
+    setPostToEdit(post);
+    setIsEditPostOpen(true);
+  };
+
+  const handlePostUpdated = (postId, updatedData) => {
+    setResults((prevResults) => prevResults.map((post) => (post.id === postId ? { ...post, ...updatedData } : post)));
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!CURRENT_USER_ID) {
+      toast.error("You must be logged in to delete posts.");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await api.delete(`/posts/delete/${postId}`);
+      if (response.data.success) {
+        setResults((prevResults) => prevResults.filter((post) => post.id !== postId));
+        toast.success("Post deleted successfully!");
+      } else {
+        toast.error(response.data.message || "Failed to delete post.");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      toast.error(error.response?.data?.message || "Failed to delete post.");
+    }
+  };
+  // --- *** End of Edit and Delete Post Functions *** ---
+
   // --- Render Loading Skeleton ---
   const renderSkeleton = (key) => (
     <Card key={key} className="overflow-hidden">
@@ -321,7 +362,6 @@ export default function TypeResult() {
           </CardDescription>
         </CardHeader>
       </Card>
-
       {/* Error Message Display */}
       {error && (
         <Card className="border-destructive bg-destructive/10">
@@ -329,26 +369,29 @@ export default function TypeResult() {
           <CardContent className="p-4 text-center text-destructive">Error: {error}</CardContent>{" "}
         </Card>
       )}
-
       {/* Results Grid Area */}
       <div className="mt-6">
         {/* Initial Loading Skeletons */}
-        {loading && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"> {Array.from({ length: limit }).map((_, index) => renderSkeleton(`initial-skeleton-${index}`))} </div>}
-
-        {/* Displayed Results Grid */}
+        {loading && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"> {Array.from({ length: limit }).map((_, index) => renderSkeleton(`initial-skeleton-${index}`))} </div>} {/* Displayed Results Grid */}
         {!loading && results.length > 0 && (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((artwork, index) => (
               <div ref={results.length === index + 1 ? lastResultRef : null} key={`${artwork.id}-${index}`}>
-                <ArtworkCard artwork={artwork} onLikeToggle={handleLikeToggle} onBookmarkToggle={handleBookmarkToggle} onCommentClick={openCommentModal} currentUserId={CURRENT_USER_ID} />
+                <ArtworkCard
+                  artwork={artwork}
+                  onLikeToggle={handleLikeToggle}
+                  onBookmarkToggle={handleBookmarkToggle}
+                  onCommentClick={openCommentModal}
+                  onEditPost={handleEditPost}
+                  onDeletePost={handleDeletePost}
+                  currentUserId={CURRENT_USER_ID}
+                />
               </div>
             ))}
           </div>
         )}
-
         {/* Loading More Indicator */}
         {loadingMore && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-6"> {Array.from({ length: 3 }).map((_, index) => renderSkeleton(`loading-skeleton-${index}`))} </div>}
-
         {/* Empty State */}
         {initialLoadComplete && !loading && results.length === 0 && !error && (
           <div className="text-center text-muted-foreground py-10 col-span-full">
@@ -358,7 +401,6 @@ export default function TypeResult() {
             </Button>
           </div>
         )}
-
         {/* End of List Message */}
         {!loading && !loadingMore && !hasMore && results.length > 0 && initialLoadComplete && (
           <div className="text-center text-muted-foreground py-10 col-span-full">
@@ -366,8 +408,7 @@ export default function TypeResult() {
             <p>You've reached the end of the search results.</p>{" "}
           </div>
         )}
-      </div>
-
+      </div>{" "}
       {/* Comment Modal */}
       {isCommentModalOpen && selectedPostForModal && (
         <CommentModal
@@ -382,12 +423,25 @@ export default function TypeResult() {
           currentUser={CURRENT_USER_DATA ? { id: CURRENT_USER_DATA.id, username: CURRENT_USER_DATA.username, avatar: getFullStorageUrl(CURRENT_USER_DATA.avatar), level: CURRENT_USER_DATA.level || 1 } : null}
         />
       )}
+      {/* --- *** NEW: Edit Post Modal *** --- */}
+      {isEditPostOpen && postToEdit && (
+        <EditPost
+          isOpen={isEditPostOpen}
+          onClose={() => {
+            setIsEditPostOpen(false);
+            setPostToEdit(null);
+          }}
+          post={postToEdit}
+          onPostUpdated={handlePostUpdated}
+        />
+      )}
+      {/* --- *** End of Edit Post Modal *** --- */}
     </div>
   );
 }
 
 // --- Artwork Card Component (Copied) ---
-function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, currentUserId }) {
+function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, onEditPost, onDeletePost, currentUserId }) {
   const navigate = useNavigate();
   return (
     <Card className="overflow-hidden flex flex-col h-full">
@@ -408,6 +462,27 @@ function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, 
             <Badge asChild variant="outline" className={`${getTypeColor(artwork.type)} capitalize cursor-pointer`} onClick={() => navigate(`/posts/type?query=${encodeURIComponent(artwork.type)}&page=1&limit=9`)}>
               <span>{artwork.type || "Unknown"}</span>
             </Badge>
+            {/* --- *** NEW: Dropdown Menu for Edit/Delete *** --- */}
+            {currentUserId === artwork.userId && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEditPost(artwork)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onDeletePost(artwork.id)} className="text-red-600">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Post
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {/* --- *** End of Dropdown Menu *** --- */}
           </div>
         </div>
       </CardHeader>

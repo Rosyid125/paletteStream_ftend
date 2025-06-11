@@ -8,7 +8,6 @@ import Discover from "@/pages/Discover";
 import Challenges from "@/pages/Challenges";
 import ChallengeDetail from "@/pages/ChallengeDetail";
 import TopArtists from "@/pages/TopArtists";
-import TopArtworks from "@/pages/TopArtworks";
 import WeeklyWinners from "@/pages/WeeklyWinners";
 import CreatePost from "@/pages/CreatePost";
 import Bookmarks from "@/pages/Bookmarks";
@@ -148,16 +147,6 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
               <TopArtists />
-            </ProtectedRoute>
-          </Suspense>
-        ),
-      },
-      {
-        path: "top-artworks",
-        element: (
-          <Suspense fallback={<LoadingSpinner />}>
-            <ProtectedRoute>
-              <TopArtworks />
             </ProtectedRoute>
           </Suspense>
         ),
