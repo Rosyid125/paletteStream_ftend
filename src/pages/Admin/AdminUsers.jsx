@@ -1,11 +1,37 @@
 import { useEffect, useState } from "react";
-import { fetchAdminUsers, createAdminUser, banUser, editUser, deleteUser } from "@/services/adminService";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Ban, Trash2, Pencil, Plus } from "lucide-react";
+import { Loader2, Ban, Trash2, Pencil, Plus, User, Shield, Eye, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import api from "@/api/axiosInstance";
+
+// --- Service functions using new endpoints ---
+const fetchAdminUsers = async ({ search, page, limit }) => {
+  return api.get("/admin/users", { params: { search, page, limit } });
+};
+const createAdminUser = async (payload) => {
+  return api.post("/admin/admins", payload);
+};
+const banUser = async (id) => {
+  return api.put(`/admin/users/${id}/ban`);
+};
+const editUser = async (id, payload) => {
+  return api.put(`/admin/users/${id}`, payload);
+};
+const deleteUser = async (id) => {
+  return api.delete(`/admin/users/${id}`);
+};
+const fetchUserById = async (id) => {
+  return api.get(`/admin/users/${id}`);
+};
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -14,15 +40,43 @@ export default function AdminUsers() {
   const [limit] = useState(20);
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
-  const [addForm, setAddForm] = useState({ email: "", password: "", first_name: "", last_name: "" });
+  const [addForm, setAddForm] = useState({
+    email: "",
+    password: "",
+    first_name: "",
+    last_name: "",
+    role: "admin",
+  });
   const [editId, setEditId] = useState(null);
-  const [editForm, setEditForm] = useState({ first_name: "", last_name: "", email: "" });
+  // --- Update editForm to include all editable fields ---
+  const [editForm, setEditForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    role: "default",
+    status: "active",
+    is_active: true,
+  });
   const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
-    const res = await fetchAdminUsers({ search, page, limit });
-    setUsers(res.data.data);
+    try {
+      const res = await fetchAdminUsers({ search, page, limit });
+      if (res.data && res.data.success) {
+        setUsers(res.data.data || []);
+        setTotal(res.data.total || 0);
+        setHasMore(res.data.hasMore || false);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch users",
+        variant: "destructive",
+      });
+    }
     setLoading(false);
   };
 
@@ -47,6 +101,7 @@ export default function AdminUsers() {
     toast({ title: "User deleted" });
     fetchUsers();
   };
+  // --- Update handleEdit to send all fields ---
   const handleEdit = async () => {
     await editUser(editId, editForm);
     toast({ title: "User updated" });
@@ -82,6 +137,7 @@ export default function AdminUsers() {
                 <th className="py-3 px-4 text-left font-semibold">Name</th>
                 <th className="py-3 px-4 text-left font-semibold">Status</th>
                 <th className="py-3 px-4 text-left font-semibold">Role</th>
+                <th className="py-3 px-4 text-left font-semibold">Active</th>
                 <th className="py-3 px-4 text-left font-semibold">Action</th>
               </tr>
             </thead>
@@ -93,10 +149,13 @@ export default function AdminUsers() {
                     {u.first_name} {u.last_name}
                   </td>
                   <td className="py-2 px-4">
-                    <Badge variant={u.status === "active" ? "success" : "destructive"}>{u.status}</Badge>
+                    <Badge variant={u.status === "active" ? "success" : u.status === "banned" ? "destructive" : "secondary"}>{u.status}</Badge>
                   </td>
                   <td className="py-2 px-4">
                     <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
+                  </td>
+                  <td className="py-2 px-4">
+                    <Badge variant={u.is_active ? "success" : "destructive"}>{u.is_active ? "Active" : "Inactive"}</Badge>
                   </td>
                   <td className="py-2 px-4">
                     <div className="flex gap-1">
@@ -106,7 +165,14 @@ export default function AdminUsers() {
                         className="hover:bg-indigo-100 dark:hover:bg-indigo-900"
                         onClick={() => {
                           setEditId(u.id);
-                          setEditForm({ first_name: u.first_name, last_name: u.last_name, email: u.email });
+                          setEditForm({
+                            first_name: u.first_name,
+                            last_name: u.last_name,
+                            email: u.email,
+                            role: u.role,
+                            status: u.status,
+                            is_active: u.is_active,
+                          });
                         }}
                         aria-label="Edit"
                       >
@@ -150,6 +216,14 @@ export default function AdminUsers() {
             <Input placeholder="Password" type="password" value={addForm.password} onChange={(e) => setAddForm((f) => ({ ...f, password: e.target.value }))} required />
             <Input placeholder="First Name" value={addForm.first_name} onChange={(e) => setAddForm((f) => ({ ...f, first_name: e.target.value }))} required />
             <Input placeholder="Last Name" value={addForm.last_name} onChange={(e) => setAddForm((f) => ({ ...f, last_name: e.target.value }))} required />
+            <Select value={addForm.role} onValueChange={(v) => setAddForm((f) => ({ ...f, role: v }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
             <Button type="submit" className="w-full">
               Add
             </Button>
@@ -177,6 +251,19 @@ export default function AdminUsers() {
             <Input placeholder="Email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} required />
             <Input placeholder="First Name" value={editForm.first_name} onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))} required />
             <Input placeholder="Last Name" value={editForm.last_name} onChange={(e) => setEditForm((f) => ({ ...f, last_name: e.target.value }))} required />
+            <Select value={editForm.role} onValueChange={(v) => setEditForm((f) => ({ ...f, role: v }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="default">User</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="is_active">Active</Label>
+              <Switch id="is_active" checked={editForm.is_active} onCheckedChange={(v) => setEditForm((f) => ({ ...f, is_active: v }))} />
+            </div>
             <Button type="submit" className="w-full">
               Save
             </Button>
