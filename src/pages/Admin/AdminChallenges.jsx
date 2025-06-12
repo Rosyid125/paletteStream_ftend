@@ -74,6 +74,7 @@ export default function AdminChallenges() {
   const imgRef = useRef(null);
   const hiddenFileInputRef = useRef(null);
   const [selectedWinners, setSelectedWinners] = useState([]);
+  const [selectedWinnersWithRank, setSelectedWinnersWithRank] = useState({}); // { userId: rank }
   const [adminNote, setAdminNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [selectionMode, setSelectionMode] = useState("manual"); // "manual" or "auto"
@@ -390,9 +391,36 @@ export default function AdminChallenges() {
       return;
     }
 
+    if (selectionMode === "manual" && selectedWinners.length > 3) {
+      toast.error("You can only select maximum 3 winners");
+      return;
+    }
+
     if (selectionMode === "auto" && (!maxWinners || maxWinners < 1)) {
       toast.error("Please specify a valid number of winners (minimum 1)");
       return;
+    }
+
+    if (selectionMode === "auto" && maxWinners > 3) {
+      toast.error("Maximum 3 winners allowed");
+      return;
+    }
+
+    // For manual selection, check if all selected users have ranks assigned
+    if (selectionMode === "manual") {
+      const unrankedUsers = selectedWinners.filter((userId) => !selectedWinnersWithRank[userId]);
+      if (unrankedUsers.length > 0) {
+        toast.error("Please assign ranks to all selected winners");
+        return;
+      }
+
+      // Check for duplicate ranks
+      const ranks = Object.values(selectedWinnersWithRank);
+      const uniqueRanks = [...new Set(ranks)];
+      if (ranks.length !== uniqueRanks.length) {
+        toast.error("Each winner must have a unique rank");
+        return;
+      }
     }
 
     try {
@@ -400,15 +428,15 @@ export default function AdminChallenges() {
       let response;
 
       if (selectionMode === "manual") {
-        // Manual selection - create winnersData array with userId, postId, and rank
-        const winnersData = selectedWinners.map((userId, index) => {
+        // Manual selection - create winnersData array with userId, postId, and admin-assigned rank
+        const winnersData = selectedWinners.map((userId) => {
           // Find the submission for this user
           const submission = selectedChallenge.challengePosts?.find((post) => post.user_id === userId);
 
           return {
             userId: userId,
             postId: submission?.post_id || submission?.post?.id,
-            rank: index + 1, // 1-based ranking
+            rank: selectedWinnersWithRank[userId], // Use admin-assigned rank
           };
         });
 
@@ -423,6 +451,7 @@ export default function AdminChallenges() {
         toast.success(selectionMode === "manual" ? `Successfully selected ${selectedWinners.length} winners` : `Successfully auto-selected ${maxWinners} winners`);
         setWinnersModalOpen(false);
         setSelectedWinners([]);
+        setSelectedWinnersWithRank({});
         setAdminNote("");
         setSelectionMode("manual");
         setMaxWinners(3);
@@ -758,8 +787,7 @@ export default function AdminChallenges() {
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="manual">Manual Selection</TabsTrigger>
                   <TabsTrigger value="auto">Auto Selection</TabsTrigger>
-                </TabsList>
-
+                </TabsList>{" "}
                 <TabsContent value="manual" className="space-y-4">
                   <div>
                     <Label>Select Winners from Submissions:</Label>
@@ -769,19 +797,56 @@ export default function AdminChallenges() {
                           ?.sort((a, b) => (b.post?.likeCount || b.post?.likes_count || 0) - (a.post?.likeCount || a.post?.likes_count || 0))
                           ?.map((submission, index) => (
                             <div key={submission.id} className="flex items-center space-x-3 p-2 rounded hover:bg-muted">
+                              {" "}
                               <input
                                 type="checkbox"
                                 className="form-checkbox h-4 w-4 text-primary"
                                 checked={selectedWinners.includes(submission.user_id)}
+                                disabled={!selectedWinners.includes(submission.user_id) && selectedWinners.length >= 3}
                                 onChange={(e) => {
                                   if (e.target.checked) {
+                                    if (selectedWinners.length >= 3) {
+                                      toast.error("Maximum 3 winners allowed");
+                                      return;
+                                    }
                                     setSelectedWinners((prev) => [...prev, submission.user_id]);
                                   } else {
                                     setSelectedWinners((prev) => prev.filter((id) => id !== submission.user_id));
+                                    // Remove rank assignment when unchecked
+                                    setSelectedWinnersWithRank((prev) => {
+                                      const newRanks = { ...prev };
+                                      delete newRanks[submission.user_id];
+                                      return newRanks;
+                                    });
                                   }
                                 }}
-                              />{" "}
-                              <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full text-xs font-medium">#{index + 1}</div>
+                              />
+                              {/* Rank Selection for Selected Users */}
+                              {selectedWinners.includes(submission.user_id) ? (
+                                <div className="flex items-center justify-center w-16 h-8 bg-primary/10 border-2 border-primary/30 rounded-md">
+                                  {" "}
+                                  <select
+                                    className="w-full h-full text-xs font-medium bg-transparent border-none outline-none text-center"
+                                    value={selectedWinnersWithRank[submission.user_id] || ""}
+                                    onChange={(e) => {
+                                      const rank = parseInt(e.target.value);
+                                      setSelectedWinnersWithRank((prev) => ({
+                                        ...prev,
+                                        [submission.user_id]: rank,
+                                      }));
+                                    }}
+                                  >
+                                    <option value="">Rank</option>
+                                    {[1, 2, 3].map((rank) => (
+                                      <option key={rank} value={rank}>
+                                        #{rank}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-center w-16 h-8 bg-muted rounded-md text-xs font-medium text-muted-foreground">#{index + 1}</div>
+                              )}
                               <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => submission.post?.user?.id && navigate(`/profile/${submission.post.user.id}`)}>
                                 <AvatarImage src={getFullImageUrl(submission.post?.user?.profile?.avatar)} />
                                 <AvatarFallback>{submission.post?.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
@@ -818,16 +883,33 @@ export default function AdminChallenges() {
                     ) : (
                       <p className="text-sm text-muted-foreground mt-2">No submissions for this challenge yet.</p>
                     )}
+                    {/* Selected Winners Summary */}
+                    {selectedWinners.length > 0 && (
+                      <div className="mt-4 p-3 bg-muted/50 rounded-md">
+                        <Label className="text-sm font-medium">Selected Winners Summary ({selectedWinners.length}/3):</Label>
+                        <div className="mt-2 space-y-1">
+                          {selectedWinners.map((userId) => {
+                            const submission = selectedChallenge.challengePosts?.find((post) => post.user_id === userId);
+                            const rank = selectedWinnersWithRank[userId];
+                            return (
+                              <div key={userId} className="flex items-center justify-between text-xs">
+                                <span>{submission?.post?.user?.profile?.username || "Unknown User"}</span>
+                                <span className={`font-medium ${rank ? "text-primary" : "text-destructive"}`}>{rank ? `Rank #${rank}` : "No rank assigned"}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
-
                 <TabsContent value="auto" className="space-y-4">
+                  {" "}
                   <div>
                     <Label htmlFor="max_winners">Number of Winners</Label>
-                    <Input id="max_winners" type="number" min="1" max={selectedChallenge.challengePosts?.length || 1} value={maxWinners} onChange={(e) => setMaxWinners(parseInt(e.target.value) || 1)} className="w-32 mt-1" />
-                    <p className="text-xs text-muted-foreground mt-1">System will automatically select winners based on highest like count</p>
+                    <Input id="max_winners" type="number" min="1" max="3" value={maxWinners} onChange={(e) => setMaxWinners(Math.min(3, parseInt(e.target.value) || 1))} className="w-32 mt-1" />
+                    <p className="text-xs text-muted-foreground mt-1">System will automatically select winners based on highest like count (max 3)</p>
                   </div>
-
                   {selectedChallenge.challengePosts?.length > 0 && (
                     <div>
                       <Label>Preview Top Posts (sorted by likes):</Label>
@@ -869,9 +951,9 @@ export default function AdminChallenges() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setWinnersModalOpen(false)}>
               Cancel
-            </Button>
-            <Button onClick={handleSelectWinners} disabled={submitting || (selectionMode === "manual" && selectedWinners.length === 0)}>
-              {submitting ? "Selecting..." : selectionMode === "manual" ? `Select ${selectedWinners.length} Winner(s)` : `Auto-Select ${maxWinners} Winner(s)`}
+            </Button>{" "}
+            <Button onClick={handleSelectWinners} disabled={submitting || (selectionMode === "manual" && (selectedWinners.length === 0 || selectedWinners.length > 3 || selectedWinners.some((userId) => !selectedWinnersWithRank[userId])))}>
+              {submitting ? "Selecting..." : selectionMode === "manual" ? `Select ${selectedWinners.length} Winner(s) (max 3)` : `Auto-Select ${maxWinners} Winner(s)`}
             </Button>{" "}
           </DialogFooter>
         </DialogContent>
