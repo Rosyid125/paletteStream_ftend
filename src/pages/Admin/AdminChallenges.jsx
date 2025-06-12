@@ -296,17 +296,26 @@ export default function AdminChallenges() {
         fetchChallenges();
       } else {
         // Handle validation errors from backend
-        const errorMessage = response.data.errors && typeof response.data.errors === "object" ? Object.values(response.data.errors).flat().join(", ") : response.data.message || "Failed to create challenge";
-        toast.error(errorMessage);
+        if (response.data.message === "Deadline must be in the future") {
+          toast.error("Deadline must be in the future. Please select a valid date and time.");
+        } else {
+          const errorMessage = response.data.errors && typeof response.data.errors === "object" ? Object.values(response.data.errors).flat().join(", ") : response.data.message || "Failed to create challenge";
+          toast.error(errorMessage);
+        }
+        // Ensure submitting state is reset and modal stays open on error
+        setSubmitting(false);
+        return;
       }
     } catch (err) {
       // Handle network errors or unexpected responses
-      const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to create challenge");
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+
+      // Check for specific "deadline in the future" error in catch block too
+      if (err.response?.data?.message === "Deadline must be in the future") {
+        toast.error("Deadline must be in the future. Please select a valid date and time.");
+      } else {
+        const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to create challenge");
+        toast.error(errorMessage);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -340,11 +349,7 @@ export default function AdminChallenges() {
     } catch (err) {
       // Handle network errors or unexpected responses
       const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to update challenge");
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -353,25 +358,14 @@ export default function AdminChallenges() {
     try {
       const response = await closeChallenge(challengeId);
       if (response.data.success) {
-        toast({
-          title: "Success",
-          description: "Challenge closed successfully",
-        });
+        toast.success("Challenge closed successfully");
         fetchChallenges();
       } else {
-        toast({
-          title: "Error",
-          description: response.data.message || "Failed to close challenge",
-          variant: "destructive",
-        });
+        toast.error(response.data.message || "Failed to close challenge");
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to close challenge");
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     }
   };
   const handleDeleteChallenge = async (challengeId) => {
@@ -380,25 +374,14 @@ export default function AdminChallenges() {
     try {
       const response = await deleteChallenge(challengeId);
       if (response.data.success) {
-        toast({
-          title: "Success",
-          description: "Challenge deleted successfully",
-        });
+        toast.success("Challenge deleted successfully");
         fetchChallenges();
       } else {
-        toast({
-          title: "Error",
-          description: response.data.message || "Failed to delete challenge",
-          variant: "destructive",
-        });
+        toast.error(response.data.message || "Failed to delete challenge");
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to delete challenge");
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     }
   };
   const handleSelectWinners = async () => {
