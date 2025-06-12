@@ -28,13 +28,30 @@ export default function CreatePost() {
   const fileInputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false); // For handling drag over state
   const [errors, setErrors] = useState({}); // State untuk menyimpan pesan kesalahan
-  const popularTags = ["illustration", "manga", "novel", "digital art", "traditional art", "fanart", "sketch", "painting", "character design", "concept art"];
+  const [popularTags, setPopularTags] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // User effect yang akan dijalankan setiap kali params berubah
   useEffect(() => {
     setType(initialType || "illustration");
   }, [initialType]);
+
+  // Fetch popular tags from API
+  useEffect(() => {
+    async function fetchPopularTags() {
+      try {
+        const res = await api.get("/tags/popular", { params: { limit: 10 } });
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setPopularTags(res.data.data.map((t) => t.name));
+        } else {
+          setPopularTags([]);
+        }
+      } catch {
+        setPopularTags([]);
+      }
+    }
+    fetchPopularTags();
+  }, []);
 
   const handleAddTag = () => {
     if (tagInput && !tags.includes(tagInput)) {

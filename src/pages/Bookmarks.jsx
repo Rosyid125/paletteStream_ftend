@@ -673,7 +673,7 @@ export default function BookmarkedPosts() {
         {!initialLoading && !loading && posts.length === 0 && !error && (
           <div className="text-center py-10 col-span-full">
             <Bookmark className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">You haven't bookmarked any posts yet.</p>
+            <p className="text-muted-foreground">You haven&apos;t bookmarked any posts yet.</p>
             {/* Tambahkan tombol atau link untuk explore jika perlu */}
             {/* <Button variant="outline" className="mt-4">Explore Posts</Button> */}
           </div>

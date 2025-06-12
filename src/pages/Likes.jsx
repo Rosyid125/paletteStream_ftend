@@ -667,7 +667,7 @@ export default function LikedPosts() {
         {!initialLoading && !loading && posts.length === 0 && !error && (
           <div className="text-center py-10 col-span-full">
             <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">You haven't liked any posts yet.</p>
+            <p className="text-muted-foreground">You haven&apos;t liked any posts yet.</p>
             {/* Optional button to explore */}
             {/* <Button variant="outline" className="mt-4" onClick={() => navigate('/')}>Explore Posts</Button> */}
           </div>

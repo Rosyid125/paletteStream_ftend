@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Heart, X, MessageCircle, Bookmark, Loader2, MoreHorizontal, Edit, Trash2, Flag } from "lucide-react";
+import { Search, Heart, X, MessageCircle, Bookmark, MoreHorizontal, Edit, Trash2, Flag } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -20,6 +20,7 @@ import { ReportPostModal } from "@/components/ReportPostModal";
 import api from "../api/axiosInstance";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import PropTypes from "prop-types";
 
 // --- Constants ---
 const ARTWORKS_PAGE_LIMIT = 9;
@@ -82,7 +83,7 @@ export default function Discover() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [currentTagInput, setCurrentTagInput] = useState("");
   const [selectedType, setSelectedType] = useState("");
-  const popularTags = ["fantasy", "digital", "portrait", "landscape", "character", "anime", "scifi", "traditional", "concept", "fanart"];
+  const [popularTags, setPopularTags] = useState([]);
   const artworkTypes = ["illustration", "manga", "novel"];
   // --- *** NEW: Edit Post State *** ---
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
@@ -144,6 +145,7 @@ export default function Discover() {
 
   useEffect(() => {
     fetchArtworks(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const lastArtworkElementRef = useCallback(
@@ -184,8 +186,6 @@ export default function Discover() {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       addTag(currentTagInput);
-    } else if (e.key === "Enter") {
-      handleSearchSubmit();
     }
   };
   const handleQueryInputKeyDown = (e) => {
@@ -196,68 +196,63 @@ export default function Discover() {
 
   // --- *** UPDATED handleSearchSubmit Function *** ---
   const handleSearchSubmit = () => {
-    let targetPath = ""; // Will be set in switch
-    let queryString = ""; // Will be built based on type
-
+    let targetPath = "";
+    let queryString = "";
     switch (searchType) {
-      case "artist":
+      case "artist": {
         if (!searchQuery.trim()) {
           console.log("Artist search query empty.");
-          return; // Early exit if input invalid
+          return;
         }
-        targetPath = "/users/name"; // Specific path for artist search
-        // Use URLSearchParams for standard key-value pairs
+        targetPath = "/users/name";
         queryString = new URLSearchParams({
           query: searchQuery.trim(),
           page: 1,
-          limit: 10, // Specific limit for artists
+          limit: 10,
         }).toString();
         break;
-
-      case "post":
+      }
+      case "post": {
         if (!searchQuery.trim()) {
           console.log("Post search query empty.");
           return;
         }
-        targetPath = "/posts/title-desc"; // Specific path for post title/desc search
+        targetPath = "/posts/title-desc";
         queryString = new URLSearchParams({
           query: searchQuery.trim(),
           page: 1,
-          limit: 9, // Specific limit for posts
+          limit: 9,
         }).toString();
         break;
-
-      case "tags":
+      }
+      case "tags": {
         if (selectedTags.length === 0) {
           console.log("No tags selected.");
           return;
         }
-        targetPath = "/posts/tags"; // Specific path for tags search
-        // Manual build for repeated 'query' keys as required
+        targetPath = "/posts/tags";
         const tagParams = selectedTags.map((tag) => `query=${encodeURIComponent(tag)}`).join("&");
-        queryString = `page=1&limit=9&${tagParams}`; // Add page/limit first, then tag queries
+        queryString = `page=1&limit=9&${tagParams}`;
         break;
-
-      case "type":
+      }
+      case "type": {
         if (!selectedType) {
           console.log("No type selected.");
           return;
         }
-        targetPath = "/posts/type"; // Specific path for type search
+        targetPath = "/posts/type";
         queryString = new URLSearchParams({
           query: selectedType,
           page: 1,
-          limit: 9, // Specific limit for type search
+          limit: 9,
         }).toString();
         break;
-
-      default:
+      }
+      default: {
         console.warn("Unknown search type:", searchType);
-        return; // Exit if type is somehow invalid
+        return;
+      }
     }
-
-    // Construct the final URL and navigate
-    // We are navigating away from Discover page to a dedicated search results page
     const url = `${targetPath}?${queryString}`;
     console.log("Navigating to:", url);
     navigate(url);
@@ -436,6 +431,22 @@ export default function Discover() {
     </Card>
   );
 
+  useEffect(() => {
+    async function fetchPopularTags() {
+      try {
+        const res = await api.get("/tags/popular", { params: { limit: 10 } });
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setPopularTags(res.data.data.map((t) => t.name));
+        } else {
+          setPopularTags([]);
+        }
+      } catch {
+        setPopularTags([]);
+      }
+    }
+    fetchPopularTags();
+  }, []);
+
   return (
     <div className="grid grid-cols-1 space-y-6 p-4 md:p-6">
       {/* Search Card */}
@@ -531,7 +542,7 @@ export default function Discover() {
         {!loadingArtworks && !hasMore && artworks.length > 0 && initialLoadComplete && (
           <div className="text-center text-muted-foreground py-10 col-span-full">
             {" "}
-            <p>You've scrolled through all discovered artworks!</p>{" "}
+            <p>You&apos;ve scrolled through all discovered artworks!</p>{" "}
           </div>
         )}
       </div>
@@ -719,3 +730,30 @@ function ArtworkCard({ artwork, onLikeToggle, onBookmarkToggle, onCommentClick, 
     </Card>
   );
 }
+
+ArtworkCard.propTypes = {
+  artwork: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    userId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    avatar: PropTypes.string,
+    username: PropTypes.string,
+    level: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    createdAt: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    type: PropTypes.string,
+    images: PropTypes.arrayOf(PropTypes.string),
+    title: PropTypes.string,
+    description: PropTypes.string,
+    tags: PropTypes.arrayOf(PropTypes.string),
+    postLikeStatus: PropTypes.bool,
+    likeCount: PropTypes.number,
+    commentCount: PropTypes.number,
+    bookmarkStatus: PropTypes.bool,
+  }).isRequired,
+  onLikeToggle: PropTypes.func.isRequired,
+  onBookmarkToggle: PropTypes.func.isRequired,
+  onCommentClick: PropTypes.func.isRequired,
+  onEditPost: PropTypes.func.isRequired,
+  onDeletePost: PropTypes.func.isRequired,
+  onReportPost: PropTypes.func.isRequired,
+  currentUserId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};
