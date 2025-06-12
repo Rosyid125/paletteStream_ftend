@@ -1,5 +1,6 @@
 // src/components/LikesHoverCard.jsx
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,11 +22,16 @@ const formatImageUrl = (imagePath) => {
 };
 
 export function LikesHoverCard({ postId }) {
+  const navigate = useNavigate();
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   // Using a high limit as per example, pagination might be overkill for a hover card
   const LIKES_LIMIT = 50;
+
+  const handleUserClick = (userId) => {
+    navigate(`/profile/${userId}`);
+  };
 
   useEffect(() => {
     if (!postId) return; // Don't fetch if postId is not provided
@@ -93,13 +99,13 @@ export function LikesHoverCard({ postId }) {
             !error &&
             likes.length > 0 &&
             likes.map((like) => (
-              <div key={like.user_id} className="flex items-center space-x-2">
+              <div key={like.user_id} className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 rounded-md p-1 transition-colors" onClick={() => handleUserClick(like.user_id)}>
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={formatImageUrl(like.avatar)} alt={like.username} />
                   <AvatarFallback>{like.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-xs font-medium leading-none">{like.username}</p>
+                  <p className="text-xs font-medium leading-none hover:underline">{like.username}</p>
                   <p className="text-xs text-muted-foreground">Level {like.level || 1}</p>
                 </div>
                 {/* Optional: Add a follow button? */}

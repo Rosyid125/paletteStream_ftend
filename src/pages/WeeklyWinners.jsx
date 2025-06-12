@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { toast } from "sonner";
 import api from "@/api/axiosInstance";
 
 export default function WeeklyWinners() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("recent");
   const [challenges, setChallenges] = useState([]);
   const [challengeWinners, setChallengeWinners] = useState({});
@@ -195,18 +197,22 @@ export default function WeeklyWinners() {
               <TabsTrigger value="recent">Recent Winners</TabsTrigger>
               <TabsTrigger value="popular">Most Popular</TabsTrigger>
               <TabsTrigger value="all">All Winners</TabsTrigger>
-            </TabsList>
-
+            </TabsList>{" "}
             <TabsContent value="recent" className="mt-6">
-              <ChallengeWinnersList challenges={getFilteredChallenges()} challengeWinners={challengeWinners} getFullImageUrl={getFullImageUrl} formatDate={formatDate} emptyMessage="No recent winners found" />
+              <ChallengeWinnersList challenges={getFilteredChallenges()} challengeWinners={challengeWinners} getFullImageUrl={getFullImageUrl} formatDate={formatDate} navigate={navigate} emptyMessage="No recent winners found" />
             </TabsContent>
-
             <TabsContent value="popular" className="mt-6">
-              <ChallengeWinnersList challenges={getFilteredChallenges()} challengeWinners={challengeWinners} getFullImageUrl={getFullImageUrl} formatDate={formatDate} emptyMessage="No popular challenges found" />
+              <ChallengeWinnersList challenges={getFilteredChallenges()} challengeWinners={challengeWinners} getFullImageUrl={getFullImageUrl} formatDate={formatDate} navigate={navigate} emptyMessage="No popular challenges found" />
             </TabsContent>
-
             <TabsContent value="all" className="mt-6">
-              <ChallengeWinnersList challenges={getFilteredChallenges()} challengeWinners={challengeWinners} getFullImageUrl={getFullImageUrl} formatDate={formatDate} emptyMessage="No completed challenges with winners found" />
+              <ChallengeWinnersList
+                challenges={getFilteredChallenges()}
+                challengeWinners={challengeWinners}
+                getFullImageUrl={getFullImageUrl}
+                formatDate={formatDate}
+                navigate={navigate}
+                emptyMessage="No completed challenges with winners found"
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -215,7 +221,7 @@ export default function WeeklyWinners() {
   );
 }
 // Components
-function ChallengeWinnersList({ challenges, challengeWinners, getFullImageUrl, formatDate, emptyMessage }) {
+function ChallengeWinnersList({ challenges, challengeWinners, getFullImageUrl, formatDate, navigate, emptyMessage }) {
   if (challenges.length === 0) {
     return (
       <div className="text-center py-12">
@@ -229,13 +235,13 @@ function ChallengeWinnersList({ challenges, challengeWinners, getFullImageUrl, f
   return (
     <div className="space-y-8">
       {challenges.map((challenge) => (
-        <ChallengeWinnersCard key={challenge.id} challenge={challenge} winners={challengeWinners[challenge.id] || []} getFullImageUrl={getFullImageUrl} formatDate={formatDate} />
+        <ChallengeWinnersCard key={challenge.id} challenge={challenge} winners={challengeWinners[challenge.id] || []} getFullImageUrl={getFullImageUrl} formatDate={formatDate} navigate={navigate} />
       ))}
     </div>
   );
 }
 
-function ChallengeWinnersCard({ challenge, winners, getFullImageUrl, formatDate }) {
+function ChallengeWinnersCard({ challenge, winners, getFullImageUrl, formatDate, navigate }) {
   const submissionCount = challenge.challengePosts?.length || 0;
 
   return (
@@ -288,7 +294,7 @@ function ChallengeWinnersCard({ challenge, winners, getFullImageUrl, formatDate 
               {winners
                 .sort((a, b) => a.rank - b.rank) // Sort by rank
                 .map((winner) => (
-                  <WinnerCard key={winner.id} winner={winner} rank={winner.rank} getFullImageUrl={getFullImageUrl} />
+                  <WinnerCard key={winner.id} winner={winner} rank={winner.rank} getFullImageUrl={getFullImageUrl} navigate={navigate} />
                 ))}
             </div>
           </div>
@@ -303,7 +309,7 @@ function ChallengeWinnersCard({ challenge, winners, getFullImageUrl, formatDate 
   );
 }
 
-function WinnerCard({ winner, rank, getFullImageUrl }) {
+function WinnerCard({ winner, rank, getFullImageUrl, navigate }) {
   const getRankIcon = (rank) => {
     switch (rank) {
       case 1:
@@ -340,15 +346,17 @@ function WinnerCard({ winner, rank, getFullImageUrl }) {
               {getRankIcon(rank)}
               <span className="ml-1">#{rank}</span>
             </Badge>
-          </div>
+          </div>{" "}
           {/* User Info */}
           <div className="flex items-center gap-3 flex-1">
-            <Avatar className="h-12 w-12">
+            <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
               <AvatarImage src={getFullImageUrl(winner.user?.profile?.avatar)} />
               <AvatarFallback>{winner.user?.firstName?.[0]?.toUpperCase() || winner.user?.profile?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h4 className="font-semibold">{winner.user?.profile?.username || `${winner.user?.firstName} ${winner.user?.lastName}`.trim() || "Unknown User"}</h4>
+              <h4 className="font-semibold cursor-pointer hover:text-primary transition-colors" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
+                {winner.user?.profile?.username || `${winner.user?.firstName} ${winner.user?.lastName}`.trim() || "Unknown User"}
+              </h4>
               <p className="text-sm text-muted-foreground">{winner.admin_note || "Congratulations!"}</p>
               <div className="flex items-center gap-3 mt-1">
                 {winner.final_score && (

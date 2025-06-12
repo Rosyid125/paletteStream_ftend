@@ -364,14 +364,17 @@ function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHi
       </div>
       {/* Challenge Content */}
       <CardContent className="pt-4">
+        {" "}
         {/* Creator Info */}
         <div className="flex items-center mb-4">
-          <Avatar className="h-8 w-8 mr-2">
+          <Avatar className="h-8 w-8 mr-2 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => challenge.creator?.id && navigate(`/profile/${challenge.creator.id}`)}>
             <AvatarImage src={getFullImageUrl(challenge.creator?.profile?.avatar)} />
             <AvatarFallback>{challenge.creator?.firstName?.[0] || "A"}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium">Created by {challenge.creator?.profile?.username || "Admin"}</p>
+            <p className="text-sm font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => challenge.creator?.id && navigate(`/profile/${challenge.creator.id}`)}>
+              Created by {challenge.creator?.profile?.username || "Admin"}
+            </p>
             <p className="text-xs text-muted-foreground">{formatDate(challenge.created_at)}</p>
           </div>
         </div>{" "}
@@ -420,7 +423,7 @@ function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHi
             <h4 className="text-sm font-semibold mb-3 flex items-center">
               <Crown className="h-4 w-4 text-yellow-600 mr-1" />
               Winners
-            </h4>
+            </h4>{" "}
             <div className="space-y-2">
               {challenge.userBadges.map((badge, index) => (
                 <div key={badge.id} className="flex items-center">
@@ -435,12 +438,14 @@ function ChallengeCard({ challenge, onSubmit, onViewDetails, showWinners, userHi
                       <Star className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
-                  <Avatar className="h-6 w-6 mr-2">
+                  <Avatar className="h-6 w-6 mr-2 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => badge.user?.id && navigate(`/profile/${badge.user.id}`)}>
                     <AvatarImage src={getFullImageUrl(badge.user?.profile?.avatar)} />
                     <AvatarFallback>{badge.user?.firstName?.[0] || "U"}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <span className="text-sm font-medium">{badge.user?.profile?.username || "Unknown User"}</span>
+                    <span className="text-sm font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => badge.user?.id && navigate(`/profile/${badge.user.id}`)}>
+                      {badge.user?.profile?.username || "Unknown User"}
+                    </span>
                     {badge.admin_note && <p className="text-xs text-muted-foreground">{badge.admin_note}</p>}
                   </div>
                 </div>

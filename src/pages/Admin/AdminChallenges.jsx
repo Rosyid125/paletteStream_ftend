@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ import "react-image-crop/dist/ReactCrop.css";
 import { CommentModal } from "@/components/CommentModal";
 
 export default function AdminChallenges() {
+  const navigate = useNavigate();
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -716,6 +718,7 @@ export default function AdminChallenges() {
             onOpenCommentModal={handleOpenCommentModal}
             getFullImageUrl={getFullImageUrl}
             formatDate={formatDateDisplay}
+            navigate={navigate}
           />
         ))}
       </div>
@@ -785,14 +788,16 @@ export default function AdminChallenges() {
                                     setSelectedWinners((prev) => prev.filter((id) => id !== submission.user_id));
                                   }
                                 }}
-                              />
+                              />{" "}
                               <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full text-xs font-medium">#{index + 1}</div>
-                              <Avatar className="h-8 w-8">
+                              <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => submission.post?.user?.id && navigate(`/profile/${submission.post.user.id}`)}>
                                 <AvatarImage src={getFullImageUrl(submission.post?.user?.profile?.avatar)} />
                                 <AvatarFallback>{submission.post?.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                               </Avatar>
                               <div className="flex-1">
-                                <p className="text-sm font-medium">{submission.post?.user?.profile?.username || "Unknown User"}</p>
+                                <p className="text-sm font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => submission.post?.user?.id && navigate(`/profile/${submission.post.user.id}`)}>
+                                  {submission.post?.user?.profile?.username || "Unknown User"}
+                                </p>
                                 <p className="text-xs text-muted-foreground truncate max-w-[200px]">{submission.post?.title || "Untitled Post"}</p>
                                 <div className="flex items-center gap-3 mt-1">
                                   <div className="flex items-center gap-1">
@@ -840,13 +845,16 @@ export default function AdminChallenges() {
                           ?.slice(0, maxWinners)
                           ?.map((submission, index) => (
                             <div key={submission.id} className="flex items-center space-x-3 p-2 rounded bg-background">
+                              {" "}
                               <div className="flex items-center justify-center w-8 h-8 bg-yellow-500 text-white rounded-full text-xs font-bold">#{index + 1}</div>
-                              <Avatar className="h-8 w-8">
+                              <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => submission.post?.user?.id && navigate(`/profile/${submission.post.user.id}`)}>
                                 <AvatarImage src={getFullImageUrl(submission.post?.user?.profile?.avatar)} />
                                 <AvatarFallback>{submission.post?.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                               </Avatar>
                               <div className="flex-1">
-                                <p className="text-sm font-medium">{submission.post?.user?.profile?.username || "Unknown User"}</p>
+                                <p className="text-sm font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => submission.post?.user?.id && navigate(`/profile/${submission.post.user.id}`)}>
+                                  {submission.post?.user?.profile?.username || "Unknown User"}
+                                </p>
                                 <p className="text-xs text-muted-foreground truncate max-w-[200px]">{submission.post?.title || "Untitled Post"}</p>
                                 <div className="flex items-center gap-1 mt-1">
                                   <Heart className="h-3 w-3 text-red-500" />
@@ -907,16 +915,17 @@ export default function AdminChallenges() {
                           {winner.rank === 1 ? <Crown className="h-4 w-4 mr-1" /> : winner.rank === 2 ? <Medal className="h-4 w-4 mr-1" /> : winner.rank === 3 ? <Award className="h-4 w-4 mr-1" /> : <Star className="h-4 w-4 mr-1" />}#
                           {winner.rank}
                         </Badge>
-                      </div>
-
+                      </div>{" "}
                       {/* User Info */}
                       <div className="flex items-center gap-3 flex-1">
-                        <Avatar className="h-12 w-12">
+                        <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
                           <AvatarImage src={getFullImageUrl(winner.user?.profile?.avatar)} />
                           <AvatarFallback>{winner.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <h4 className="font-semibold">{winner.user?.profile?.username || `${winner.user?.firstName} ${winner.user?.lastName}`.trim() || "Unknown User"}</h4>
+                          <h4 className="font-semibold cursor-pointer hover:text-primary transition-colors" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
+                            {winner.user?.profile?.username || `${winner.user?.firstName} ${winner.user?.lastName}`.trim() || "Unknown User"}
+                          </h4>
                           <div className="space-y-1">
                             {winner.admin_note && (
                               <div className="p-2 bg-muted/50 rounded-md">
@@ -935,7 +944,6 @@ export default function AdminChallenges() {
                           </div>
                         </div>
                       </div>
-
                       {/* Post Preview */}
                       <div className="flex items-center gap-2">
                         {winner.post?.images?.[0] && (
@@ -1020,7 +1028,7 @@ export default function AdminChallenges() {
 }
 
 // Challenge Management Card Component
-function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelectWinners, onViewWinners, onOpenCommentModal, getFullImageUrl, formatDate }) {
+function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelectWinners, onViewWinners, onOpenCommentModal, getFullImageUrl, formatDate, navigate }) {
   // ...existing code...
   const isActive = !challenge.is_closed && new Date(challenge.deadline) > new Date();
   const submissionCount = challenge.challengePosts?.length || 0;
@@ -1113,7 +1121,9 @@ function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelec
                       <Eye className="h-4 w-4 text-white" />
                     </div>
                   </div>
-                  <p className="text-xs text-center mt-1 truncate w-16 group-hover:underline">{submission.post?.user?.profile?.username || "User"}</p>
+                  <p className="text-xs text-center mt-1 truncate w-16 group-hover:underline cursor-pointer hover:text-primary transition-colors" onClick={() => submission.post?.user?.id && navigate(`/profile/${submission.post.user.id}`)}>
+                    {submission.post?.user?.profile?.username || "User"}
+                  </p>
                 </div>
               ))}
               {submissionCount > 6 && (

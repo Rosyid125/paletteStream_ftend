@@ -435,9 +435,10 @@ export default function LikedPosts() {
                   <Card className="overflow-hidden flex flex-col" ref={isLastElement ? lastPostElementRef : null}>
                     {/* Card Header with User Info, Date, and Delete Option */}
                     <CardHeader className="flex flex-row items-center justify-between space-x-2 p-3">
+                      {" "}
                       <HoverCard>
                         <HoverCardTrigger asChild>
-                          <div className="flex items-center space-x-2 cursor-pointer overflow-hidden flex-grow">
+                          <div className="flex items-center space-x-2 cursor-pointer overflow-hidden flex-grow" onClick={() => navigate(`/profile/${post.userId}`)}>
                             {" "}
                             {/* Added flex-grow */}
                             <Avatar className="h-8 w-8 flex-shrink-0">
@@ -465,10 +466,10 @@ export default function LikedPosts() {
                               )}
                             </div>
                           </div>
-                        </HoverCardTrigger>
+                        </HoverCardTrigger>{" "}
                         {/* HoverCard Content for User Profile Preview */}
                         <HoverCardContent className="w-80">
-                          <div className="flex justify-between space-x-4">
+                          <div className="flex justify-between space-x-4 cursor-pointer" onClick={() => navigate(`/profile/${post.userId}`)}>
                             <Avatar>
                               <AvatarImage src={formatImageUrl(post.avatar)} />
                               <AvatarFallback>{post.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>

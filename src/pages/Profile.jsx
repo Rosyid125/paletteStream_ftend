@@ -1,5 +1,5 @@
 // --- Import necessary components and hooks ---
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,33 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import {
-  Image,
-  Trophy,
-  Star,
-  Award,
-  Users,
-  Heart,
-  MessageCircle,
-  Calendar,
-  TrendingUp,
-  CheckCircle2,
-  Crown,
-  MapPin,
-  Globe,
-  Bookmark,
-  LinkIcon,
-  Github,
-  Linkedin,
-  Twitter,
-  UserPlus,
-  UserMinus,
-  Loader2,
-  MoreHorizontal,
-  Trash2,
-  Edit,
-  Flag,
-} from "lucide-react";
+import { Image, Trophy, Star, Award, Users, Heart, MessageCircle, CheckCircle2, Crown, MapPin, Bookmark, LinkIcon, Github, Linkedin, Twitter, UserPlus, UserMinus, Loader2, MoreHorizontal, Trash2, Edit, Flag } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,7 +16,7 @@ import { ImageCarousel } from "@/components/ImageCarousel";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axiosInstance";
 
 // --- Import new components from Home ---
@@ -95,7 +69,7 @@ const getPlatformIcon = (url) => {
     if (hostname.includes("github.com")) return <Github className="h-4 w-4" />;
     if (hostname.includes("linkedin.com")) return <Linkedin className="h-4 w-4" />;
     if (hostname.includes("twitter.com") || hostname.includes("x.com")) return <Twitter className="h-4 w-4" />;
-  } catch (e) {
+  } catch {
     /* Invalid URL */
   }
   return <LinkIcon className="h-4 w-4" />;
@@ -126,13 +100,18 @@ export default function Profile() {
   const [artworksError, setArtworksError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreArtworks, setHasMoreArtworks] = useState(true);
-
   // State for dummy data
-  const [badges, setBadges] = useState(null);
+  const [badges, setBadges] = useState([]);
+  const [badgesLoading, setBadgesLoading] = useState(true);
+  const [badgesError, setBadgesError] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [achievementsLoading, setAchievementsLoading] = useState(true);
   const [achievementsError, setAchievementsError] = useState(null);
-  const [challengeHistory, setChallengeHistory] = useState(null);
+  const [challengeHistory, setChallengeHistory] = useState([]);
+  const [challengeHistoryLoading, setChallengeHistoryLoading] = useState(true);
+  const [challengeHistoryError, setChallengeHistoryError] = useState(null);
+  const [challengeStats, setChallengeStats] = useState(null);
+  const [challengeFilter, setChallengeFilter] = useState("all");
 
   const [activeTab, setActiveTab] = useState("artworks");
   // State for Modals
@@ -173,7 +152,7 @@ export default function Profile() {
       setUserData(null);
       setUserId(null);
     }
-  }, []); // Runs once on mount
+  }, [userId]); // Runs when userId changes
 
   // Function to fetch user profile data
   const fetchUserProfile = async () => {
@@ -206,8 +185,8 @@ export default function Profile() {
       if (response.data && response.data.success) {
         const profileData = response.data.data;
         const currentLevel = Number(profileData.level) || 1;
-        const currentThreshold = Number(profileData.current_treshold) ?? 0;
-        const nextThreshold = Number(profileData.next_treshold) ?? currentThreshold + 100;
+        const currentThreshold = Number(profileData.current_treshold) || 0;
+        const nextThreshold = Number(profileData.next_treshold) || currentThreshold + 100;
 
         const correctedProfileData = {
           ...profileData,
@@ -357,7 +336,6 @@ export default function Profile() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, userProfile, loading, error, hasMoreArtworks, artworksLoading, fetchArtworksPage]); // Keep dependencies including fetchArtworksPage
-
   // --- Effect to fetch achievements for the profile user ---
   useEffect(() => {
     setAchievementsLoading(true);
@@ -379,20 +357,83 @@ export default function Profile() {
       .finally(() => setAchievementsLoading(false));
   }, [userId]);
 
-  // --- Effect to set dummy data (runs once) ---
+  // --- Effect to fetch badges for the profile user ---
   useEffect(() => {
-    // ... (dummy data setting remains the same) ...
-    setBadges([
-      { id: 1, name: "Early Bird", description: "Joined the platform early.", date: "2023-01-15", icon: "🐦" },
-      { id: 2, name: "Art Lover", description: "Liked 50 artworks.", date: "2023-03-20", icon: "❤️" },
-      { id: 3, name: "Commentator", description: "Made 100 comments.", date: "2023-05-10", icon: "💬" },
-    ]);
-    setChallengeHistory([
-      { id: 1, title: "Summer Art Challenge", artwork: "Seascape", result: "Top 10", date: "2023-06-20", thumbnail: "/placeholder.svg" },
-      { id: 2, title: "Autumn Colors Challenge", artwork: "Fall Trees", result: "Winner", date: "2023-09-15", thumbnail: "/placeholder.svg" },
-      { id: 3, title: "Winter Wonderland Challenge", artwork: "Snowy Village", result: "Top 10", date: "2023-12-24", thumbnail: "/placeholder.svg" },
-    ]);
-  }, []);
+    setBadgesLoading(true);
+    setBadgesError(null);
+    api
+      .get(`/gamification/profile/badges/${userId}`)
+      .then((res) => {
+        if (res.data && res.data.success) {
+          setBadges(res.data.data.badges || []);
+        } else {
+          setBadges([]);
+          setBadgesError("Failed to fetch badges.");
+        }
+      })
+      .catch((err) => {
+        setBadges([]);
+        setBadgesError(err.response?.data?.message || err.message || "Failed to fetch badges.");
+      })
+      .finally(() => setBadgesLoading(false));
+  }, [userId]);
+
+  // --- Effect to fetch challenge history for the profile user ---
+  useEffect(() => {
+    setChallengeHistoryLoading(true);
+    setChallengeHistoryError(null);
+    api
+      .get(`/gamification/profile/challenges/${userId}`, {
+        params: { status: challengeFilter },
+      })
+      .then((res) => {
+        if (res.data && res.data.success) {
+          setChallengeHistory(res.data.data.challenges || []);
+          setChallengeStats(res.data.data.stats || null);
+        } else {
+          setChallengeHistory([]);
+          setChallengeHistoryError("Failed to fetch challenge history.");
+        }
+      })
+      .catch((err) => {
+        setChallengeHistory([]);
+        setChallengeHistoryError(err.response?.data?.message || err.message || "Failed to fetch challenge history.");
+      })
+      .finally(() => setChallengeHistoryLoading(false));
+  }, [userId, challengeFilter]);
+
+  // --- Helper function to get rank color ---
+  const getRankColor = (rank) => {
+    switch (rank) {
+      case 1:
+        return "text-yellow-500 bg-yellow-100"; // Gold
+      case 2:
+        return "text-gray-500 bg-gray-100"; // Silver
+      case 3:
+        return "text-orange-600 bg-orange-100"; // Bronze
+      default:
+        return "text-blue-500 bg-blue-100";
+    }
+  };
+
+  // --- Helper function to get status badge ---
+  const getStatusBadge = (status) => {
+    const badges = {
+      won: { color: "bg-green-100 text-green-800", icon: "🏆", label: "Won" },
+      active: { color: "bg-blue-100 text-blue-800", icon: "⏳", label: "Active" },
+      participated: { color: "bg-gray-100 text-gray-800", icon: "📝", label: "Participated" },
+    };
+    return badges[status] || badges.participated;
+  };
+
+  // --- Helper function to format date ---
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   // --- Event Handlers ---
 
@@ -563,18 +604,6 @@ export default function Profile() {
         return "text-purple-500 bg-purple-500/10 hover:bg-purple-500/20";
       default:
         return "text-gray-500 bg-gray-500/10 hover:bg-gray-500/20";
-    }
-  };
-
-  const getResultColor = (result) => {
-    // ... (remains the same) ...
-    switch (result) {
-      case "Winner":
-        return "bg-amber-500/10 text-amber-500";
-      case "Top 10":
-        return "bg-blue-500/10 text-blue-500";
-      default:
-        return "bg-muted-foreground/10 text-muted-foreground";
     }
   };
 
@@ -827,7 +856,6 @@ export default function Profile() {
             <Trophy className="h-4 w-4" /> Challenges{" "}
           </TabsTrigger>
         </TabsList>
-
         {/* --- Artworks Tab Content --- */}
         <TabsContent value="artworks" className="mt-6 space-y-6">
           {/* Artworks Error Message */}
@@ -1060,53 +1088,77 @@ export default function Profile() {
                   </Button>
                 </div>
               )}
-              {!hasMoreArtworks && userArtworks.length > 0 && !loadingMoreArtworks && <p className="text-center text-sm text-muted-foreground py-4">You've reached the end of the artworks.</p>}
+              {!hasMoreArtworks && userArtworks.length > 0 && !loadingMoreArtworks && <p className="text-center text-sm text-muted-foreground py-4">You&apos;ve reached the end of the artworks.</p>}
             </>
           ) : (
             // No Artworks Message
             <Card className="col-span-full flex items-center justify-center h-40 border-dashed">
-              <CardDescription>{userProfile.username} hasn't uploaded any artworks yet.</CardDescription>
+              <CardDescription>{userProfile.username} hasn&apos;t uploaded any artworks yet.</CardDescription>
             </Card>
           )}
         </TabsContent>
-
-        {/* --- Other Tabs (Badges, Achievements, Challenges - Dummy Data) --- */}
+        {/* --- Other Tabs (Badges, Achievements, Challenges - Dummy Data) --- */}{" "}
         <TabsContent value="badges" className="mt-6">
-          {/* ... Badges content (no change needed) ... */}
           <Card className="border-t-4 border-t-purple-500">
             <CardHeader>
-              {" "}
-              <CardTitle>Badges Earned</CardTitle> <CardDescription>Recognitions for achievements and milestones.</CardDescription>{" "}
+              <CardTitle>Badges Earned</CardTitle>
+              <CardDescription>Recognitions for achievements and milestones.</CardDescription>
             </CardHeader>
             <CardContent>
-              {badges && badges.length > 0 ? (
+              {badgesLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <Card key={`badge-skeleton-${index}`} className="flex items-center p-3 space-x-3">
+                      <Skeleton className="h-12 w-12 rounded-md" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : badgesError ? (
+                <div className="text-center py-8">
+                  <p className="text-red-500 mb-2">⚠️ Failed to load badges</p>
+                  <p className="text-sm text-muted-foreground">{badgesError}</p>
+                </div>
+              ) : badges && badges.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {badges.map((badge) => (
                     <HoverCard key={badge.id} openDelay={100} closeDelay={50}>
                       <HoverCardTrigger asChild>
-                        <Card className="flex items-center p-3 space-x-3 cursor-default bg-muted/40 hover:bg-muted/70 transition-colors">
-                          {" "}
-                          <span className="text-2xl">{badge.icon}</span>{" "}
-                          <div>
-                            {" "}
-                            <p className="font-medium text-sm">{badge.name}</p> <p className="text-xs text-muted-foreground">Earned: {badge.date}</p>{" "}
-                          </div>{" "}
+                        <Card className="flex flex-col items-center p-4 space-y-3 cursor-default bg-muted/40 hover:bg-muted/70 transition-colors">
+                          <div className="relative">
+                            <img src={getFullStorageUrl(badge.badge_img)} alt={badge.challenge_title} className="w-16 h-16 object-contain rounded-lg" />
+                            <div className={`absolute -top-2 -right-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRankColor(badge.rank)}`}>🏆 {badge.rank_display}</div>
+                          </div>
+                          <div className="text-center">
+                            <p className="font-medium text-sm">{badge.challenge_title}</p>
+                            <p className="text-xs text-muted-foreground">Earned: {formatDate(badge.earned_at)}</p>
+                          </div>
                         </Card>
                       </HoverCardTrigger>
                       <HoverCardContent className="w-60">
-                        {" "}
-                        <p className="text-sm font-semibold">{badge.name}</p> <p className="text-sm text-muted-foreground mt-1">{badge.description}</p>{" "}
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold">{badge.challenge_title}</p>
+                          <p className="text-sm text-muted-foreground">🏆 {badge.rank_display}</p>
+                          {badge.admin_note && <p className="text-sm text-muted-foreground italic">&quot;{badge.admin_note}&quot;</p>}
+                          <p className="text-xs text-muted-foreground">Earned on {formatDate(badge.earned_at)}</p>
+                        </div>
                       </HoverCardContent>
                     </HoverCard>
                   ))}
                 </div>
               ) : (
-                <div className="text-center text-muted-foreground py-8">No badges earned yet.</div>
+                <div className="text-center text-muted-foreground py-12">
+                  <div className="text-4xl mb-4">🏆</div>
+                  <p>No badges earned yet</p>
+                  <p className="text-sm">Participate in challenges to earn badges!</p>
+                </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="achievements" className="mt-6">
           <Card className="border-t-4 border-t-green-500">
             <CardHeader>
@@ -1150,49 +1202,133 @@ export default function Profile() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
+        </TabsContent>{" "}
         <TabsContent value="challenges" className="mt-6">
-          {/* ... Challenges content (no change needed) ... */}
           <Card className="border-t-4 border-t-amber-500">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div>
-                {" "}
-                <CardTitle>Challenge History</CardTitle> <CardDescription>Participation and results in past challenges.</CardDescription>{" "}
+                <CardTitle>Challenge History</CardTitle>
+                <CardDescription>Participation and results in past challenges.</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={handleViewAllChallengesClick}>
-                {" "}
-                View All{" "}
+                View All
               </Button>
             </CardHeader>
             <CardContent>
-              {challengeHistory && challengeHistory.length > 0 ? (
-                <ScrollArea className="h-[400px] pr-4 -mr-4">
-                  <div className="space-y-4">
-                    {challengeHistory.map((chal) => (
-                      <div key={chal.id} className="flex items-center space-x-3 p-3 rounded-md bg-muted/40 hover:bg-muted/60 transition-colors">
-                        <Avatar className="h-10 w-10 rounded-md border">
-                          {" "}
-                          <AvatarImage src={chal.thumbnail} alt={chal.title} />{" "}
-                          <AvatarFallback>
-                            {" "}
-                            <Trophy className="h-4 w-4" />{" "}
-                          </AvatarFallback>{" "}
-                        </Avatar>
-                        <div className="flex-1">
-                          {" "}
-                          <p className="font-medium text-sm">{chal.title}</p> <p className="text-xs text-muted-foreground">Artwork: {chal.artwork}</p>{" "}
-                        </div>
-                        <Badge variant="outline" className={`${getResultColor(chal.result)} text-xs`}>
-                          {" "}
-                          {chal.result}{" "}
-                        </Badge>
+              {challengeHistoryLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={`challenge-skeleton-${index}`} className="flex items-center space-x-3 p-3 rounded-md bg-muted/40">
+                      <Skeleton className="h-12 w-12 rounded-md" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-32 mb-2" />
+                        <Skeleton className="h-3 w-24" />
                       </div>
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : challengeHistoryError ? (
+                <div className="text-center py-8">
+                  <p className="text-red-500 mb-2">⚠️ Failed to load challenge history</p>
+                  <p className="text-sm text-muted-foreground">{challengeHistoryError}</p>
+                </div>
+              ) : (
+                <>
+                  {/* Stats Summary */}
+                  {challengeStats && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-blue-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-blue-600">{challengeStats.total_participated}</div>
+                        <div className="text-sm text-gray-600">Participated</div>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600">{challengeStats.total_won}</div>
+                        <div className="text-sm text-gray-600">Won</div>
+                      </div>
+                      <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-yellow-600">{challengeStats.active_participations}</div>
+                        <div className="text-sm text-gray-600">Active</div>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-600">{challengeStats.win_rate}%</div>
+                        <div className="text-sm text-gray-600">Win Rate</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Filter Tabs */}
+                  <div className="flex space-x-4 border-b mb-4">
+                    {[
+                      { key: "all", label: "All" },
+                      { key: "won", label: "Won" },
+                      { key: "active", label: "Active" },
+                      { key: "participated", label: "Participated" },
+                    ].map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setChallengeFilter(tab.key)}
+                        className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${challengeFilter === tab.key ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                      >
+                        {tab.label}
+                      </button>
                     ))}
                   </div>
-                </ScrollArea>
-              ) : (
-                <div className="text-center text-muted-foreground py-8">No challenge history available.</div>
+
+                  {/* Challenges List */}
+                  {challengeHistory && challengeHistory.length > 0 ? (
+                    <ScrollArea className="h-[400px] pr-4 -mr-4">
+                      <div className="space-y-4">
+                        {challengeHistory.map((challenge) => {
+                          const statusBadge = getStatusBadge(challenge.status);
+                          return (
+                            <div key={challenge.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-3 mb-2">
+                                    <img src={getFullStorageUrl(challenge.badge_img)} alt={challenge.title} className="w-12 h-12 object-contain rounded-md border" />
+                                    <div>
+                                      <h3 className="font-semibold text-lg">{challenge.title}</h3>
+                                      <p className="text-gray-600 text-sm">{challenge.description}</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center space-x-4 text-sm text-gray-500 mt-3">
+                                    <span>Joined: {formatDate(challenge.participation_date)}</span>
+                                    <span>Deadline: {formatDate(challenge.deadline)}</span>
+                                  </div>
+
+                                  {challenge.win_info && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-green-600 font-medium">🏆 {challenge.win_info.rank_display}</span>
+                                        {challenge.win_info.final_score && <span className="text-gray-600">• Score: {challenge.win_info.final_score}</span>}
+                                      </div>
+                                      {challenge.win_info.admin_note && <p className="text-green-700 text-sm mt-1 italic">&quot;{challenge.win_info.admin_note}&quot;</p>}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="ml-4">
+                                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusBadge.color}`}>
+                                    <span className="mr-1">{statusBadge.icon}</span>
+                                    {statusBadge.label}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <div className="text-4xl mb-4">🎯</div>
+                      <p>No challenges found</p>
+                      <p className="text-sm">{challengeFilter === "all" ? "Haven't participated in any challenges yet" : `No ${challengeFilter} challenges`}</p>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

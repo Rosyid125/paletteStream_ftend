@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"; // Asumsi ini dari ChatList
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Check, CheckCheck } from "lucide-react"; // <-- BARU: Check, CheckCheck
+import { useNavigate } from "react-router-dom";
 import api from "../api/axiosInstance";
 import { setupChatSocket } from "../lib/socketHandler";
 import { io } from "socket.io-client";
@@ -257,6 +258,7 @@ function ChatList({ userId, onSelect, selectedUserId }) {
 }
 
 function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -425,11 +427,19 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
 
   return (
     <div className="flex-1 flex flex-col h-full">
+      {" "}
       <div className="flex items-center gap-3 border-b p-4 bg-background">
         {targetUser ? (
           <>
-            <img src={getAvatarUrl(targetUser.avatar)} alt={targetUser.username || "User"} className="h-10 w-10 rounded-full border object-cover" />
-            <div className="font-semibold">{targetUser.username || targetUser.first_name || "User"}</div>
+            <img
+              src={getAvatarUrl(targetUser.avatar)}
+              alt={targetUser.username || "User"}
+              className="h-10 w-10 rounded-full border object-cover cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate(`/profile/${targetUserId}`)}
+            />
+            <div className="font-semibold cursor-pointer hover:underline transition-all" onClick={() => navigate(`/profile/${targetUserId}`)}>
+              {targetUser.username || targetUser.first_name || "User"}
+            </div>
           </>
         ) : (
           <div className="font-semibold">Loading user...</div>

@@ -260,10 +260,12 @@ export default function ChallengeDetail() {
               <div className={`flex items-center ${challenge.badge_img ? "text-white/80" : "text-muted-foreground"}`}>
                 <Calendar className="h-4 w-4 mr-1" />
                 Deadline: {formatDate(challenge.deadline)}
-              </div>
+              </div>{" "}
               <div className={`flex items-center ${challenge.badge_img ? "text-white/80" : "text-muted-foreground"}`}>
                 <Trophy className="h-4 w-4 mr-1" />
-                Created by {challenge.creator?.profile?.username || "Admin"}
+                <span className="cursor-pointer hover:text-primary transition-colors" onClick={() => challenge.creator?.id && navigate(`/profile/${challenge.creator.id}`)}>
+                  Created by {challenge.creator?.profile?.username || "Admin"}
+                </span>
               </div>
             </div>
           </div>
@@ -271,17 +273,19 @@ export default function ChallengeDetail() {
 
         {/* Action Buttons */}
         <CardFooter className="flex justify-between border-t">
+          {" "}
           <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => challenge.creator?.id && navigate(`/profile/${challenge.creator.id}`)}>
               <AvatarImage src={getFullImageUrl(challenge.creator?.profile?.avatar)} />
               <AvatarFallback>{challenge.creator?.firstName?.[0] || "A"}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">{challenge.creator?.profile?.username || "Admin"}</p>
+              <p className="text-sm font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => challenge.creator?.id && navigate(`/profile/${challenge.creator.id}`)}>
+                {challenge.creator?.profile?.username || "Admin"}
+              </p>
               <p className="text-xs text-muted-foreground">{formatDate(challenge.created_at)}</p>
             </div>
           </div>
-
           {isActive &&
             user &&
             (userSubmission ? (
@@ -295,7 +299,6 @@ export default function ChallengeDetail() {
                 Submit Entry
               </Button>
             ))}
-
           {!user && (
             <Badge variant="outline" className="px-4 py-2">
               Login to participate
@@ -341,17 +344,20 @@ export default function ChallengeDetail() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
+                  {" "}
                   {winners.map((winner, index) => (
                     <div key={winner.id} className="flex items-center p-2 rounded-md bg-gradient-to-r from-yellow-50 to-orange-50">
                       <div className="flex items-center justify-center w-8 h-8 mr-3">
                         {index === 0 ? <Crown className="h-5 w-5 text-yellow-500" /> : index === 1 ? <Medal className="h-5 w-5 text-gray-400" /> : <Award className="h-5 w-5 text-amber-600" />}
                       </div>
-                      <Avatar className="h-8 w-8 mr-2">
+                      <Avatar className="h-8 w-8 mr-2 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
                         <AvatarImage src={getFullImageUrl(winner.user?.profile?.avatar)} />
                         <AvatarFallback>{winner.user?.firstName?.[0] || "U"}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{winner.user?.profile?.username || "Unknown User"}</p>
+                        <p className="text-sm font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
+                          {winner.user?.profile?.username || "Unknown User"}
+                        </p>
                         {winner.admin_note && <p className="text-xs text-muted-foreground">{winner.admin_note}</p>}
                       </div>
                     </div>

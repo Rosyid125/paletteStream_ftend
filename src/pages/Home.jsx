@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Heart, MessageCircle, Bookmark, Award, Clock, CheckCircle2, Trophy, Star, Flame as FlameIcon, TrendingUp, MoreHorizontal, Trash2, UserPlus, UserCheck, Loader2, Edit, Flag } from "lucide-react"; // Tambahkan UserPlus, UserCheck, Loader2, Trash2, Edit, Flag
+import { Heart, MessageCircle, Bookmark, Award, Clock, CheckCircle2, Trophy, Star, Flame as FlameIcon, TrendingUp, MoreHorizontal, Trash2, UserPlus, UserCheck, Loader2, Edit, Flag, Repeat2 } from "lucide-react"; // Tambahkan UserPlus, UserCheck, Loader2, Trash2, Edit, Flag, Repeat2
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -68,14 +68,22 @@ export default function Home() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [postToReport, setPostToReport] = useState(null); // Store the post to be reported  // --- State for User ID ---
   const userId = user?.id;
-
   // --- State untuk Achievements (from backend) ---
   const [achievements, setAchievements] = useState([]);
   const [achievementsLoading, setAchievementsLoading] = useState(true);
   const [achievementsError, setAchievementsError] = useState(null);
 
-  const observer = useRef();
+  // --- State untuk Gamification Hub ---
+  const [gamificationData, setGamificationData] = useState(null);
+  const [gamificationLoading, setGamificationLoading] = useState(true);
+  const [gamificationError, setGamificationError] = useState(null);
 
+  // --- State untuk Active Challenges ---
+  const [activeChallenges, setActiveChallenges] = useState([]);
+  const [activeChallengesLoading, setActiveChallengesLoading] = useState(true);
+  const [activeChallengesError, setActiveChallengesError] = useState(null);
+
+  const observer = useRef();
   // --- useEffect ini menangani pemuatan data SETELAH userId ditentukan ---
   useEffect(() => {
     // Hanya muat data jika userId ada (pengguna login)
@@ -83,6 +91,8 @@ export default function Home() {
       console.log(`userId is now set to: ${userId}. Loading initial posts and recommendations.`);
       loadMorePosts(1, true); // Panggil saat pertama kali userId siap
       loadRecommendedUsers(1); // Panggil saat pertama kali userId siap
+      loadGamificationData(); // Load gamification data
+      loadActiveChallenges(); // Load active challenges
     } else {
       // Tangani kasus pengguna tidak login setelah cek localStorage
       console.log("userId is null after check. Setting initial states for logged-out user.");
@@ -99,6 +109,16 @@ export default function Home() {
       // --- Set pesan error di sini jika pengguna tidak login ---
       setRecommendedUsersError("Login to see recommendations.");
       setRecommendedUsersHasMore(false);
+
+      // Reset gamification states
+      setGamificationData(null);
+      setGamificationLoading(false);
+      setGamificationError("Login to see your progress.");
+
+      // Reset active challenges states
+      setActiveChallenges([]);
+      setActiveChallengesLoading(false);
+      setActiveChallengesError("Login to see active challenges.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
@@ -440,6 +460,62 @@ export default function Home() {
     [loading, hasMore, page, initialLoading, loadMorePosts]
   );
 
+  // --- Function to load gamification data ---
+  const loadGamificationData = useCallback(async () => {
+    if (!userId) {
+      setGamificationData(null);
+      setGamificationLoading(false);
+      setGamificationError("Login to see your progress.");
+      return;
+    }
+
+    setGamificationLoading(true);
+    setGamificationError(null);
+
+    try {
+      const response = await api.get(`/gamification/hub`);
+      if (response.data && response.data.success) {
+        setGamificationData(response.data.data);
+      } else {
+        setGamificationError("Failed to fetch gamification data.");
+      }
+    } catch (err) {
+      console.error("Error fetching gamification data:", err);
+      setGamificationError(err.response?.data?.message || err.message || "Failed to fetch gamification data.");
+    } finally {
+      setGamificationLoading(false);
+    }
+  }, [userId]);
+
+  // --- Function to load active challenges ---
+  const loadActiveChallenges = useCallback(async () => {
+    if (!userId) {
+      setActiveChallenges([]);
+      setActiveChallengesLoading(false);
+      setActiveChallengesError("Login to see active challenges.");
+      return;
+    }
+
+    setActiveChallengesLoading(true);
+    setActiveChallengesError(null);
+
+    try {
+      const response = await api.get(`/challenges/active`);
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        // Limit to 2 challenges for the sidebar
+        setActiveChallenges(response.data.data.slice(0, 2));
+      } else {
+        setActiveChallenges([]);
+        setActiveChallengesError("Failed to fetch active challenges.");
+      }
+    } catch (err) {
+      console.error("Error fetching active challenges:", err);
+      setActiveChallenges([]);
+      setActiveChallengesError(err.response?.data?.message || err.message || "Failed to fetch active challenges.");
+    } finally {
+      setActiveChallengesLoading(false);
+    }
+  }, [userId]);
   // --- Helper Functions ---
   const getTypeColor = (type) => {
     switch (type?.toLowerCase()) {
@@ -454,18 +530,21 @@ export default function Home() {
     }
   };
 
-  // --- Dummy Data Sidebar (Tetap sama) ---
-  const dummyUserData = { level: 5, exp: 1250, expToNextLevel: 2000 };
-  const challenges = [
-    { id: 1, title: "Fantasy World", description: "Create a stunning fantasy landscape.", deadline: "3 days left", participants: 152, prize: "Exclusive Badge" },
-    { id: 2, title: "Character Design", description: "Design an original sci-fi hero.", deadline: "1 week left", participants: 88, prize: "$50 Voucher" },
-  ];
-  const badges = [
-    { id: 1, title: "First Steps", description: "Posted first artwork", icon: <Star className="h-4 w-4 text-yellow-500" /> },
-    { id: 2, title: "Community Member", description: "Liked 10 posts", icon: <Heart className="h-4 w-4 text-red-500" /> },
-    { id: 3, title: "Rising Star", description: "Reached Level 5", icon: <TrendingUp className="h-4 w-4 text-green-500" /> },
-    { id: 4, title: "Bookworm", description: "Read 5 novels", icon: <Bookmark className="h-4 w-4 text-blue-500" /> },
-  ];
+  // --- Helper function to get time remaining ---
+  const getTimeRemaining = (deadline) => {
+    const now = new Date();
+    const end = new Date(deadline);
+    const diff = end - now;
+
+    if (diff <= 0) return "Expired";
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (days > 0) return `${days} day${days > 1 ? "s" : ""} left`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} left`;
+    return "Less than 1 hour left";
+  };
 
   // --- Mapping icon string ke komponen lucide-react
   const ICONS_MAP = {
@@ -475,6 +554,8 @@ export default function Home() {
     trophy: Trophy,
     award: Award,
     bookmark: Bookmark,
+    "message-circle": MessageCircle,
+    repeat: Repeat2,
     // tambahkan jika backend menambah icon baru
   };
 
@@ -768,7 +849,7 @@ export default function Home() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* --- Active Challenges Card (No Changes) --- 
+          --- Active Challenges Card (No Changes) ---{" "}
           <Card className="border-t-4 border-t-primary">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
@@ -777,30 +858,65 @@ export default function Home() {
               <CardDescription>Compete and earn rewards</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {challenges.map((challenge) => (
-                <Card key={challenge.id} className="overflow-hidden border-none shadow-sm bg-card/50 hover:bg-muted/50 transition-colors">
-                  <CardContent className="p-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <h3 className="font-semibold text-sm">{challenge.title}</h3>
-                      <Badge variant="outline" className="text-xs whitespace-nowrap bg-primary/10 text-primary border-primary/20">
-                        <Clock className="h-3 w-3 mr-1" /> {challenge.deadline}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{challenge.description}</p>
-                    <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
-                      <span>{challenge.participants} participants</span>
-                      <span className="font-medium text-primary">{challenge.prize}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {/* Loading state */}
+              {activeChallengesLoading &&
+                Array.from({ length: 2 }).map((_, index) => (
+                  <Card key={`skeleton-${index}`} className="overflow-hidden border-none shadow-sm bg-card/50">
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                      <Skeleton className="h-3 w-full mt-1" />
+                      <div className="flex justify-between items-center mt-3">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+              {/* Error state */}
+              {activeChallengesError && !activeChallengesLoading && (
+                <div className="text-center py-4">
+                  <p className="text-xs text-muted-foreground">{activeChallengesError}</p>
+                </div>
+              )}
+
+              {/* No challenges state */}
+              {!activeChallengesLoading && !activeChallengesError && activeChallenges.length === 0 && (
+                <div className="text-center py-4">
+                  <p className="text-xs text-muted-foreground">No active challenges at the moment.</p>
+                </div>
+              )}
+
+              {/* Real challenges data */}
+              {!activeChallengesLoading &&
+                !activeChallengesError &&
+                activeChallenges.map((challenge) => (
+                  <Card key={challenge.id} className="overflow-hidden border-none shadow-sm bg-card/50 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => navigate(`/challenges/${challenge.id}`)}>
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <h3 className="font-semibold text-sm">{challenge.title}</h3>
+                        <Badge variant="outline" className="text-xs whitespace-nowrap bg-primary/10 text-primary border-primary/20">
+                          <Clock className="h-3 w-3 mr-1" /> {getTimeRemaining(challenge.deadline)}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{challenge.description}</p>
+                      <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
+                        <span>{challenge.challengePosts?.length || 0} participants</span>
+                        <span className="font-medium text-primary">Exclusive Badge</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => navigate("/challenges")}>
                 View All Challenges
               </Button>
             </CardFooter>
-          </Card> */}
+          </Card>{" "}
           <Card className="border-t-4 border-t-amber-500">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
@@ -809,48 +925,107 @@ export default function Home() {
               <CardDescription>Track your progress and missions</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
-                <div className="flex justify-between items-baseline mb-1">
-                  <h3 className="font-semibold text-base">Level {dummyUserData.level}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    EXP: {dummyUserData.exp} / {dummyUserData.expToNextLevel}
-                  </p>
-                </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Progress value={(dummyUserData.exp / dummyUserData.expToNextLevel) * 100} className="h-2" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{dummyUserData.expToNextLevel - dummyUserData.exp} EXP to next level</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <Separator className="my-4" />
-              <div>
-                <h3 className="font-medium mb-3 text-sm">Badges Earned</h3>
-                <ScrollArea className="h-[100px] pr-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    {badges.map((badge) => (
-                      <Card key={badge.id} className="overflow-hidden border-none shadow-sm bg-card/50">
-                        <CardContent className="p-2 flex items-center space-x-2">
-                          <div className="flex-shrink-0 h-7 w-7 rounded-full bg-muted flex items-center justify-center">{badge.icon}</div>
-                          <div>
-                            <p className="font-medium text-xs leading-tight">{badge.title}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+              {/* Gamification Loading State */}
+              {gamificationLoading && (
+                <div className="space-y-4">
+                  <div className="mb-4">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-2 w-full" />
                   </div>
-                </ScrollArea>
-              </div>
-              <Separator className="my-4" />
+                  <Separator className="my-4" />
+                  <div>
+                    <Skeleton className="h-4 w-24 mb-3" />
+                    <div className="grid grid-cols-2 gap-2">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Gamification Error State */}
+              {gamificationError && !gamificationLoading && (
+                <div className="text-center py-8">
+                  <p className="text-xs text-muted-foreground">{gamificationError}</p>
+                </div>
+              )}{" "}
+              {/* Real Gamification Data */}
+              {!gamificationLoading && !gamificationError && gamificationData && (
+                <>
+                  <div className="mb-4">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <h3 className="font-semibold text-base">Level {gamificationData.stats?.level || 1}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        EXP: {gamificationData.level_info?.current_exp || 0} / {gamificationData.level_info?.exp_to_next_level || 100}
+                      </p>
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Progress value={gamificationData.level_info?.progress_percentage || 0} className="h-2" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{Math.max(0, (gamificationData.level_info?.exp_to_next_level || 100) - (gamificationData.level_info?.current_exp || 0))} EXP to next level</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Separator className="my-4" />{" "}
+                  <div>
+                    <h3 className="font-medium mb-3 text-sm">Badges Earned</h3>
+                    <ScrollArea className="h-[100px] pr-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Display user badges from gamification data */}
+                        {gamificationData.badges?.all && gamificationData.badges.all.length > 0 ? (
+                          gamificationData.badges.all.slice(0, 4).map((badge, index) => (
+                            <Card key={badge.id || index} className="overflow-hidden border-none shadow-sm bg-card/50">
+                              <CardContent className="p-2 flex items-center space-x-2">
+                                <div className="flex-shrink-0 h-7 w-7 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                                  {badge.image ? <img src={formatImageUrl(badge.image)} alt={badge.name} className="w-full h-full object-cover rounded-full" /> : <Award className="h-4 w-4 text-amber-500" />}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-xs leading-tight">{badge.name}</p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="col-span-2 text-center py-4">
+                            <p className="text-xs text-muted-foreground">No badges earned yet</p>
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                  <Separator className="my-4" />
+                </>
+              )}
+              {/* Achievements Section (using existing achievements state) */}
               <div>
                 <h3 className="font-medium mb-3 text-sm">Achievements</h3>
                 <ScrollArea className="h-[220px]">
                   <div className="space-y-3 px-2">
-                    {achievements.length === 0 && !achievementsLoading && <p className="text-xs text-muted-foreground">No achievements yet.</p>}
+                    {achievementsLoading &&
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <div key={`achievement-skeleton-${i}`} className="flex items-start p-1.5 rounded-md">
+                          <Skeleton className="h-6 w-6 mr-2 rounded-full" />
+                          <div className="flex flex-col w-full">
+                            <div className="flex items-center justify-between w-full">
+                              <Skeleton className="h-3 w-20" />
+                              <Skeleton className="h-3 w-12" />
+                            </div>
+                            <Skeleton className="h-2 w-full mt-1" />
+                            <Skeleton className="h-1 w-full mt-1" />
+                          </div>
+                        </div>
+                      ))}
+
+                    {achievements.length === 0 && !achievementsLoading && !achievementsError && <p className="text-xs text-muted-foreground">No achievements yet.</p>}
+
+                    {achievementsError && !achievementsLoading && <p className="text-xs text-red-500">{achievementsError}</p>}
 
                     {achievements.map((achievement) => {
                       const LucideIcon = ICONS_MAP[achievement.icon] || Award;

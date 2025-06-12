@@ -232,23 +232,48 @@ function NotificationItem({ notification, onClick, onMarkAsRead }) {
         return "Notification";
     }
   };
-
   const getMessage = () => {
+    const handleUsernameClick = (username, userId) => {
+      if (userId) {
+        navigate(`/profile/${userId}`);
+        setIsOpen(false);
+      }
+    };
+
+    // Helper to create clickable username
+    const createClickableUsername = (username, userId) => {
+      if (!username || !userId) return username;
+      return (
+        <span
+          className="font-medium text-primary cursor-pointer hover:underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleUsernameClick(username, userId);
+          }}
+        >
+          {username}
+        </span>
+      );
+    };
+
+    const senderUserId = notificationData.sender_user_id || notificationData.from_user_id;
+    const clickableUsername = createClickableUsername(senderUsername, senderUserId);
+
     switch (notification.type) {
       case "message":
-        return `${senderUsername} sent you a message`;
+        return <span>{clickableUsername} sent you a message</span>;
       case "exp_gain":
         return notificationData.message || `+${notificationData.exp_amount} EXP gained`;
       case "like":
-        return `${senderUsername} liked your post`;
+        return <span>{clickableUsername} liked your post</span>;
       case "comment":
-        return `${senderUsername} commented on your post`;
+        return <span>{clickableUsername} commented on your post</span>;
       case "reply":
-        return `${senderUsername} replied to your comment`;
+        return <span>{clickableUsername} replied to your comment</span>;
       case "follow":
-        return `${senderUsername} started following you`;
+        return <span>{clickableUsername} started following you</span>;
       case "post_bookmarked":
-        return `${senderUsername} bookmarked your post`;
+        return <span>{clickableUsername} bookmarked your post</span>;
       case "achievement_unlocked":
         return `You unlocked "${notificationData.achievement_name}" achievement!`;
       case "level_up":
@@ -264,7 +289,7 @@ function NotificationItem({ notification, onClick, onMarkAsRead }) {
       case "post_featured":
         return `Your post has been featured!`;
       case "mention":
-        return `${senderUsername} mentioned you in a comment`;
+        return <span>{clickableUsername} mentioned you in a comment</span>;
       case "system":
         return notificationData.message || "System notification";
       default:

@@ -656,12 +656,14 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
               <>
                 {" "}
                 <div className="flex items-center gap-2 mb-1">
-                  <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
+                  <Avatar className="h-6 w-6 sm:h-8 sm:w-8 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(`/profile/${postInfo.user_id}`)}>
                     <AvatarImage src={formatImageUrl(postInfo.avatar)} alt={postInfo.username} />
                     <AvatarFallback>{postInfo.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-xs sm:text-sm leading-tight truncate">{postInfo.username}</div>
+                    <div className="font-semibold text-xs sm:text-sm leading-tight truncate cursor-pointer hover:underline" onClick={() => navigate(`/profile/${postInfo.user_id}`)}>
+                      {postInfo.username}
+                    </div>
                     <div className="text-xs text-muted-foreground truncate">
                       Lvl {postInfo.level || 1} •
                       <span className="cursor-pointer underline hover:text-primary" onClick={() => navigate(`/posts/type?query=${encodeURIComponent(postInfo.type)}&page=1&limit=9`)}>
@@ -762,14 +764,17 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                   const canDeleteComment = currentUser && currentUser.id === comment.user_id;
                   return (
                     <div key={comment.id || `comment-${index}`} ref={isLastComment ? lastCommentElementRef : null}>
+                      {" "}
                       <div className="flex space-x-2 sm:space-x-3 py-3">
-                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(`/profile/${comment.user_id}`)}>
                           <AvatarImage src={formatImageUrl(comment.avatar)} alt={comment.username} />
                           <AvatarFallback>{comment.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                         </Avatar>
                         <div className="flex-grow min-w-0">
                           <div className="flex items-baseline space-x-2">
-                            <span className="font-semibold text-sm truncate">{comment.username}</span>
+                            <span className="font-semibold text-sm truncate cursor-pointer hover:underline" onClick={() => navigate(`/profile/${comment.user_id}`)}>
+                              {comment.username}
+                            </span>
                             <span className="text-xs text-muted-foreground flex-shrink-0">• Lvl {comment.level || 1}</span>
                           </div>
                           <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{comment.content}</p>{" "}
@@ -839,13 +844,16 @@ export function CommentModal({ postId, isOpen, onClose, postTitle, currentUser, 
                                     className="flex space-x-2 sm:space-x-3 py-2"
                                     ref={isLastReply ? createReplyRefCallback(comment.id) : null} // Use the factory function
                                   >
-                                    <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
+                                    {" "}
+                                    <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(`/profile/${reply.user_id}`)}>
                                       <AvatarImage src={formatImageUrl(reply.avatar)} alt={reply.username} />
                                       <AvatarFallback>{reply.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-grow min-w-0">
                                       <div className="flex items-baseline space-x-2">
-                                        <span className="font-semibold text-xs truncate">{reply.username}</span>
+                                        <span className="font-semibold text-xs truncate cursor-pointer hover:underline" onClick={() => navigate(`/profile/${reply.user_id}`)}>
+                                          {reply.username}
+                                        </span>
                                         <span className="text-xs text-muted-foreground flex-shrink-0">• Lvl {reply.level || 1}</span>
                                       </div>
                                       <p className="text-xs sm:text-sm mt-0.5 whitespace-pre-wrap break-words">{reply.content}</p>

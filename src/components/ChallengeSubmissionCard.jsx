@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Calendar, Clock, Users, Heart, MessageCircle, ArrowRight, Crown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useNavigate } from "react-router-dom";
 
 export default function ChallengeSubmissionCard({ submission, showRanking = false, rank = null }) {
+  const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
   const post = submission.post;
   const getFullImageUrl = (imagePath) => {
@@ -117,16 +119,16 @@ export default function ChallengeSubmissionCard({ submission, showRanking = fals
 
       {/* Content */}
       <CardContent className="p-4">
-        <h3 className="font-semibold truncate mb-2 group-hover:text-primary transition-colors">{post?.title || "Untitled"}</h3>
-
-        {/* Artist Info */}
+        <h3 className="font-semibold truncate mb-2 group-hover:text-primary transition-colors">{post?.title || "Untitled"}</h3> {/* Artist Info */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center min-w-0 flex-1">
-            <Avatar className="h-6 w-6 mr-2 flex-shrink-0">
+            <Avatar className="h-6 w-6 mr-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(`/profile/${post?.user?.id}`)}>
               <AvatarImage src={getFullImageUrl(post?.user?.profile?.avatar)} />
               <AvatarFallback className="text-xs">{post?.user?.firstName?.[0] || "U"}</AvatarFallback>
             </Avatar>
-            <span className="text-sm text-muted-foreground truncate">{post?.user?.profile?.username || "Unknown"}</span>
+            <span className="text-sm text-muted-foreground truncate cursor-pointer hover:underline transition-all" onClick={() => navigate(`/profile/${post?.user?.id}`)}>
+              {post?.user?.profile?.username || "Unknown"}
+            </span>
           </div>{" "}
           {/* Post Stats */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground flex-shrink-0">
@@ -140,7 +142,6 @@ export default function ChallengeSubmissionCard({ submission, showRanking = fals
             </div>
           </div>
         </div>
-
         {/* Submission Date */}
         <div className="text-xs text-muted-foreground">Submitted {formatDate(submission.created_at)}</div>
       </CardContent>

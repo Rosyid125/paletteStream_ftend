@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { X, Send, Check, CheckCheck } from "lucide-react"; // <-- BARU: Check, CheckCheck
+import { useNavigate } from "react-router-dom";
 import api from "../api/axiosInstance";
 import { setupChatSocket } from "../lib/socketHandler";
 
@@ -83,6 +84,7 @@ function formatDateLabel(dateStr) {
 }
 
 export default function ChatPopup({ openUserId, onClose }) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -248,12 +250,20 @@ export default function ChatPopup({ openUserId, onClose }) {
   return (
     <div className="fixed bottom-4 right-4 z-50 w-80 max-w-full">
       <Card className="shadow-lg">
+        {" "}
         <CardHeader className="flex flex-row items-center justify-between p-3 border-b">
           <span className="font-semibold flex items-center gap-2">
             {targetUser ? (
               <>
-                <img src={getAvatarUrl(targetUser.avatar)} alt={targetUser.username || "User"} className="h-7 w-7 rounded-full border object-cover" />
-                <span>{targetUser.username || targetUser.first_name || "User"}</span>
+                <img
+                  src={getAvatarUrl(targetUser.avatar)}
+                  alt={targetUser.username || "User"}
+                  className="h-7 w-7 rounded-full border object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => navigate(`/profile/${openUserId}`)}
+                />
+                <span className="cursor-pointer hover:underline transition-all" onClick={() => navigate(`/profile/${openUserId}`)}>
+                  {targetUser.username || targetUser.first_name || "User"}
+                </span>
               </>
             ) : (
               "Chat"

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Loader2, Trash2, PlusCircle, Upload, Crop, X as XIcon } from "lucide-react";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import api from "../api/axiosInstance";
+import api from "@/api/axiosInstance";
 import { toast } from "sonner";
 
 // --- Helper: Get Storage URL (keep as is) ---
@@ -94,7 +94,7 @@ async function getCroppedImg(image, crop, fileName) {
 export default function EditProfile() {
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
-  const [formData, setFormData] = useState({ name: "", bio: "", location: "", platforms: [] });
+  const [formData, setFormData] = useState({ first_name: "", last_name: "", username: "", bio: "", location: "", platforms: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -121,7 +121,14 @@ export default function EditProfile() {
       if (response.data?.success) {
         const d = response.data.data;
         setProfileData(d);
-        setFormData({ name: d.username || "", bio: d.bio || "", location: d.location || "", platforms: Array.isArray(d.platform_links) ? d.platform_links : [] });
+        setFormData({
+          first_name: d.first_name || "",
+          last_name: d.last_name || "",
+          username: d.username || "",
+          bio: d.bio || "",
+          location: d.location || "",
+          platforms: Array.isArray(d.platform_links) ? d.platform_links : [],
+        });
         setAvatarPreview(d.avatar ? getFullStorageUrl(d.avatar) : null);
       } else {
         setError(response.data?.message || "Failed fetch");
@@ -256,9 +263,10 @@ export default function EditProfile() {
     setSaving(true);
     setError(null);
     setValidationErrors({});
-
     let errors = {};
-    if (!formData.name.trim()) errors.name = "Username cannot be empty.";
+    if (!formData.first_name.trim()) errors.first_name = "First name cannot be empty.";
+    if (!formData.last_name.trim()) errors.last_name = "Last name cannot be empty.";
+    if (!formData.username.trim()) errors.username = "Username cannot be empty.";
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setSaving(false);
@@ -267,7 +275,9 @@ export default function EditProfile() {
     }
 
     const dataToSubmit = new FormData();
-    dataToSubmit.append("name", formData.name.trim());
+    dataToSubmit.append("first_name", formData.first_name.trim());
+    dataToSubmit.append("last_name", formData.last_name.trim());
+    dataToSubmit.append("username", formData.username.trim());
     dataToSubmit.append("bio", formData.bio.trim());
     dataToSubmit.append("location", formData.location.trim());
     if (formData.platforms?.length > 0) {
@@ -402,24 +412,39 @@ export default function EditProfile() {
             <div className="space-y-2">
               <Label>Profile Picture (1:1 Recommended)</Label>
               <div className="flex items-center gap-4">
+                {" "}
                 <Avatar className="h-20 w-20 border">
                   {" "}
-                  <AvatarImage src={avatarPreview || "/placeholder.svg"} alt={formData.name || "User"} /> <AvatarFallback>{formData.name?.charAt(0).toUpperCase() || "?"}</AvatarFallback>{" "}
+                  <AvatarImage src={avatarPreview || "/placeholder.svg"} alt={`${formData.first_name} ${formData.last_name}` || "User"} />{" "}
+                  <AvatarFallback>{formData.first_name?.charAt(0).toUpperCase() || formData.username?.charAt(0).toUpperCase() || "?"}</AvatarFallback>{" "}
                 </Avatar>
                 <Button type="button" variant="outline" size="sm" onClick={() => hiddenFileInputRef.current?.click()}>
                   {" "}
                   <Upload className="mr-2 h-4 w-4" /> Change Avatar{" "}
-                </Button>
+                </Button>{" "}
                 <input ref={hiddenFileInputRef} type="file" accept="image/*" onChange={handleAvatarFileSelect} className="hidden" />
               </div>
               {validationErrors.avatar && <p className="text-sm text-red-600 mt-1">{validationErrors.avatar}</p>}
             </div>
-
-            {/* Name Field */}
+            {/* First Name Field */}
             <div className="space-y-2">
-              <Label htmlFor="name">Name / Username</Label>
-              <Input id="name" name="name" value={formData.name} onChange={handleChange} placeholder="Your public display name" maxLength={50} className={validationErrors.name ? "border-red-500" : ""} />
-              {validationErrors.name && <p className="text-sm text-red-600">{validationErrors.name}</p>}
+              <Label htmlFor="first_name">First Name</Label>
+              <Input id="first_name" name="first_name" value={formData.first_name} onChange={handleChange} placeholder="Your first name" maxLength={50} className={validationErrors.first_name ? "border-red-500" : ""} />
+              {validationErrors.first_name && <p className="text-sm text-red-600">{validationErrors.first_name}</p>}
+            </div>
+
+            {/* Last Name Field */}
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name</Label>
+              <Input id="last_name" name="last_name" value={formData.last_name} onChange={handleChange} placeholder="Your last name" maxLength={50} className={validationErrors.last_name ? "border-red-500" : ""} />
+              {validationErrors.last_name && <p className="text-sm text-red-600">{validationErrors.last_name}</p>}
+            </div>
+
+            {/* Username Field */}
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" name="username" value={formData.username} onChange={handleChange} placeholder="Your unique username" maxLength={50} className={validationErrors.username ? "border-red-500" : ""} />
+              {validationErrors.username && <p className="text-sm text-red-600">{validationErrors.username}</p>}
             </div>
 
             {/* Bio */}
