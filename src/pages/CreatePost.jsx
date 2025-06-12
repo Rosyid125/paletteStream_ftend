@@ -30,6 +30,7 @@ export default function CreatePost() {
   const [errors, setErrors] = useState({}); // State untuk menyimpan pesan kesalahan
   const [popularTags, setPopularTags] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false); // Prevent multiple file processing
 
   // User effect yang akan dijalankan setiap kali params berubah
   useEffect(() => {
@@ -73,18 +74,40 @@ export default function CreatePost() {
   const handleOpenUploadModal = () => {
     setIsUploadModalOpen(true);
   };
-
   const handleCloseUploadModal = () => {
     setIsUploadModalOpen(false);
   };
+  // Add a click handler for the upload area
+  const handleUploadAreaClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
+    if (isProcessingFiles) {
+      return; // Prevent opening file dialog if already processing
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
   const handleImageUpload = (e) => {
-    if (e.target.files) {
+    if (isProcessingFiles) {
+      return; // Prevent processing if already processing files
+    }
+
+    if (e.target.files && e.target.files.length > 0) {
+      setIsProcessingFiles(true);
       const files = Array.from(e.target.files);
       const imageFiles = files.filter((file) => {
         const fileType = file.type.toLowerCase();
         return fileType === "image/jpeg" || fileType === "image/png" || fileType === "image/jpg";
       });
+
+      if (imageFiles.length === 0) {
+        toast.error("Please select valid image files (JPG, PNG, JPEG)");
+        setIsProcessingFiles(false);
+        return;
+      }
 
       Promise.all(
         imageFiles.map(
@@ -96,30 +119,48 @@ export default function CreatePost() {
               reader.readAsDataURL(file);
             })
         )
-      ).then((base64Images) => {
-        setImages([...images, ...base64Images]); // Append to existing images
-        // Reset the file input value to allow re-uploading the same file
-        if (fileInputRef.current) {
-          fileInputRef.current.value = null;
-        }
-      });
+      )
+        .then((base64Images) => {
+          setImages((prevImages) => [...prevImages, ...base64Images]); // Append to existing images
+          // Reset the file input value to allow re-uploading the same file
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          setIsProcessingFiles(false);
+        })
+        .catch((error) => {
+          console.error("Error reading files:", error);
+          toast.error("Failed to process selected images");
+          setIsProcessingFiles(false);
+        });
     }
   };
-
   const handleDragOver = (e) => {
-    e.preventDefault(); // Prevent default to allow drop
+    e.preventDefault();
+    e.stopPropagation();
     setDragOver(true);
   };
 
-  const handleDragLeave = () => {
-    setDragOver(false); // Reset drag over state
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
   };
-
   const handleDrop = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
-    const files = e.dataTransfer.files;
-    handleImageUpload({ target: { files } });
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      // Create a mock event object for handleImageUpload
+      const mockEvent = {
+        target: {
+          files: files,
+        },
+      };
+      handleImageUpload(mockEvent);
+    }
   };
 
   // Fungsi untuk menghapus gambar
@@ -337,23 +378,21 @@ export default function CreatePost() {
             <DialogTitle>Upload Images</DialogTitle>
             <DialogDescription>Upload up to 10 images for your post</DialogDescription>
           </DialogHeader>
-
-          <Input type="file" id="image-upload" multiple accept="image/jpeg, image/png, image/jpg" onChange={handleImageUpload} ref={fileInputRef} className="hidden" />
-
+          <Input type="file" id="image-upload" multiple accept="image/jpeg, image/png, image/jpg" onChange={handleImageUpload} ref={fileInputRef} className="hidden" />{" "}
           <div
-            className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md cursor-pointer ${dragOver ? "border-primary" : "border-muted-foreground"}`}
-            onClick={() => fileInputRef.current.click()}
+            className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md cursor-pointer transition-all ${dragOver ? "border-primary bg-primary/5" : "border-muted-foreground"} ${
+              isProcessingFiles ? "opacity-50 pointer-events-none" : ""
+            }`}
+            onClick={handleUploadAreaClick}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
+            {" "}
             <ImageIcon className="h-8 w-8 text-muted-foreground" />
-            <Label htmlFor="image-upload" className="cursor-pointer mt-1">
-              Select Images (JPG, PNG, JPEG)
-            </Label>
-            <p className="text-sm text-muted-foreground mt-2">Drag and drop files here or click to browse</p>
+            <Label className="cursor-pointer mt-1 pointer-events-none">{isProcessingFiles ? "Processing files..." : "Select Images (JPG, PNG, JPEG)"}</Label>
+            <p className="text-sm text-muted-foreground mt-2 pointer-events-none">{isProcessingFiles ? "Please wait..." : "Drag and drop files here or click to browse"}</p>
           </div>
-
           <div className="flex mt-2 space-x-2 overflow-auto">
             {images.map((image, index) => (
               <div key={index} className="relative">
@@ -364,7 +403,6 @@ export default function CreatePost() {
               </div>
             ))}
           </div>
-
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={handleCloseUploadModal}>
               Cancel
