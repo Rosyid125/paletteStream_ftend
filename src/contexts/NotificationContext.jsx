@@ -44,14 +44,30 @@ export function NotificationProvider({ children }) {
 
     // Connect to WebSocket using the new service
     const socketConnection = notificationSocket.connect();
-    setSocket(socketConnection);
-
-    // Register callbacks for new notifications
+    setSocket(socketConnection); // Register callbacks for new notifications
     const unsubscribeNotification = notificationSocket.onNewNotification((notification) => {
       console.log("New notification received via service:", notification);
 
+      // Ensure notification has valid created_at field
+      const normalizedNotification = {
+        ...notification,
+        created_at: notification.created_at || new Date().toISOString(),
+      };
+
+      // Validate the created_at field
+      try {
+        const testDate = new Date(normalizedNotification.created_at);
+        if (isNaN(testDate.getTime())) {
+          console.warn("Invalid created_at in notification, using current time:", notification.created_at);
+          normalizedNotification.created_at = new Date().toISOString();
+        }
+      } catch (error) {
+        console.warn("Error parsing created_at in notification:", error);
+        normalizedNotification.created_at = new Date().toISOString();
+      }
+
       // Add new notification to the list
-      setNotifications((prev) => [notification, ...prev]);
+      setNotifications((prev) => [normalizedNotification, ...prev]);
       setUnreadCount((prev) => prev + 1);
     });
 
@@ -94,12 +110,33 @@ export function NotificationProvider({ children }) {
         };
 
         const response = await notificationService.getNotifications(defaultParams);
-
         if (response.success) {
+          // Normalize notifications to ensure valid created_at fields
+          const normalizedData = response.data.map((notification) => {
+            const normalizedNotification = {
+              ...notification,
+              created_at: notification.created_at || new Date().toISOString(),
+            };
+
+            // Validate the created_at field
+            try {
+              const testDate = new Date(normalizedNotification.created_at);
+              if (isNaN(testDate.getTime())) {
+                console.warn("Invalid created_at in API notification, using current time:", notification.created_at);
+                normalizedNotification.created_at = new Date().toISOString();
+              }
+            } catch (error) {
+              console.warn("Error parsing created_at in API notification:", error);
+              normalizedNotification.created_at = new Date().toISOString();
+            }
+
+            return normalizedNotification;
+          });
+
           if (append) {
-            setNotifications((prev) => [...prev, ...response.data]);
+            setNotifications((prev) => [...prev, ...normalizedData]);
           } else {
-            setNotifications(response.data);
+            setNotifications(normalizedData);
             setCurrentPage(1);
           }
 

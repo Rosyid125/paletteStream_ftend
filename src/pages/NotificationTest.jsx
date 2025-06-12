@@ -96,12 +96,19 @@ export default function NotificationTest() {
                         <Badge variant="outline" className="text-xs">
                           {notification.type}
                         </Badge>
-                      </div>
-
+                      </div>{" "}
                       <p className="text-xs text-muted-foreground mb-2">{notification.message}</p>
-
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{new Date(notification.created_at).toLocaleTimeString()}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {(() => {
+                            try {
+                              const date = new Date(notification.created_at);
+                              return isNaN(date.getTime()) ? "Just now" : date.toLocaleTimeString();
+                            } catch (error) {
+                              return "Just now";
+                            }
+                          })()}
+                        </span>
 
                         {!notification.is_read && <div className="w-2 h-2 bg-primary rounded-full" />}
                       </div>

@@ -355,7 +355,19 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
       .get(`/chats/history/${targetUserId}`)
       .then((res) => {
         if (res.data && res.data.success && Array.isArray(res.data.data)) {
-          const sortedMessages = res.data.data.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          const sortedMessages = res.data.data.sort((a, b) => {
+            try {
+              const dateA = new Date(a.created_at);
+              const dateB = new Date(b.created_at);
+              if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+                return 0; // Keep original order if dates are invalid
+              }
+              return dateA.getTime() - dateB.getTime();
+            } catch (error) {
+              console.warn("Error sorting messages by date:", error);
+              return 0;
+            }
+          });
           // BARU: Konversi is_read dari 0/1 (API) ke boolean
           const normalizedMessages = sortedMessages.map((msg) => ({
             ...msg,
@@ -454,9 +466,21 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
                     <div className={`rounded-lg px-3 py-2 max-w-[70%] text-sm break-words ${isMyMessage ? "bg-primary text-primary-foreground" : "bg-white dark:bg-gray-800"}`}>
                       {" "}
                       {/* KEMBALIKAN STYLE ASLI */}
-                      {msg.content}
+                      {msg.content}{" "}
                       <div className={`text-[10px] text-right mt-1 flex items-center justify-end gap-1 ${isMyMessage ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                        <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                        <span>
+                          {(() => {
+                            try {
+                              const date = new Date(msg.created_at);
+                              if (isNaN(date.getTime())) {
+                                return "00:00";
+                              }
+                              return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                            } catch (error) {
+                              return "00:00";
+                            }
+                          })()}
+                        </span>
                         {isMyMessage &&
                           msg.id && // Tampilkan ikon hanya jika pesan punya ID
                           (msg.is_read ? <CheckCheck size={14} className="text-blue-400" /> : <Check size={14} />)}

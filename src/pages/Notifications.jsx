@@ -195,7 +195,22 @@ function NotificationsList({ notifications, loading, onNotificationClick, onMark
 function NotificationCard({ notification, onClick, onMarkAsRead }) {
   const icon = getNotificationIcon(notification.type);
   const color = getNotificationColor(notification.type);
-  const timeAgo = formatDistanceToNow(new Date(notification.created_at), { addSuffix: true });
+
+  // Safe date parsing with fallback
+  const getTimeAgo = () => {
+    try {
+      const date = new Date(notification.created_at);
+      if (isNaN(date.getTime())) {
+        return "Just now";
+      }
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (error) {
+      console.warn("Invalid date in notification:", notification.created_at, error);
+      return "Just now";
+    }
+  };
+
+  const timeAgo = getTimeAgo();
 
   // Extract data from notification based on API structure
   const notificationData = notification.data || {};
