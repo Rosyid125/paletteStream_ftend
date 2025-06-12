@@ -111,8 +111,8 @@ export default function AdminChallenges() {
     return `${baseURL}/${cleanPath}`;
   };
 
-  // Helper function to generate cropped image blob
-  const getCroppedImg = async (image, crop, fileName) => {
+  // --- Helper: Generate Cropped Image Blob (from EditProfile.jsx) ---
+  async function getCroppedImg(image, crop, fileName) {
     const canvas = document.createElement("canvas");
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
@@ -120,25 +120,21 @@ export default function AdminChallenges() {
     canvas.height = Math.floor(crop.height * scaleY);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("No 2d context");
-
     const pixelRatio = window.devicePixelRatio || 1;
     canvas.width = Math.floor(crop.width * scaleX * pixelRatio);
     canvas.height = Math.floor(crop.height * scaleY * pixelRatio);
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     ctx.imageSmoothingQuality = "high";
-
     const cropX = crop.x * scaleX;
     const cropY = crop.y * scaleY;
     const centerX = image.naturalWidth / 2;
     const centerY = image.naturalHeight / 2;
-
     ctx.save();
     ctx.translate(-cropX, -cropY);
     ctx.translate(centerX, centerY);
     ctx.translate(-centerX, -centerY);
     ctx.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight, 0, 0, image.naturalWidth, image.naturalHeight);
     ctx.restore();
-
     return new Promise((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
@@ -153,7 +149,8 @@ export default function AdminChallenges() {
         1
       );
     });
-  };
+  }
+
   const resetForm = useCallback(() => {
     setFormData({ title: "", description: "", deadline: "", badge_img: null });
     setSelectedChallenge(null);
@@ -217,88 +214,57 @@ export default function AdminChallenges() {
       // setFormData(prev => ({ ...prev, deadline: `${datePart}T00:00` }));
     }
   }, [selectedDate, selectedTime]);
+  // --- Badge Image File Input Handler (adapted from EditProfile.jsx) ---
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
       if (!file.type.startsWith("image/")) {
-        toast({
-          title: "Error",
-          description: "Please select an image file",
-          variant: "destructive",
-        });
+        toast.error("File must be an image.");
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: "Image must be less than 5MB",
-          variant: "destructive",
-        });
+        toast.error("Image must be less than 5MB.");
         return;
       }
-
       setCrop(undefined);
       setCompletedCrop(undefined);
       setOriginalFile(file);
-
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         setImgSrcForCrop(reader.result?.toString() || "");
         setIsCropModalOpen(true);
       });
       reader.readAsDataURL(file);
-
-      // Clear the input to allow re-uploading the same file
       e.target.value = "";
     }
   };
 
-  // Cropper Modal: Center crop
+  // Cropper Modal: Center crop (from EditProfile.jsx)
   function onImageLoad(e) {
     const { width, height } = e.currentTarget;
-    setCrop(centerCrop(makeAspectCrop({ unit: "%", width: 90 }, 1, width, height), width, height));
+    setCrop({ unit: "%", width: 90, aspect: 1, x: 5, y: 5 });
   }
-  // Cropper Modal: Handle crop
+  // Cropper Modal: Handle crop (from EditProfile.jsx)
   const handleCropImage = async () => {
     const image = imgRef.current;
     if (!image || !completedCrop || !originalFile) {
-      toast.error("Could not crop image");
+      toast.error("Could not crop image.");
       return;
     }
-
     try {
       const croppedBlob = await getCroppedImg(image, completedCrop, originalFile.name);
-      const croppedFile = new File([croppedBlob], originalFile.name, {
-        type: croppedBlob.type,
-        lastModified: Date.now(),
-      });
-
+      const croppedFile = new File([croppedBlob], originalFile.name, { type: croppedBlob.type });
       setCroppedBadgeFile(croppedFile);
-      setFormData((prev) => ({ ...prev, badge_img: croppedFile }));
-
       const previewUrl = URL.createObjectURL(croppedBlob);
-      if (badgePreview && badgePreview.startsWith("blob:")) {
+      setBadgePreview(previewUrl);
+      setFormData((prev) => ({ ...prev, badge_img: croppedFile }));
+      setIsCropModalOpen(false);
+      // Clean up previous preview if it was a blob
+      if (badgePreview && typeof badgePreview === "string" && badgePreview.startsWith("blob:")) {
         URL.revokeObjectURL(badgePreview);
       }
-      setBadgePreview(previewUrl);
-
-      if (imgSrcForCrop.startsWith("blob:")) {
-        URL.revokeObjectURL(imgSrcForCrop);
-      }
-      setImgSrcForCrop("");
-      setIsCropModalOpen(false);
-
-      toast({
-        title: "Success",
-        description: "Badge image cropped successfully",
-      });
     } catch (e) {
-      console.error("Cropping failed:", e);
-      toast({
-        title: "Error",
-        description: "Failed to crop image",
-        variant: "destructive",
-      });
+      toast.error("Failed to crop image.");
     }
   };
   const handleCreateChallenge = async () => {
@@ -336,7 +302,11 @@ export default function AdminChallenges() {
     } catch (err) {
       // Handle network errors or unexpected responses
       const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to create challenge");
-      toast.error(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -370,7 +340,11 @@ export default function AdminChallenges() {
     } catch (err) {
       // Handle network errors or unexpected responses
       const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to update challenge");
-      toast.error(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -379,14 +353,25 @@ export default function AdminChallenges() {
     try {
       const response = await closeChallenge(challengeId);
       if (response.data.success) {
-        toast.success("Challenge closed successfully");
+        toast({
+          title: "Success",
+          description: "Challenge closed successfully",
+        });
         fetchChallenges();
       } else {
-        toast.error(response.data.message || "Failed to close challenge");
+        toast({
+          title: "Error",
+          description: response.data.message || "Failed to close challenge",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to close challenge");
-      toast.error(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
   const handleDeleteChallenge = async (challengeId) => {
@@ -395,14 +380,25 @@ export default function AdminChallenges() {
     try {
       const response = await deleteChallenge(challengeId);
       if (response.data.success) {
-        toast.success("Challenge deleted successfully");
+        toast({
+          title: "Success",
+          description: "Challenge deleted successfully",
+        });
         fetchChallenges();
       } else {
-        toast.error(response.data.message || "Failed to delete challenge");
+        toast({
+          title: "Error",
+          description: response.data.message || "Failed to delete challenge",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || (err.response?.data?.errors && typeof err.response.data.errors === "object" ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to delete challenge");
-      toast.error(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
   const handleSelectWinners = async () => {
@@ -558,10 +554,10 @@ export default function AdminChallenges() {
   // Cleanup effect for blob URLs when component unmounts
   useEffect(() => {
     return () => {
-      if (badgePreview && badgePreview.startsWith("blob:")) {
+      if (badgePreview && typeof badgePreview === "string" && badgePreview.startsWith("blob:")) {
         URL.revokeObjectURL(badgePreview);
       }
-      if (imgSrcForCrop && imgSrcForCrop.startsWith("blob:")) {
+      if (imgSrcForCrop && typeof imgSrcForCrop === "string" && imgSrcForCrop.startsWith("blob:")) {
         URL.revokeObjectURL(imgSrcForCrop);
       }
     };
@@ -642,7 +638,19 @@ export default function AdminChallenges() {
         <Label>{isEdit ? "Update Badge Image" : "Badge Image"}</Label>
         <div className="flex items-center gap-4 mt-2">
           <div className="w-20 h-20 border rounded-md flex items-center justify-center bg-muted overflow-hidden">
-            {badgePreview ? <img src={badgePreview} alt="Badge Preview" className="w-full h-full object-cover" /> : <Upload className="w-8 h-8 text-muted-foreground" />}
+            {typeof badgePreview === "string" && badgePreview ? (
+              <img
+                src={badgePreview}
+                alt="Badge Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  setBadgePreview(null);
+                }}
+              />
+            ) : (
+              <Upload className="w-8 h-8 text-muted-foreground" />
+            )}
           </div>
           <Button type="button" variant="outline" size="sm" onClick={() => hiddenFileInputRef.current?.click()}>
             <Upload className="mr-2 h-4 w-4" />
@@ -756,11 +764,12 @@ export default function AdminChallenges() {
 
           {selectedChallenge && (
             <div className="space-y-6">
-              <div>
-                <Label htmlFor="admin_note">Admin Note</Label>
-                <Textarea id="admin_note" value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Congratulations message for winners" rows={2} />
-              </div>
-
+              {selectionMode === "manual" && (
+                <div>
+                  <Label htmlFor="admin_note">Admin Note</Label>
+                  <Textarea id="admin_note" value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Congratulations message for winners" rows={2} />
+                </div>
+              )}
               {/* Selection Mode Tabs */}
               <Tabs value={selectionMode} onValueChange={setSelectionMode}>
                 <TabsList className="grid w-full grid-cols-2">
@@ -894,76 +903,54 @@ export default function AdminChallenges() {
 
           {existingWinners.length > 0 ? (
             <div className="space-y-4">
-              {existingWinners
-                .sort((a, b) => a.rank - b.rank)
-                .map((winner) => (
-                  <Card key={winner.id} className="p-4">
-                    <div className="flex items-start gap-4">
-                      {/* Rank Badge */}
-                      <div className="flex-shrink-0">
-                        <Badge
-                          className={`px-2 py-1 ${
-                            winner.rank === 1
-                              ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                              : winner.rank === 2
-                              ? "bg-gray-500/10 text-gray-600 border-gray-500/20"
-                              : winner.rank === 3
-                              ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                              : "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                          }`}
-                        >
-                          {winner.rank === 1 ? <Crown className="h-4 w-4 mr-1" /> : winner.rank === 2 ? <Medal className="h-4 w-4 mr-1" /> : winner.rank === 3 ? <Award className="h-4 w-4 mr-1" /> : <Star className="h-4 w-4 mr-1" />}#
-                          {winner.rank}
-                        </Badge>
-                      </div>{" "}
-                      {/* User Info */}
-                      <div className="flex items-center gap-3 flex-1">
-                        <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
-                          <AvatarImage src={getFullImageUrl(winner.user?.profile?.avatar)} />
-                          <AvatarFallback>{winner.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <h4 className="font-semibold cursor-pointer hover:text-primary transition-colors" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
-                            {winner.user?.profile?.username || `${winner.user?.firstName} ${winner.user?.lastName}`.trim() || "Unknown User"}
-                          </h4>
-                          <div className="space-y-1">
-                            {winner.admin_note && (
-                              <div className="p-2 bg-muted/50 rounded-md">
-                                <p className="text-sm text-muted-foreground">{winner.admin_note}</p>
-                              </div>
-                            )}
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              {winner.final_score && (
-                                <div className="flex items-center gap-1">
-                                  <Heart className="h-3 w-3 text-red-500" />
-                                  <span>{winner.final_score} likes when selected</span>
-                                </div>
-                              )}
-                              {winner.selected_at && <span>Selected on {new Date(winner.selected_at).toLocaleDateString()}</span>}
+              {existingWinners.map((winner, idx) => (
+                <Card key={winner.id} className="p-4">
+                  <div className="flex items-start gap-4">
+                    {/* Rank Badge */}
+                    <div className="flex-shrink-0">
+                      <Badge
+                        className={`px-2 py-1 ${
+                          idx === 0
+                            ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                            : idx === 1
+                            ? "bg-gray-500/10 text-gray-600 border-gray-500/20"
+                            : idx === 2
+                            ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                            : "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                        }`}
+                      >
+                        {idx === 0 ? <Crown className="h-4 w-4 mr-1" /> : idx === 1 ? <Medal className="h-4 w-4 mr-1" /> : idx === 2 ? <Award className="h-4 w-4 mr-1" /> : <Star className="h-4 w-4 mr-1" />}#{idx + 1}
+                      </Badge>
+                    </div>
+                    {/* Badge Image */}
+                    {winner.badge_img && (
+                      <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                        <img src={getFullImageUrl(winner.badge_img)} alt="Badge" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    {/* User Info */}
+                    <div className="flex items-center gap-3 flex-1">
+                      <Avatar className="h-12 w-12 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
+                        <AvatarImage src={getFullImageUrl(winner.user?.profile?.avatar)} />
+                        <AvatarFallback>{winner.user?.firstName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h4 className="font-semibold cursor-pointer hover:text-primary transition-colors" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
+                          {winner.user?.profile?.username || `${winner.user?.firstName} ${winner.user?.lastName}`.trim() || "Unknown User"}
+                        </h4>
+                        <div className="space-y-1">
+                          {winner.admin_note && (
+                            <div className="p-2 bg-muted/50 rounded-md">
+                              <p className="text-sm text-muted-foreground">{winner.admin_note}</p>
                             </div>
-                          </div>
+                          )}
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">{winner.awarded_at && <span>Awarded: {new Date(winner.awarded_at).toLocaleString()}</span>}</div>
                         </div>
                       </div>
-                      {/* Post Preview */}
-                      <div className="flex items-center gap-2">
-                        {winner.post?.images?.[0] && (
-                          <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
-                            <img
-                              src={getFullImageUrl(winner.post.images[0].image_url || winner.post.images[0])}
-                              alt={winner.post.title || "Winning post"}
-                              className="w-full h-full object-cover cursor-pointer"
-                              onClick={() => handleOpenCommentModal(winner.post)}
-                            />
-                          </div>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => handleOpenCommentModal(winner.post)}>
-                          <Eye className="h-3 w-3 mr-1" />
-                          View Post
-                        </Button>
-                      </div>
                     </div>
-                  </Card>
-                ))}
+                  </div>
+                </Card>
+              ))}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -985,7 +972,6 @@ export default function AdminChallenges() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Crop Badge Image</DialogTitle>
-            <DialogDescription>Adjust the crop area for the badge image (1:1 aspect ratio recommended)</DialogDescription>
           </DialogHeader>
           {imgSrcForCrop && (
             <ReactCrop crop={crop} onChange={(_, percentCrop) => setCrop(percentCrop)} onComplete={(c) => setCompletedCrop(c)} aspect={1} circularCrop={false}>
@@ -997,9 +983,8 @@ export default function AdminChallenges() {
               Cancel
             </Button>
             <Button onClick={handleCropImage} disabled={!completedCrop?.width || !completedCrop?.height}>
-              <Crop className="mr-2 h-4 w-4" />
-              Crop & Apply
-            </Button>{" "}
+              <Crop className="mr-2 h-4 w-4" /> Crop & Apply
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>{" "}
@@ -1029,10 +1014,12 @@ export default function AdminChallenges() {
 
 // Challenge Management Card Component
 function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelectWinners, onViewWinners, onOpenCommentModal, getFullImageUrl, formatDate, navigate }) {
-  // ...existing code...
+  // Fix isActive logic: is_closed === 0 means active
   const isActive = !challenge.is_closed && new Date(challenge.deadline) > new Date();
-  const submissionCount = challenge.challengePosts?.length || 0;
-  const winnersCount = challenge.userBadges?.length || 0;
+  // Use challenge.challengePosts for submissions
+  const submissionCount = Array.isArray(challenge.challengePosts) ? challenge.challengePosts.length : 0;
+  // Winners count: if challenge has winners array, use its length, else 0
+  const winnersCount = Array.isArray(challenge.winners) ? challenge.winners.length : 0;
 
   return (
     <Card>
@@ -1086,13 +1073,13 @@ function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelec
                   Close Challenge
                 </DropdownMenuItem>
               )}
-              {!isActive && submissionCount > 0 && winnersCount === 0 && (
+              {!isActive && submissionCount > 0 && (
                 <DropdownMenuItem onClick={() => onSelectWinners(challenge.id)}>
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Select Winners
                 </DropdownMenuItem>
               )}{" "}
-              {!isActive && submissionCount > 0 && winnersCount > 0 && (
+              {!isActive && submissionCount > 0 && (
                 <DropdownMenuItem onClick={() => onViewWinners(challenge.id)}>
                   <Eye className="h-4 w-4 mr-2" />
                   View Winners
@@ -1107,12 +1094,13 @@ function ChallengeManagementCard({ challenge, onEdit, onDelete, onClose, onSelec
         </div>
       </CardHeader>
 
+      {/* Submissions Preview */}
       {submissionCount > 0 && (
         <CardContent>
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">Recent Submissions ({submissionCount})</h4>
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {challenge.challengePosts?.slice(0, 6).map((submission) => (
+              {challenge.challengePosts.slice(0, 6).map((submission) => (
                 <div key={submission.id} className="flex-shrink-0 group cursor-pointer" onClick={() => onOpenCommentModal(submission.post)}>
                   <div className="w-16 h-16 rounded-md overflow-hidden bg-muted relative hover:ring-2 hover:ring-primary transition-all">
                     {submission.post?.images?.[0] && <img src={getFullImageUrl(submission.post.images[0].image_url || submission.post.images[0])} alt={submission.post.title || "Submission"} className="w-full h-full object-cover" />}
