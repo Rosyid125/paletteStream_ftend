@@ -81,15 +81,15 @@ export default function NotificationDropdown() {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
-            <DropdownMenuLabel className="p-0 text-base font-semibold">Notifications</DropdownMenuLabel>
             {unreadCount > 0 && (
               <Badge variant="secondary" className="text-xs">
                 {unreadCount} new
               </Badge>
             )}
-          </div>          <div className="flex items-center gap-1">
+          </div>{" "}
+          <div className="flex items-center gap-1">
             <NotificationSoundToggle />
-            
+
             {unreadCount > 0 && (
               <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="h-8 px-2 text-xs">
                 <CheckCheck className="h-3 w-3 mr-1" />
