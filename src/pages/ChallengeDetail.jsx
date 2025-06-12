@@ -346,9 +346,9 @@ export default function ChallengeDetail() {
                 <div className="space-y-3">
                   {" "}
                   {winners.map((winner, index) => (
-                    <div key={winner.id} className="flex items-center p-2 rounded-md bg-gradient-to-r from-yellow-50 to-orange-50">
+                    <div key={winner.id} className="flex items-center p-2 rounded-md bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
                       <div className="flex items-center justify-center w-8 h-8 mr-3">
-                        {index === 0 ? <Crown className="h-5 w-5 text-yellow-500" /> : index === 1 ? <Medal className="h-5 w-5 text-gray-400" /> : <Award className="h-5 w-5 text-amber-600" />}
+                        {index === 0 ? <Crown className="h-5 w-5 text-yellow-500" /> : index === 1 ? <Medal className="h-5 w-5 text-gray-400 dark:text-gray-300" /> : <Award className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
                       </div>
                       <Avatar className="h-8 w-8 mr-2 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" onClick={() => winner.user?.id && navigate(`/profile/${winner.user.id}`)}>
                         <AvatarImage src={getFullImageUrl(winner.user?.profile?.avatar)} />

@@ -401,38 +401,42 @@ export default function Profile() {
       })
       .finally(() => setChallengeHistoryLoading(false));
   }, [userId, challengeFilter]);
-
   // --- Helper function to get rank color ---
   const getRankColor = (rank) => {
     switch (rank) {
       case 1:
-        return "text-yellow-500 bg-yellow-100"; // Gold
+        return "text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400"; // Gold
       case 2:
-        return "text-gray-500 bg-gray-100"; // Silver
+        return "text-gray-500 bg-gray-100 dark:bg-gray-800 dark:text-gray-300"; // Silver
       case 3:
-        return "text-orange-600 bg-orange-100"; // Bronze
+        return "text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400"; // Bronze
       default:
-        return "text-blue-500 bg-blue-100";
+        return "text-blue-500 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400";
     }
   };
-
   // --- Helper function to get status badge ---
   const getStatusBadge = (status) => {
     const badges = {
-      won: { color: "bg-green-100 text-green-800", icon: "🏆", label: "Won" },
-      active: { color: "bg-blue-100 text-blue-800", icon: "⏳", label: "Active" },
-      participated: { color: "bg-gray-100 text-gray-800", icon: "📝", label: "Participated" },
+      won: { color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400", icon: "🏆", label: "Won" },
+      active: { color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400", icon: "⏳", label: "Active" },
+      participated: { color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300", icon: "📝", label: "Participated" },
     };
     return badges[status] || badges.participated;
   };
 
-  // --- Helper function to format date ---
+  // --- Helper function to format date ---  // --- Helper function to format date safely ---
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    if (!dateString) return "Unknown date";
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid date";
+    }
   };
 
   // --- Event Handlers ---
@@ -677,7 +681,8 @@ export default function Profile() {
                 <p className="text-muted-foreground">@{userProfile.username}</p>
 
                 <div className="flex items-center justify-center md:justify-start mt-2 space-x-2 flex-wrap">
-                  <Badge variant="outline" className="bg-indigo-100 text-indigo-700 border-indigo-300 font-medium">
+                  {" "}
+                  <Badge variant="outline" className="bg-indigo-100 text-indigo-700 border-indigo-300 font-medium dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-700">
                     Level {userProfile.level || 1}
                   </Badge>
                 </div>
@@ -946,9 +951,9 @@ export default function Profile() {
                                     }}
                                   >
                                     <Edit className="mr-2 h-4 w-4" /> Edit Post
-                                  </DropdownMenuItem>
+                                  </DropdownMenuItem>{" "}
                                   <DropdownMenuItem
-                                    className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                    className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/30 cursor-pointer"
                                     onSelect={(e) => {
                                       e.preventDefault();
                                       setPostToDelete(artwork.id);
@@ -1124,24 +1129,32 @@ export default function Profile() {
                 </div>
               ) : badges && badges.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {" "}
                   {badges.map((badge) => (
                     <HoverCard key={badge.id} openDelay={100} closeDelay={50}>
                       <HoverCardTrigger asChild>
                         <Card className="flex flex-col items-center p-4 space-y-3 cursor-default bg-muted/40 hover:bg-muted/70 transition-colors">
                           <div className="relative">
-                            <img src={getFullStorageUrl(badge.badge_img)} alt={badge.challenge_title} className="w-16 h-16 object-contain rounded-lg" />
-                            <div className={`absolute -top-2 -right-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRankColor(badge.rank)}`}>🏆 {badge.rank_display}</div>
+                            <img
+                              src={getFullStorageUrl(badge.badge_img)}
+                              alt={badge.challenge_title || "Challenge badge"}
+                              className="w-16 h-16 object-contain rounded-lg"
+                              onError={(e) => {
+                                e.target.src = "/placeholder.svg";
+                              }}
+                            />
+                            <div className={`absolute -top-2 -right-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRankColor(badge.rank || 1)}`}>🏆 {badge.rank_display || `Rank ${badge.rank || 1}`}</div>
                           </div>
                           <div className="text-center">
-                            <p className="font-medium text-sm">{badge.challenge_title}</p>
+                            <p className="font-medium text-sm">{badge.challenge_title || "Unknown Challenge"}</p>
                             <p className="text-xs text-muted-foreground">Earned: {formatDate(badge.earned_at)}</p>
                           </div>
                         </Card>
                       </HoverCardTrigger>
                       <HoverCardContent className="w-60">
                         <div className="space-y-2">
-                          <p className="text-sm font-semibold">{badge.challenge_title}</p>
-                          <p className="text-sm text-muted-foreground">🏆 {badge.rank_display}</p>
+                          <p className="text-sm font-semibold">{badge.challenge_title || "Unknown Challenge"}</p>
+                          <p className="text-sm text-muted-foreground">🏆 {badge.rank_display || `Rank ${badge.rank || 1}`}</p>
                           {badge.admin_note && <p className="text-sm text-muted-foreground italic">&quot;{badge.admin_note}&quot;</p>}
                           <p className="text-xs text-muted-foreground">Earned on {formatDate(badge.earned_at)}</p>
                         </div>
@@ -1235,28 +1248,28 @@ export default function Profile() {
                 </div>
               ) : (
                 <>
+                  {" "}
                   {/* Stats Summary */}
                   {challengeStats && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      <div className="bg-blue-50 p-4 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-blue-600">{challengeStats.total_participated}</div>
-                        <div className="text-sm text-gray-600">Participated</div>
+                      <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{challengeStats.total_participated}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Participated</div>
                       </div>
-                      <div className="bg-green-50 p-4 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-green-600">{challengeStats.total_won}</div>
-                        <div className="text-sm text-gray-600">Won</div>
+                      <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{challengeStats.total_won}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Won</div>
                       </div>
-                      <div className="bg-yellow-50 p-4 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-yellow-600">{challengeStats.active_participations}</div>
-                        <div className="text-sm text-gray-600">Active</div>
+                      <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{challengeStats.active_participations}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
                       </div>
-                      <div className="bg-purple-50 p-4 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-purple-600">{challengeStats.win_rate}%</div>
-                        <div className="text-sm text-gray-600">Win Rate</div>
+                      <div className="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{challengeStats.win_rate}%</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Win Rate</div>
                       </div>
                     </div>
                   )}
-
                   {/* Filter Tabs */}
                   <div className="flex space-x-4 border-b mb-4">
                     {[
@@ -1268,13 +1281,14 @@ export default function Profile() {
                       <button
                         key={tab.key}
                         onClick={() => setChallengeFilter(tab.key)}
-                        className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${challengeFilter === tab.key ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                        className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                          challengeFilter === tab.key ? "border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400" : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                        }`}
                       >
                         {tab.label}
                       </button>
                     ))}
                   </div>
-
                   {/* Challenges List */}
                   {challengeHistory && challengeHistory.length > 0 ? (
                     <ScrollArea className="h-[400px] pr-4 -mr-4">
@@ -1282,29 +1296,29 @@ export default function Profile() {
                         {challengeHistory.map((challenge) => {
                           const statusBadge = getStatusBadge(challenge.status);
                           return (
-                            <div key={challenge.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div key={challenge.id} className="bg-white dark:bg-gray-800 border rounded-lg p-4 hover:shadow-md transition-shadow">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center space-x-3 mb-2">
                                     <img src={getFullStorageUrl(challenge.badge_img)} alt={challenge.title} className="w-12 h-12 object-contain rounded-md border" />
                                     <div>
                                       <h3 className="font-semibold text-lg">{challenge.title}</h3>
-                                      <p className="text-gray-600 text-sm">{challenge.description}</p>
+                                      <p className="text-gray-600 dark:text-gray-400 text-sm">{challenge.description}</p>
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center space-x-4 text-sm text-gray-500 mt-3">
+                                  <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mt-3">
                                     <span>Joined: {formatDate(challenge.participation_date)}</span>
                                     <span>Deadline: {formatDate(challenge.deadline)}</span>
                                   </div>
 
                                   {challenge.win_info && (
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mt-3">
                                       <div className="flex items-center space-x-2">
-                                        <span className="text-green-600 font-medium">🏆 {challenge.win_info.rank_display}</span>
-                                        {challenge.win_info.final_score && <span className="text-gray-600">• Score: {challenge.win_info.final_score}</span>}
+                                        <span className="text-green-600 dark:text-green-400 font-medium">🏆 {challenge.win_info.rank_display}</span>
+                                        {challenge.win_info.final_score && <span className="text-gray-600 dark:text-gray-400">• Score: {challenge.win_info.final_score}</span>}
                                       </div>
-                                      {challenge.win_info.admin_note && <p className="text-green-700 text-sm mt-1 italic">&quot;{challenge.win_info.admin_note}&quot;</p>}
+                                      {challenge.win_info.admin_note && <p className="text-green-700 dark:text-green-300 text-sm mt-1 italic">&quot;{challenge.win_info.admin_note}&quot;</p>}
                                     </div>
                                   )}
                                 </div>
@@ -1322,7 +1336,7 @@ export default function Profile() {
                       </div>
                     </ScrollArea>
                   ) : (
-                    <div className="text-center py-12 text-gray-500">
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                       <div className="text-4xl mb-4">🎯</div>
                       <p>No challenges found</p>
                       <p className="text-sm">{challengeFilter === "all" ? "Haven't participated in any challenges yet" : `No ${challengeFilter} challenges`}</p>
