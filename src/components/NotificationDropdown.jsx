@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { formatDistanceToNow } from "date-fns";
+import NotificationSoundToggle from "@/components/NotificationSoundToggle";
 
 export default function NotificationDropdown() {
   const navigate = useNavigate();
@@ -86,9 +87,9 @@ export default function NotificationDropdown() {
                 {unreadCount} new
               </Badge>
             )}
-          </div>
-
-          <div className="flex items-center gap-1">
+          </div>          <div className="flex items-center gap-1">
+            <NotificationSoundToggle />
+            
             {unreadCount > 0 && (
               <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="h-8 px-2 text-xs">
                 <CheckCheck className="h-3 w-3 mr-1" />
