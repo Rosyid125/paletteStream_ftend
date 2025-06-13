@@ -489,11 +489,10 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
                             } catch (error) {
                               return "00:00";
                             }
-                          })()}
-                        </span>
+                          })()}                        </span>
                         {isMyMessage &&
                           msg.id && // Tampilkan ikon hanya jika pesan punya ID
-                          (msg.is_read ? <CheckCheck size={14} className="text-blue-400" /> : <Check size={14} />)}
+                          (msg.is_read ? <CheckCheck size={14} className="text-blue-900" /> : <Check size={14} className="text-blue-800" />)}
                       </div>
                     </div>
                   </div>
