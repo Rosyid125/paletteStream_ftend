@@ -983,10 +983,11 @@ export default function Home() {
                             <Card key={badge.id || index} className="overflow-hidden border-none shadow-sm bg-card/50">
                               <CardContent className="p-2 flex items-center space-x-2">
                                 <div className="flex-shrink-0 h-7 w-7 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                                  {badge.image ? <img src={formatImageUrl(badge.image)} alt={badge.name} className="w-full h-full object-cover rounded-full" /> : <Award className="h-4 w-4 text-amber-500" />}
+                                  {badge.badge_img ? <img src={formatImageUrl(badge.badge_img)} alt={badge.challenge_title || "Badge"} className="w-full h-full object-cover rounded-full" /> : <Award className="h-4 w-4 text-amber-500" />}
                                 </div>
                                 <div>
-                                  <p className="font-medium text-xs leading-tight">{badge.name}</p>
+                                  <p className="font-medium text-xs leading-tight">{badge.challenge_title || "Badge"}</p>
+                                  <p className="text-xs text-muted-foreground">{badge.rank_display}</p>
                                 </div>
                               </CardContent>
                             </Card>
