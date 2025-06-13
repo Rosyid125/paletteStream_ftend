@@ -180,7 +180,7 @@ export default function WeeklyWinners() {
                 <Trophy className="h-6 w-6 text-yellow-500 mr-2" />
                 Challenge Winners
               </CardTitle>
-              <CardDescription>Celebrate the talented artists who won our weekly challenges</CardDescription>
+              <CardDescription>Celebrate the talented artists who won our challenges</CardDescription>
             </div>
             <Badge variant="secondary" className="text-sm">
               {challenges.length} Completed Challenges

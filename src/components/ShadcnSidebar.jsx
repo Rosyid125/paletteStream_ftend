@@ -137,8 +137,8 @@ export default function ShadcnSidebar() {
       color: "text-blue-500",
     },
     {
-      title: "Weekly Winners",
-      url: "/weekly-winners",
+      title: "Challenge Winners",
+      url: "/challenge-winners",
       icon: Trophy,
       group: "Leaderboard",
       color: "text-yellow-500",

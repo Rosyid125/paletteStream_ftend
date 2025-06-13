@@ -165,7 +165,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "weekly-winners",
+        path: "challenge-winners",
         element: (
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>

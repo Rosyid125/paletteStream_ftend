@@ -549,7 +549,7 @@ function QuickActionsCard({ user }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => navigate("/weekly-winners")}>
+        <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => navigate("/challenge-winners")}>
           <Trophy className="h-4 w-4 mr-2" />
           View All Winners
         </Button>
