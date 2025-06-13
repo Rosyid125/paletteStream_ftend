@@ -306,7 +306,9 @@ export default function ChatPopup({ openUserId, onClose }) {
                           {" "}
                           {/* KEMBALIKAN STYLE ASLI */}
                           {msg.content}{" "}
-                          <div className={`text-[10px] text-right mt-1 flex items-center justify-end gap-1 ${isMyMessage ? "text-primary-foreground/70" : "text-muted-foreground"}`}>                            <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          <div className={`text-[10px] text-right mt-1 flex items-center justify-end gap-1 ${isMyMessage ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                            {" "}
+                            <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             {isMyMessage &&
                               msg.id && // Tampilkan ikon hanya jika pesan punya ID (dari server)
                               (msg.is_read ? <CheckCheck size={14} className="text-blue-900" /> : <Check size={14} className="text-blue-800" />)}
