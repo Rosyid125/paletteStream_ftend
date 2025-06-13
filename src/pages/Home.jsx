@@ -834,7 +834,7 @@ export default function Home() {
                     <p className="text-muted-foreground">No posts found yet. Follow some artists or explore to see their work here!</p>
                   </div>
                 )}
-                {!loading && !hasMore && posts.length > 0 && <div className="text-center py-4 text-muted-foreground">You've reached the end! ✨</div>}
+                {!loading && !hasMore && posts.length > 0 && <div className="text-center py-4 text-muted-foreground">You&#39;ve reached the end! ✨</div>}
                 {error && (
                   <div className="p-4 my-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
                     <span className="font-medium">Error!</span> {error}
@@ -849,7 +849,6 @@ export default function Home() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          --- Active Challenges Card (No Changes) ---{" "}
           <Card className="border-t-4 border-t-primary">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
@@ -1193,7 +1192,7 @@ export default function Home() {
             setSelectedPostForModal(null);
           }}
           onCommentAdded={handleCommentAdded}
-          currentUser={userData ? { id: userData.id, username: userData.username, avatar: formatImageUrl(userData.avatar), level: userData.level || 1 } : null}
+          currentUser={user ? { id: user.id, username: user.username, avatar: formatImageUrl(user.avatar), level: user.level || 1 } : null}
         />
       )}{" "}
       {/* --- *** NEW: Edit Post Modal *** --- */}
