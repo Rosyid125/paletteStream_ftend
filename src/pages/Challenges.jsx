@@ -207,7 +207,7 @@ export default function Challenges() {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="completed">Completed</TabsTrigger>
+                  <TabsTrigger value="completed">Closed</TabsTrigger>
                 </TabsList>{" "}
                 <TabsContent value="active" className="mt-6">
                   <ChallengesList
