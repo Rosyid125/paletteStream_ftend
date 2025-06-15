@@ -25,6 +25,7 @@ import { CommentModal } from "@/components/CommentModal";
 import { EditPost } from "@/components/EditPost";
 import { ReportPostModal } from "@/components/ReportPostModal";
 import ChatPopup from "@/components/ChatPopup";
+import FollowersModal from "@/components/FollowersModal";
 import { useAuth } from "@/contexts/AuthContext";
 
 // --- Constants from Home (adapted) ---
@@ -135,9 +136,12 @@ export default function Profile() {
   // State for Logged-in User Data
   const [CURRENT_USER_ID, setUserId] = useState(null);
   const [CURRENT_USER_DATA, setUserData] = useState(null);
-
   // State for Chat Popup
   const [chatUserId, setChatUserId] = useState(null);
+
+  // State for Followers Modal
+  const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
+  const [followersModalTab, setFollowersModalTab] = useState("followers");
 
   // Get logged-in user data from localStorage
   useEffect(() => {
@@ -511,9 +515,13 @@ export default function Profile() {
     if (!userProfile?.id) return;
     setChatUserId(userProfile.id); // Open chat popup with this user
   };
-
   const handleViewAllChallengesClick = () => {
     navigate("/challenges");
+  };
+
+  const handleOpenFollowersModal = (tab = "followers") => {
+    setFollowersModalTab(tab);
+    setIsFollowersModalOpen(true);
   };
 
   // --- Action Handlers for Artworks (Like, Bookmark, Comment, Delete) ---
@@ -755,7 +763,6 @@ export default function Profile() {
                   <CardDescription className="whitespace-pre-wrap">{userBio}</CardDescription>
                 </Card>
               )}
-
               {/* Platform Links */}
               {userProfile.platform_links && userProfile.platform_links.length > 0 && (
                 <div className="space-y-1">
@@ -779,31 +786,34 @@ export default function Profile() {
                     ))}
                   </div>
                 </div>
-              )}
-
+              )}{" "}
               {/* Followers/Following/Location */}
               <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center text-sm cursor-default">
-                        <Users className="h-4 w-4 mr-1.5 text-muted-foreground" /> <span className="font-medium">{userProfile.followers ?? 0}</span> <span className="ml-1 text-muted-foreground">Followers</span>
+                      <div className="flex items-center text-sm cursor-pointer hover:text-primary transition-colors" onClick={() => handleOpenFollowersModal("followers")}>
+                        <Users className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                        <span className="font-medium">{userProfile.followers ?? 0}</span>
+                        <span className="ml-1 text-muted-foreground">Followers</span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>People following {userProfile.username}</p>
+                      <p>View people following {userProfile.username}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center text-sm cursor-default">
-                        <Users className="h-4 w-4 mr-1.5 text-muted-foreground" /> <span className="font-medium">{userProfile.followings ?? 0}</span> <span className="ml-1 text-muted-foreground">Following</span>
+                      <div className="flex items-center text-sm cursor-pointer hover:text-primary transition-colors" onClick={() => handleOpenFollowersModal("following")}>
+                        <Users className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                        <span className="font-medium">{userProfile.followings ?? 0}</span>
+                        <span className="ml-1 text-muted-foreground">Following</span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>People {userProfile.username} follows</p>
+                      <p>View people {userProfile.username} follows</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -813,7 +823,6 @@ export default function Profile() {
                   </div>
                 )}
               </div>
-
               {/* Level Progress */}
               <div className="space-y-2 pt-2">
                 <div className="flex justify-between items-center mb-1">
@@ -1433,9 +1442,11 @@ export default function Profile() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>{" "}
       {/* Chat Popup - Rendered at the bottom of the profile page */}
       {chatUserId && <ChatPopup openUserId={chatUserId} onClose={() => setChatUserId(null)} />}
+      {/* Followers Modal */}
+      <FollowersModal isOpen={isFollowersModalOpen} onClose={() => setIsFollowersModalOpen(false)} userId={userId} userProfile={userProfile} initialTab={followersModalTab} />
     </div>
   );
 }
