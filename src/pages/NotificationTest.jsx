@@ -9,7 +9,7 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { Bell, WifiOff, Wifi } from "lucide-react";
 
 export default function NotificationTest() {
-  const { notifications, unreadCount, socket, loadNotifications, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, socket, loadNotifications, markAllAsRead, cleanupDuplicates } = useNotifications();
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-6xl">
@@ -46,22 +46,22 @@ export default function NotificationTest() {
                 <span className="text-sm font-medium">WebSocket Status</span>
                 <Badge variant={socket ? "default" : "destructive"}>{socket ? "Connected" : "Disconnected"}</Badge>
               </div>
-
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Total Notifications</span>
                 <Badge variant="secondary">{notifications.length}</Badge>
               </div>
-
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Unread Count</span>
                 <Badge variant={unreadCount > 0 ? "destructive" : "secondary"}>{unreadCount}</Badge>
               </div>
-
-              <Separator />
-
+              <Separator />{" "}
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => loadNotifications()}>
                   Refresh
+                </Button>
+
+                <Button variant="outline" size="sm" onClick={cleanupDuplicates}>
+                  Fix Duplicates
                 </Button>
 
                 {unreadCount > 0 && (
@@ -89,8 +89,8 @@ export default function NotificationTest() {
                 </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {notifications.slice(0, 10).map((notification) => (
-                    <div key={notification.id} className={`p-3 border rounded-lg ${!notification.is_read ? "border-primary bg-primary/5" : ""}`}>
+                  {notifications.slice(0, 10).map((notification, index) => (
+                    <div key={`notification-${notification.id}-${index}`} className={`p-3 border rounded-lg ${!notification.is_read ? "border-primary bg-primary/5" : ""}`}>
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h4 className={`text-sm font-medium ${!notification.is_read ? "font-semibold" : ""}`}>{notification.title}</h4>
                         <Badge variant="outline" className="text-xs">

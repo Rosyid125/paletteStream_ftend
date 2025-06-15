@@ -18,6 +18,7 @@ const NotificationContext = createContext({
   loadMoreNotifications: () => {},
   loadUnreadCount: () => {},
   handleNotificationClick: () => {},
+  cleanupDuplicates: () => {},
 });
 
 export function NotificationProvider({ children }) {
@@ -66,8 +67,16 @@ export function NotificationProvider({ children }) {
         normalizedNotification.created_at = new Date().toISOString();
       }
 
-      // Add new notification to the list
-      setNotifications((prev) => [normalizedNotification, ...prev]);
+      // Add new notification to the list only if it doesn't already exist
+      setNotifications((prev) => {
+        // Check if notification already exists
+        const exists = prev.some((n) => n.id === normalizedNotification.id);
+        if (exists) {
+          console.log("Notification already exists, skipping duplicate:", normalizedNotification.id);
+          return prev;
+        }
+        return [normalizedNotification, ...prev];
+      });
       setUnreadCount((prev) => prev + 1);
     });
 
@@ -132,9 +141,13 @@ export function NotificationProvider({ children }) {
 
             return normalizedNotification;
           });
-
           if (append) {
-            setNotifications((prev) => [...prev, ...normalizedData]);
+            setNotifications((prev) => {
+              // Deduplicate notifications when appending
+              const existingIds = new Set(prev.map((n) => n.id));
+              const newNotifications = normalizedData.filter((n) => !existingIds.has(n.id));
+              return [...prev, ...newNotifications];
+            });
           } else {
             setNotifications(normalizedData);
             setCurrentPage(1);
@@ -225,6 +238,30 @@ export function NotificationProvider({ children }) {
     },
     [markAsRead]
   );
+
+  // Utility function to remove duplicates from notifications array
+  const deduplicateNotifications = useCallback((notifications) => {
+    const seen = new Set();
+    return notifications.filter((notification) => {
+      if (seen.has(notification.id)) {
+        console.warn("Removing duplicate notification:", notification.id);
+        return false;
+      }
+      seen.add(notification.id);
+      return true;
+    });
+  }, []);
+
+  // Manual cleanup function to remove duplicates (for debugging)
+  const cleanupDuplicates = useCallback(() => {
+    setNotifications((prev) => {
+      const cleaned = deduplicateNotifications(prev);
+      if (cleaned.length !== prev.length) {
+        console.log(`Removed ${prev.length - cleaned.length} duplicate notifications`);
+      }
+      return cleaned;
+    });
+  }, [deduplicateNotifications]);
   const value = {
     notifications,
     unreadCount,
@@ -238,6 +275,7 @@ export function NotificationProvider({ children }) {
     loadMoreNotifications,
     loadUnreadCount,
     handleNotificationClick,
+    cleanupDuplicates, // Add cleanup function for debugging
   };
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

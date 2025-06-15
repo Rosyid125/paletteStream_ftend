@@ -16,7 +16,7 @@ import { ImageCarousel } from "@/components/ImageCarousel";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import api from "../api/axiosInstance";
 
 // --- Import new components from Home ---
@@ -80,7 +80,14 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth(); // Get current user from AuthContext
   const { userId: userIdParam } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const userId = Number(userIdParam); // <<< USE THIS ID for fetching the profile owner's data
+
+  // Get tab from URL query parameter
+  const tabFromUrl = searchParams.get("tab");
+  const validTabs = ["artworks", "achievements", "stats", "badges", "challenges"];
+  const defaultTab = "artworks";
+  const initialTab = validTabs.includes(tabFromUrl) ? tabFromUrl : defaultTab;
 
   // State for data fetched from API
   const [userProfile, setUserProfile] = useState(null);
@@ -113,7 +120,7 @@ export default function Profile() {
   const [challengeStats, setChallengeStats] = useState(null);
   const [challengeFilter, setChallengeFilter] = useState("all");
 
-  const [activeTab, setActiveTab] = useState("artworks");
+  const [activeTab, setActiveTab] = useState(initialTab);
   // State for Modals
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [selectedPostForModal, setSelectedPostForModal] = useState(null);
@@ -313,6 +320,26 @@ export default function Profile() {
     // *** Update dependencies: Use userId (from param) and CURRENT_USER_ID (from storage) ***
     [userId, CURRENT_USER_ID, userProfile]
   );
+
+  // --- Effect to sync tab with URL parameter ---
+  useEffect(() => {
+    if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl, activeTab, validTabs]);
+
+  // --- Function to handle tab changes and update URL ---
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    // Update URL with new tab parameter
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (newTab !== defaultTab) {
+      newSearchParams.set("tab", newTab);
+    } else {
+      newSearchParams.delete("tab");
+    }
+    setSearchParams(newSearchParams, { replace: true });
+  };
 
   // --- Effect to fetch profile when userId (from param) changes ---
   useEffect(() => {
@@ -842,7 +869,7 @@ export default function Profile() {
         </CardContent>
       </Card>
       {/* --- Profile Content Tabs --- */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="artworks" className="flex items-center justify-center gap-2">
             {" "}

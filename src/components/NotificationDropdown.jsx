@@ -122,8 +122,8 @@ export default function NotificationDropdown() {
             </div>
           ) : (
             <div className="py-2">
-              {notifications.map((notification) => (
-                <NotificationItem key={notification.id} notification={notification} onClick={() => handleNotificationItemClick(notification)} onMarkAsRead={() => markAsRead(notification.id)} />
+              {notifications.map((notification, index) => (
+                <NotificationItem key={`notification-${notification.id}-${index}`} notification={notification} onClick={() => handleNotificationItemClick(notification)} onMarkAsRead={() => markAsRead(notification.id)} />
               ))}
 
               {/* Loading More Indicator */}

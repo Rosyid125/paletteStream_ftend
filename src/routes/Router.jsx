@@ -35,6 +35,7 @@ import AdminChallenges from "@/pages/Admin/AdminChallenges";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute"; // Assuming correct path
 import TopArtworks from "@/pages/TopArtworks";
+import PostDetail from "@/pages/PostDetail";
 
 const router = createBrowserRouter([
   // Route for the Landing Page (unauthenticated users primarily)
@@ -233,6 +234,17 @@ const router = createBrowserRouter([
           <Suspense fallback={<LoadingSpinner />}>
             <ProtectedRoute>
               <EditProfile /> {/* Assuming Profile component handles editing as well */}
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      // PostDetail.jsx - Support for /posts/${postId} and /posts/${postId}&comment=${commentId}
+      {
+        path: "posts/:postId",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProtectedRoute>
+              <PostDetail />
             </ProtectedRoute>
           </Suspense>
         ),

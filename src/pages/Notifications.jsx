@@ -182,11 +182,10 @@ function NotificationsList({ notifications, loading, onNotificationClick, onMark
       </Card>
     );
   }
-
   return (
     <div className="space-y-4">
-      {notifications.map((notification) => (
-        <NotificationCard key={notification.id} notification={notification} onClick={() => onNotificationClick(notification)} onMarkAsRead={() => onMarkAsRead(notification.id)} />
+      {notifications.map((notification, index) => (
+        <NotificationCard key={`notification-${notification.id}-${index}`} notification={notification} onClick={() => onNotificationClick(notification)} onMarkAsRead={() => onMarkAsRead(notification.id)} />
       ))}
     </div>
   );

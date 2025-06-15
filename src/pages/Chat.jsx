@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card"; // Asumsi ini dari ChatList
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Check, CheckCheck } from "lucide-react"; // <-- BARU: Check, CheckCheck
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/axiosInstance";
 import { setupChatSocket } from "../lib/socketHandler";
 import { io } from "socket.io-client";
@@ -528,10 +528,14 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
   );
 }
 
-// --- ChatPage component (TIDAK ADA PERUBAHAN DARI KODE ASLI ANDA) ---
+// --- ChatPage component ---
 export default function ChatPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [userId, setUserId] = useState(null);
   const [selectedUserId, setSelectedUserId] = useState(null);
+
+  // Get user parameter from URL
+  const userFromUrl = searchParams.get("user");
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -545,14 +549,35 @@ export default function ChatPage() {
     }
   }, []);
 
+  // Set selected user from URL parameter
+  useEffect(() => {
+    if (userFromUrl && !isNaN(userFromUrl)) {
+      const targetUserId = parseInt(userFromUrl, 10);
+      setSelectedUserId(targetUserId);
+    }
+  }, [userFromUrl]);
+
+  // Update URL when selected user changes
+  const handleUserSelect = (targetUserId) => {
+    setSelectedUserId(targetUserId);
+
+    // Update URL with user parameter
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (targetUserId) {
+      newSearchParams.set("user", targetUserId.toString());
+    } else {
+      newSearchParams.delete("user");
+    }
+    setSearchParams(newSearchParams, { replace: true });
+  };
+
   const handleRefreshAccessToken = async () => {
     console.warn("handleRefreshAccessToken not implemented. Socket might fail if token expires.");
     return { accessToken: localStorage.getItem("accessToken") }; // Placeholder, sesuaikan
   };
-
   return (
     <div className="flex h-screen">
-      <ChatList userId={userId} onSelect={setSelectedUserId} selectedUserId={selectedUserId} />
+      <ChatList userId={userId} onSelect={handleUserSelect} selectedUserId={selectedUserId} />
       {userId ? (
         <ChatWindow userId={userId} targetUserId={selectedUserId} onRefreshAccessToken={handleRefreshAccessToken} />
       ) : (
