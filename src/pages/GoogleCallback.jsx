@@ -16,11 +16,12 @@ export default function GoogleCallback() {
         toast({ title: "Google register failed", description: "No code found in callback." });
         navigate("/register");
         return;
-      }      try {
+      }
+      try {
         // 1. Fetch Google profile from backend using the configured API instance
         const res = await api.get(`/auth/google/profile?code=${code}`);
         const profile = res.data;
-        
+
         // 2. Register user to backend
         const regRes = await registerWithGoogle(profile);
         toast({ title: "Registration successful", description: "Welcome to PaletteStream!" });

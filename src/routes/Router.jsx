@@ -71,7 +71,8 @@ const router = createBrowserRouter([
     ),
 
     errorElement: <Error404 />, // Optional: You might want a simpler error page here
-  },  {
+  },
+  {
     path: "/forgot-password",
     element: (
       <Suspense fallback={<LoadingSpinner />}>
