@@ -115,8 +115,6 @@ export const verifyLoginOtp = async (data) => {
 export const loginWithGoogle = async () => {
   const baseUrl = import.meta.env.VITE_API_URL || "";
   window.location.href = `${baseUrl}/auth/login/google`;
-  // Jalankan fetchMe
-  await fetchMe();
 };
 
 export const forgotPasswordRequest = async (email) => {
