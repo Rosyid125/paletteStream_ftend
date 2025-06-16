@@ -6,7 +6,7 @@ const API_URL = `/auth`;
 export const register = async (data) => {
   const response = await api.post(`${API_URL}/register`, data);
 
-  localStorage.setItem("user", JSON.stringify(response.data.data));
+  // Tokens are stored in HttpOnly cookies automatically
 
   const { email, password } = data;
   const loginResponse = await login({ email, password });
@@ -18,7 +18,7 @@ export const register = async (data) => {
 export const login = async (data, navigate) => {
   const response = await api.post(`${API_URL}/login`, data);
 
-  localStorage.setItem("user", JSON.stringify(response.data.data));
+  // Tokens are stored in HttpOnly cookies automatically
 
   console.log("Login data:", response.data.data.role);
 
@@ -39,8 +39,7 @@ export const login = async (data, navigate) => {
 // Fungsi untuk fetch data user yang sedang login (endpoint /me)
 export const fetchMe = async () => {
   const response = await api.get(`${API_URL}/me`);
-  // Simpan user info di localStorage
-  localStorage.setItem("user", JSON.stringify(response.data.data));
+  // Tokens are stored in HttpOnly cookies, user data returned by API
   // Kembalikan data user agar bisa diakses langsung
   return response.data;
 };
@@ -60,8 +59,7 @@ export const refreshToken = async () => {
 
 export const logout = async () => {
   await api.post(`${API_URL}/logout`);
-  // Hapus user info di localStorage saat logout
-  localStorage.removeItem("user");
+  // HttpOnly cookies will be cleared by the server
 };
 
 // Request OTP untuk register
@@ -89,8 +87,7 @@ export const requestLoginOtp = async (email) => {
 // Verifikasi OTP untuk login
 export const verifyLoginOtp = async (data) => {
   const response = await api.post(`/auth/login/email/verify`, data);
-  // Simpan user info di localStorage setelah login sukses
-  localStorage.setItem("user", JSON.stringify(response.data.data));
+  // Tokens are stored in HttpOnly cookies automatically
   // Kembalikan data user
   return {
     ...response.data,
@@ -109,6 +106,14 @@ export const loginWithGoogle = async () => {
   window.location.href = `${baseUrl}/auth/login/google`;
   // Jalankan fetchMe
   await fetchMe();
+};
+
+// Fungsi untuk register dengan Google OAuth2
+export const registerWithGoogle = async (profile) => {
+  const response = await api.post(`/auth/register/google`, profile);
+  // Since we use HttpOnly cookies, we don't store in localStorage
+  // The cookies will be set automatically by the server
+  return response.data;
 };
 
 export const forgotPasswordRequest = async (email) => {

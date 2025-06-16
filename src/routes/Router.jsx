@@ -26,7 +26,8 @@ import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import { Coins, User } from "lucide-react";
 import ForgotPassword from "@/pages/ForgotPassword";
-import Chat from "@/pages/chat";
+import GoogleCallback from "@/pages/GoogleCallback";
+import Chat from "@/pages/Chat";
 import AdminRoute from "@/components/admin/AdminRoute";
 import AdminDashboard from "@/pages/Admin/AdminDashboard";
 import AdminUsers from "@/pages/Admin/AdminUsers";
@@ -70,12 +71,20 @@ const router = createBrowserRouter([
     ),
 
     errorElement: <Error404 />, // Optional: You might want a simpler error page here
-  },
-  {
+  },  {
     path: "/forgot-password",
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <ForgotPassword />
+      </Suspense>
+    ),
+    errorElement: <Error404 />,
+  },
+  {
+    path: "/auth/google/callback",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <GoogleCallback />
       </Suspense>
     ),
     errorElement: <Error404 />,

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { registerWithGoogle } from "@/services/authService";
+import api from "@/api/axiosInstance";
 
 export default function GoogleCallback() {
   const navigate = useNavigate();
@@ -15,15 +16,11 @@ export default function GoogleCallback() {
         toast({ title: "Google register failed", description: "No code found in callback." });
         navigate("/register");
         return;
-      }
-      try {
-        // 1. Fetch Google profile from backend (you may need a backend endpoint for this)
-        // Example: GET /auth/google/profile?code=...
-        // For now, assume backend returns { email, given_name, family_name }
-        const baseUrl = import.meta.env.VITE_API_URL || "";
-        const res = await fetch(`${baseUrl}/auth/google/profile?code=${code}`);
-        if (!res.ok) throw new Error("Failed to fetch Google profile");
-        const profile = await res.json();
+      }      try {
+        // 1. Fetch Google profile from backend using the configured API instance
+        const res = await api.get(`/auth/google/profile?code=${code}`);
+        const profile = res.data;
+        
         // 2. Register user to backend
         const regRes = await registerWithGoogle(profile);
         toast({ title: "Registration successful", description: "Welcome to PaletteStream!" });
