@@ -6,9 +6,9 @@ const API_URL = `/auth`;
 export const register = async (data) => {
   const response = await api.post(`${API_URL}/register`, data);
 
-  // Tokens are stored in HttpOnly cookies automatically
-
   const { email, password } = data;
+
+  // Setelah register sukses, lakukan auto login
   const loginResponse = await login({ email, password });
 
   return { registerResponse: response.data, loginResponse };
@@ -18,8 +18,10 @@ export const register = async (data) => {
 export const login = async (data, navigate) => {
   const response = await api.post(`${API_URL}/login`, data);
 
-  // Tokens are stored in HttpOnly cookies automatically
+  //  Set data user to localStorage for easy access
+  localStorage.setItem("user", JSON.stringify(response.data.data));
 
+  // Role
   console.log("Login data:", response.data.data.role);
 
   const role = response.data.data.role;
@@ -39,8 +41,10 @@ export const login = async (data, navigate) => {
 // Fungsi untuk fetch data user yang sedang login (endpoint /me)
 export const fetchMe = async () => {
   const response = await api.get(`${API_URL}/me`);
-  // Tokens are stored in HttpOnly cookies, user data returned by API
-  // Kembalikan data user agar bisa diakses langsung
+
+  // Simpan data user ke localStorage untuk akses mudah
+  localStorage.setItem("user", JSON.stringify(response.data.data));
+
   return response.data;
 };
 
@@ -59,7 +63,9 @@ export const refreshToken = async () => {
 
 export const logout = async () => {
   await api.post(`${API_URL}/logout`);
-  // HttpOnly cookies will be cleared by the server
+
+  // Hapus data user dari localStorage
+  localStorage.removeItem("user");
 };
 
 // Request OTP untuk register
@@ -74,7 +80,10 @@ export const registerWithOtp = async (data) => {
   const response = await api.post(`/auth/register`, data);
   // Setelah register sukses, lakukan auto login
   const { email, password } = data;
+
+  // Setelah register, login otomatis
   const loginResponse = await login({ email, password });
+
   return { registerResponse: response.data, loginResponse };
 };
 
@@ -84,20 +93,22 @@ export const requestLoginOtp = async (email) => {
   return response.data;
 };
 
-// Verifikasi OTP untuk login
-export const verifyLoginOtp = async (data) => {
-  const response = await api.post(`/auth/login/email/verify`, data);
-  // Tokens are stored in HttpOnly cookies automatically
-  // Kembalikan data user
-  return {
-    ...response.data,
-  };
-};
-
 // Resend OTP untuk login
 export const resendLoginOtp = async (email) => {
   const response = await api.post(`/auth/login/email/resend`, { email });
   return response.data;
+};
+
+// Verifikasi OTP untuk login
+export const verifyLoginOtp = async (data) => {
+  const response = await api.post(`/auth/login/email/verify`, data);
+
+  // Set data user to localStorage for easy access
+  localStorage.setItem("user", JSON.stringify(response.data.data));
+
+  return {
+    ...response.data,
+  };
 };
 
 // Fungsi untuk login/register dengan Google OAuth2
@@ -106,14 +117,6 @@ export const loginWithGoogle = async () => {
   window.location.href = `${baseUrl}/auth/login/google`;
   // Jalankan fetchMe
   await fetchMe();
-};
-
-// Fungsi untuk register dengan Google OAuth2
-export const registerWithGoogle = async (profile) => {
-  const response = await api.post(`/auth/register/google`, profile);
-  // Since we use HttpOnly cookies, we don't store in localStorage
-  // The cookies will be set automatically by the server
-  return response.data;
 };
 
 export const forgotPasswordRequest = async (email) => {
