@@ -105,7 +105,8 @@ class NotificationSocket {
       return this.socket;
     }
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:8000";
+    // Use API URL base for WebSocket connection
+    const socketUrl = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000";
     console.log("🔌 Connecting to notification server:", socketUrl);
 
     this.socket = io(socketUrl, {

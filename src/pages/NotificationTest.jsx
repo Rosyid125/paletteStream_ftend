@@ -125,9 +125,10 @@ export default function NotificationTest() {
               <CardTitle className="text-lg">Debug Information</CardTitle>
             </CardHeader>
             <CardContent>
+              {" "}
               <div className="space-y-2 text-xs font-mono">
                 <div>
-                  <span className="font-semibold">Socket URL:</span> {import.meta.env.VITE_SOCKET_URL}
+                  <span className="font-semibold">Socket URL:</span> {import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000"}
                 </div>
                 <div>
                   <span className="font-semibold">API URL:</span> {import.meta.env.VITE_API_URL}

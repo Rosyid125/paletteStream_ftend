@@ -8,7 +8,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axiosInstance";
 import { setupChatSocket } from "../lib/socketHandler";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+// Use API URL base for WebSocket connection
+const SOCKET_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000";
 const WIB_TIMEZONE = "Asia/Jakarta"; // Pastikan ini sesuai
 
 // Fungsi getWIBDateParts dan formatDateLabel DIASUMSIKAN SUDAH BENAR DARI KODE ASLI ANDA

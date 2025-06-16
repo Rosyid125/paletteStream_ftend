@@ -9,7 +9,8 @@ import api from "../api/axiosInstance";
 import { setupChatSocket } from "../lib/socketHandler";
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+// Use API URL base for WebSocket connection
+const SOCKET_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000";
 // Fungsi getWIBDateParts dan formatDateLabel DIASUMSIKAN SUDAH BENAR DARI KODE ASLI ANDA
 // ... (Salin fungsi getWIBDateParts dan formatDateLabel dari kode asli Anda ke sini) ...
 const WIB_TIMEZONE = "Asia/Jakarta";
