@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card"; // Asumsi ini dari ChatList
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Check, CheckCheck } from "lucide-react"; // <-- BARU: Check, CheckCheck
+import { Send, Check, CheckCheck, ArrowLeft } from "lucide-react"; // <-- BARU: Check, CheckCheck, ArrowLeft
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/axiosInstance";
 import { setupChatSocket } from "../lib/socketHandler";
@@ -258,7 +258,7 @@ function ChatList({ userId, onSelect, selectedUserId }) {
   );
 }
 
-function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
+function ChatWindow({ userId, targetUserId, onRefreshAccessToken, onBack }) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -430,6 +430,11 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
     <div className="flex-1 flex flex-col h-full">
       {" "}
       <div className="flex items-center gap-2 sm:gap-3 border-b p-3 sm:p-4 bg-background">
+        {/* Tombol Kembali untuk Mobile */}
+        <Button variant="ghost" size="icon" className="sm:hidden h-8 w-8" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+
         {targetUser ? (
           <>
             <img
@@ -557,7 +562,6 @@ export default function ChatPage() {
       setSelectedUserId(targetUserId);
     }
   }, [userFromUrl]);
-
   // Update URL when selected user changes
   const handleUserSelect = (targetUserId) => {
     setSelectedUserId(targetUserId);
@@ -569,6 +573,15 @@ export default function ChatPage() {
     } else {
       newSearchParams.delete("user");
     }
+    setSearchParams(newSearchParams, { replace: true });
+  };
+
+  // Handle back button untuk mobile
+  const handleBack = () => {
+    setSelectedUserId(null);
+    // Remove user parameter from URL
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.delete("user");
     setSearchParams(newSearchParams, { replace: true });
   };
 
@@ -584,10 +597,10 @@ export default function ChatPage() {
       <div className="flex-1 flex h-full overflow-hidden">
         <div className={`${selectedUserId ? "hidden sm:block" : "block"} w-full sm:w-auto`}>
           <ChatList userId={userId} onSelect={handleUserSelect} selectedUserId={selectedUserId} />
-        </div>
+        </div>{" "}
         {userId ? (
           <div className={`${selectedUserId ? "block" : "hidden sm:block"} flex-1`}>
-            <ChatWindow userId={userId} targetUserId={selectedUserId} onRefreshAccessToken={handleRefreshAccessToken} />
+            <ChatWindow userId={userId} targetUserId={selectedUserId} onRefreshAccessToken={handleRefreshAccessToken} onBack={handleBack} />
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm sm:text-lg p-4">
