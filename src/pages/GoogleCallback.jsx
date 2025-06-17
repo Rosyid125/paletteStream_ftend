@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import api from "@/api/axiosInstance";
+import { fetchMe } from "@/services/authService";
 
 export default function GoogleCallback() {
   const navigate = useNavigate();
@@ -10,41 +10,42 @@ export default function GoogleCallback() {
   useEffect(() => {
     const handleGoogleCallback = async () => {
       const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
+      const success = params.get("success");
+      const error = params.get("error");
+      const message = params.get("message");
 
-      if (!code) {
-        toast({
-          title: "Authentication failed",
-          description: "No authorization code found.",
-        });
-        navigate("/login");
-        return;
-      }
+      if (success === "true") {
+        try {
+          // Fetch user data since authentication was successful
+          await fetchMe();
 
-      try {
-        // Call the backend callback endpoint which handles both login and registration
-        const response = await api.get(`/auth/google/callback?code=${code}`);
+          toast({
+            title: "Success",
+            description: message || "Welcome to PaletteStream!",
+          });
 
-        // Set user data to localStorage
-        localStorage.setItem("user", JSON.stringify(response.data.data));
+          // Get user data from localStorage to check role
+          const userData = JSON.parse(localStorage.getItem("user") || "{}");
+          const role = userData.role;
 
-        toast({
-          title: "Success",
-          description: "Welcome to PaletteStream!",
-        });
-
-        // Check user role and navigate accordingly
-        const role = response.data.data.role;
-        if (role === "admin") {
-          navigate("/admin/dashboard");
-        } else {
-          navigate("/home");
+          if (role === "admin") {
+            navigate("/admin/dashboard");
+          } else {
+            navigate("/home");
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          toast({
+            title: "Authentication failed",
+            description: "Could not fetch user data",
+          });
+          navigate("/login");
         }
-      } catch (error) {
-        console.error("Google authentication error:", error);
+      } else {
+        // Authentication failed
         toast({
           title: "Authentication failed",
-          description: error?.response?.data?.message || "Something went wrong",
+          description: message || error || "Google authentication failed",
         });
         navigate("/login");
       }
@@ -57,7 +58,7 @@ export default function GoogleCallback() {
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-        <p>Authenticating with Google...</p>
+        <p>Processing Google authentication...</p>
       </div>
     </div>
   );
