@@ -781,12 +781,16 @@ export default function AdminChallenges() {
                   <Label htmlFor="admin_note">Admin Note</Label>
                   <Textarea id="admin_note" value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Congratulations message for winners" rows={2} />
                 </div>
-              )}
+              )}{" "}
               {/* Selection Mode Tabs */}
               <Tabs value={selectionMode} onValueChange={setSelectionMode}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="manual">Manual Selection</TabsTrigger>
-                  <TabsTrigger value="auto">Auto Selection</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 gap-1">
+                  <TabsTrigger value="manual" className="text-xs sm:text-sm px-2 sm:px-3">
+                    Manual Selection
+                  </TabsTrigger>
+                  <TabsTrigger value="auto" className="text-xs sm:text-sm px-2 sm:px-3">
+                    Auto Selection
+                  </TabsTrigger>
                 </TabsList>{" "}
                 <TabsContent value="manual" className="space-y-4">
                   <div>

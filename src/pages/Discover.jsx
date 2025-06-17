@@ -446,22 +446,22 @@ export default function Discover() {
     }
     fetchPopularTags();
   }, []);
-
   return (
-    <div className="grid grid-cols-1 space-y-6 p-4 md:p-6">
+    <div className="grid grid-cols-1 space-y-6 p-2 sm:p-4 md:p-6">
       {/* Search Card */}
       <Card className="border-t-4 border-t-primary">
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 px-3 sm:px-6">
           {" "}
-          <CardTitle>Discover Artworks</CardTitle> <CardDescription>Find new artworks or search for specific content</CardDescription>{" "}
+          <CardTitle className="text-lg sm:text-xl">Discover Artworks</CardTitle>
+          <CardDescription className="text-sm">Find new artworks or search for specific content</CardDescription>{" "}
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start">
             <div className="w-full md:w-40 flex-shrink-0">
               {" "}
               <Select value={searchType} onValueChange={handleSearchTypeChange}>
                 {" "}
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-sm">
                   {" "}
                   <SelectValue placeholder="Search By..." />{" "}
                 </SelectTrigger>{" "}

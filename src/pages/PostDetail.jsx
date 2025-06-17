@@ -628,17 +628,17 @@ export default function PostDetail() {
   }
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-6xl">
         {/* Back button */}
-        <Button variant="ghost" onClick={handleBackClick} className="mb-6">
+        <Button variant="ghost" onClick={handleBackClick} className="mb-4 sm:mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
 
         {/* Main content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Post section */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Image section */}
             <div className="flex justify-center">
               <div className="w-full max-w-lg">
@@ -646,7 +646,7 @@ export default function PostDetail() {
                   <ImageCarousel images={postInfo.images} title={postInfo.title} className="rounded-lg border aspect-square" />
                 ) : (
                   <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground">No image available</p>
+                    <p className="text-muted-foreground text-sm">No image available</p>
                   </div>
                 )}
               </div>
@@ -656,7 +656,7 @@ export default function PostDetail() {
             <div className="space-y-4">
               {/* User info */}
               <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(`/profile/${postInfo.userId || postInfo.user_id}`)}>
+                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(`/profile/${postInfo.userId || postInfo.user_id}`)}>
                   <AvatarImage src={formatImageUrl(postInfo.avatar)} alt={postInfo.username} />
                   <AvatarFallback>{postInfo.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
@@ -672,21 +672,19 @@ export default function PostDetail() {
                     • <span className="ml-1">{postInfo.createdAt}</span>
                   </div>
                 </div>
-              </div>
-
+              </div>{" "}
               {/* Title and description */}
               <div className="space-y-3">
-                <h1 className="font-bold text-2xl leading-tight">{postInfo.title}</h1>
-                {postInfo.description && <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{postInfo.description}</p>}
+                <h1 className="font-bold text-xl sm:text-2xl leading-tight">{postInfo.title}</h1>
+                {postInfo.description && <p className="text-sm sm:text-base text-muted-foreground whitespace-pre-line leading-relaxed">{postInfo.description}</p>}
               </div>
-
               {/* Tags */}
               {Array.isArray(postInfo.tags) && postInfo.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {postInfo.tags.map((tag, idx) => (
                     <span
                       key={tag + idx}
-                      className="bg-muted px-3 py-1 rounded-full text-sm text-primary cursor-pointer hover:bg-muted/80 transition-colors"
+                      className="bg-muted px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm text-primary cursor-pointer hover:bg-muted/80 transition-colors"
                       onClick={() => navigate(`/posts/tags?page=1&limit=9&query=${encodeURIComponent(tag)}`)}
                     >
                       #{tag}
@@ -694,7 +692,6 @@ export default function PostDetail() {
                   ))}
                 </div>
               )}
-
               {/* Actions */}
               <div className="flex items-center gap-6 pt-4 border-t">
                 <Button

@@ -660,19 +660,19 @@ export default function Home() {
       </div>
     );
   }
-
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 p-4 md:p-6">
+      {" "}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6 p-0 sm:p-2 md:p-4 lg:p-6">
         {/* Main Feed */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 lg:space-y-6">
           <Card>
-            <CardHeader className="pb-4">
-              <CardTitle>Feed</CardTitle>
-              <CardDescription>Discover the latest creations from the community.</CardDescription>
+            <CardHeader className="pb-4 px-3 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">Feed</CardTitle>
+              <CardDescription className="text-sm">Discover the latest creations from the community.</CardDescription>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-6">
+            <CardContent className="pt-0 px-3 sm:px-6">
+              <div className="space-y-4 lg:space-y-6">
                 {/* === Loading States Posts === */}
                 {initialLoading &&
                   Array.from({ length: 3 }).map((_, index) => (
@@ -945,19 +945,18 @@ export default function Home() {
                 )}
               </div>
             </CardContent>
-          </Card>
+          </Card>{" "}
         </div>
-
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6 order-first lg:order-last">
           <Card className="border-t-4 border-t-primary">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center">
-                <Trophy className="h-5 w-5 text-primary mr-2" /> Active Challenges
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="flex items-center text-base sm:text-lg">
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary mr-2" /> Active Challenges
               </CardTitle>
-              <CardDescription>Compete and earn rewards</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Compete and earn rewards</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 px-3 sm:px-6">
               {/* Loading state */}
               {activeChallengesLoading &&
                 Array.from({ length: 2 }).map((_, index) => (
@@ -1018,13 +1017,13 @@ export default function Home() {
             </CardFooter>
           </Card>{" "}
           <Card className="border-t-4 border-t-amber-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center">
-                <Award className="h-5 w-5 text-amber-500 mr-2" /> Gamification Hub
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="flex items-center text-base sm:text-lg">
+                <Award className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 mr-2" /> Gamification Hub
               </CardTitle>
-              <CardDescription>Track your progress and missions</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Track your progress and missions</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-6">
               {/* Gamification Loading State */}
               {gamificationLoading && (
                 <div className="space-y-4">
@@ -1163,15 +1162,15 @@ export default function Home() {
                 </ScrollArea>
               </div>
             </CardContent>
-          </Card>
+          </Card>{" "}
           <Card className="border-t-4 border-t-blue-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center">
-                <Fire className="h-5 w-5 text-blue-500 mr-2" /> Recommended for You
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="flex items-center text-base sm:text-lg">
+                <Fire className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 mr-2" /> Recommended for You
               </CardTitle>
-              <CardDescription>Artists you might like</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Artists you might like</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-1">
+            <CardContent className="space-y-1 px-3 sm:px-6">
               {/* Initial Loading State */}
               {recommendedUsersLoading &&
                 Array.from({ length: 3 }).map((_, index) => (

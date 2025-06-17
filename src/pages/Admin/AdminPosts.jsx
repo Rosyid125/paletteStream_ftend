@@ -264,21 +264,24 @@ export default function AdminPosts() {
           Kelola dan moderasi postingan pengguna.
           <span className="ml-2 text-xs opacity-75">Shortcuts: Ctrl+R (refresh), Ctrl+1/2/3 (switch tabs)</span>
         </p>
-      </div>
-
+      </div>{" "}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {" "}
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="posts">All Posts</TabsTrigger>
-          <TabsTrigger value="reported-posts" className="relative">
-            Reported Posts
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-1">
+          <TabsTrigger value="posts" className="text-xs sm:text-sm px-2 sm:px-3">
+            All Posts
+          </TabsTrigger>
+          <TabsTrigger value="reported-posts" className="relative text-xs sm:text-sm px-2 sm:px-3">
+            <span className="truncate">Reported Posts</span>
             {(reportStats.pending > 0 || reportStats.totalReports > 0) && (
-              <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 text-xs flex items-center justify-center">
+              <Badge variant="destructive" className="ml-1 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 p-0 text-xs flex items-center justify-center">
                 {reportStats.pending > 0 ? (reportStats.pending > 99 ? "99+" : reportStats.pending) : reportStats.totalReports > 99 ? "99+" : reportStats.totalReports}
               </Badge>
             )}{" "}
           </TabsTrigger>
-          <TabsTrigger value="reports">All Reports</TabsTrigger>
+          <TabsTrigger value="reports" className="text-xs sm:text-sm px-2 sm:px-3">
+            All Reports
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="space-y-4">
           <div className="flex gap-2 items-center mb-2">
@@ -533,7 +536,6 @@ export default function AdminPosts() {
           )}
         </TabsContent>
       </Tabs>
-
       {/* Comment Modal */}
       {selectedPost && (
         <CommentModal
@@ -544,7 +546,6 @@ export default function AdminPosts() {
           currentUser={null} // Admin, not posting
         />
       )}
-
       {/* Report Details Modal */}
       {selectedReport && (
         <Dialog open={reportDetailsOpen} onOpenChange={setReportDetailsOpen}>

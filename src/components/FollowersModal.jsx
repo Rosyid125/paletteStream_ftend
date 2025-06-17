@@ -324,19 +324,18 @@ const FollowersModal = ({ isOpen, onClose, userId, userProfile, initialTab = "fo
             <Users className="h-5 w-5" />
             <span>{userProfile?.username ? `@${userProfile.username}` : "User"}</span>
           </DialogTitle>
-        </DialogHeader>
-
+        </DialogHeader>{" "}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex flex-wrap w-full gap-2 px-2 sm:px-6 mb-2 sm:mb-4 bg-background rounded-t-lg border-b border-border" style={{ boxSizing: "border-box" }}>
-            <TabsTrigger value="followers" className="flex items-center space-x-2 text-xs sm:text-sm min-w-[100px]">
+          <TabsList className="flex w-full gap-1 px-2 sm:px-6 mb-2 sm:mb-4 bg-background rounded-t-lg border-b border-border" style={{ boxSizing: "border-box" }}>
+            <TabsTrigger value="followers" className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm flex-1 px-2 sm:px-3">
               <span>Followers</span>
-              <Badge variant="secondary" className="ml-2">
+              <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                 {userProfile?.followers ?? 0}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="following" className="flex items-center space-x-2 text-xs sm:text-sm min-w-[100px]">
+            <TabsTrigger value="following" className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm flex-1 px-2 sm:px-3">
               <span>Following</span>
-              <Badge variant="secondary" className="ml-2">
+              <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                 {userProfile?.followings ?? 0}
               </Badge>
             </TabsTrigger>

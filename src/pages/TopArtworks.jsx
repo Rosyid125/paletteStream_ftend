@@ -281,32 +281,29 @@ export default function TopArtworks() {
       </CardFooter>
     </Card>
   );
-
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
+    <div className="container mx-auto space-y-6 p-2 sm:p-4 md:p-6">
       {/* Header Section */}
       <Card className="border-t-4 border-t-yellow-500">
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-6">
           <div className="flex items-center">
-            <Trophy className="h-6 w-6 text-yellow-500 mr-3 flex-shrink-0" />
+            <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 mr-3 flex-shrink-0" />
             <div>
-              <CardTitle className="text-2xl">Top Artworks</CardTitle>
-              <CardDescription>Discover the highest-rated artworks on the platform</CardDescription>
+              <CardTitle className="text-lg sm:text-xl md:text-2xl">Top Artworks</CardTitle>
+              <CardDescription className="text-sm">Discover the highest-rated artworks on the platform</CardDescription>
             </div>
           </div>
           {/* Filter removed as API doesn't support it */}
         </CardHeader>
       </Card>
-
       {/* Display Error if exists */}
       {error && (
         <Card className="border-destructive bg-destructive/10">
           <CardContent className="p-4 text-center text-destructive">Error: {error}</CardContent>
         </Card>
-      )}
-
+      )}{" "}
       {/* Top Artworks Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Initial Loading Skeletons */}
         {!initialLoadComplete && loading && Array.from({ length: 6 }).map((_, index) => renderSkeleton(`initial-skeleton-${index}`))}
 
@@ -316,16 +313,16 @@ export default function TopArtworks() {
             <Card className="overflow-hidden flex flex-col h-full">
               {" "}
               {/* Ensure full height */}
-              <CardHeader className="pb-2 space-y-0">
+              <CardHeader className="pb-2 space-y-0 px-3 sm:px-6">
                 <div className="flex justify-between items-start mb-1">
                   {/* User Info - Link to Profile */}
                   <div className="flex items-center space-x-2 cursor-pointer group" onClick={() => navigate(`/profile/${artwork.userId}`)}>
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                       <AvatarImage src={getFullStorageUrl(artwork.avatar)} alt={artwork.username} />
                       <AvatarFallback>{artwork.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-sm group-hover:text-primary transition-colors">{artwork.username}</p>
+                      <p className="font-medium text-xs sm:text-sm group-hover:text-primary transition-colors">{artwork.username}</p>
                       <p className="text-xs text-muted-foreground">Level {artwork.level || 1}</p>
                       <p className="text-xs text-muted-foreground">{artwork.createdAt}</p>
                     </div>
@@ -434,8 +431,8 @@ export default function TopArtworks() {
                       <p>{!CURRENT_USER_ID ? "Login to bookmark" : artwork.bookmarkStatus ? "Remove from bookmarks" : "Save to bookmarks"}</p>{" "}
                     </TooltipContent>
                   </Tooltip>{" "}
-                </TooltipProvider>
-              </CardFooter>
+                </TooltipProvider>{" "}
+              </CardFooter>{" "}
             </Card>
           </div>
         ))}
@@ -443,21 +440,18 @@ export default function TopArtworks() {
         {/* Loading More Indicator */}
         {loading && !initialLoadComplete && Array.from({ length: 3 }).map((_, index) => renderSkeleton(`loading-skeleton-${index}`))}
       </div>
-
       {/* Empty State */}
       {initialLoadComplete && displayedArtworks.length === 0 && !loading && !error && (
         <Card>
           <CardContent className="p-10 text-center text-muted-foreground">No top artworks found at the moment.</CardContent>
         </Card>
       )}
-
       {/* End of List Message */}
       {!loading && !hasMore && displayedArtworks.length > 0 && initialLoadComplete && (
         <div className="text-center text-muted-foreground py-6">
           <p>You've reached the end of the list!</p>
         </div>
       )}
-
       {/* --- Modals Rendered Outside Main Layout Flow --- */}
       {isCommentModalOpen && selectedPostForModal && (
         <CommentModal

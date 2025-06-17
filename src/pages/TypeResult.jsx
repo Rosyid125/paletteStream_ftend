@@ -350,21 +350,20 @@ export default function TypeResult() {
 
   // --- Main Render ---
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
+    <div className="container mx-auto space-y-6 p-2 sm:p-4 md:p-6">
       {/* Header Section */}
       <Card className="border-t-4 border-t-purple-500">
         {" "}
         {/* Adjusted border color */}
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-6">
           <div className="flex items-center gap-2">
-            <Shapes className="h-5 w-5 text-purple-500" /> {/* Shapes Icon */}
-            <CardTitle>Type Search Results</CardTitle>
+            <Shapes className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" /> {/* Shapes Icon */} <CardTitle className="text-lg sm:text-xl">Type Search Results</CardTitle>
           </div>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Showing posts of type:
             {typeQuery ? (
               <span className="ml-2">
-                <Badge variant="secondary" className={`${getTypeColor(typeQuery)} capitalize`}>
+                <Badge variant="secondary" className={`${getTypeColor(typeQuery)} capitalize text-xs`}>
                   {typeQuery}
                 </Badge>
               </span>

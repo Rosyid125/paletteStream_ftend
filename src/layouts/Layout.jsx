@@ -12,20 +12,19 @@ export default function Layout() {
   const theme = Cookies.get("sidebar_state") === "true";
   const location = useLocation(); // Dapatkan lokasi saat ini
   const isAdminPage = location.pathname.startsWith("/admin"); // Deteksi halaman admin
-
   return (
     <SidebarProvider defaultOpen={theme}>
       <AuthSessionRefresher />
-      <div className={`wrapper w-full h-full${isAdminPage ? " admin-layout" : ""}`}>
-        <Navbar className="Navbar" />
-        <div className="main-content flex">
-          <div className="Sidebar">
+      <div className={`wrapper w-full min-h-screen${isAdminPage ? " admin-layout" : ""}`}>
+        <Navbar className="Navbar w-full" />
+        <div className="main-content flex min-h-0">
+          <div className="Sidebar hidden md:block">
             <ShadcnSidebar />
           </div>
-          <div>
-            <SidebarTrigger className="fixed z-50" />
+          <div className="md:hidden">
+            <SidebarTrigger className="fixed top-16 left-4 z-50 bg-background border shadow-md" />
           </div>
-          <div className="Outlet flex-1">
+          <div className="Outlet flex-1 w-full min-w-0 overflow-x-hidden px-2 sm:px-4 md:px-6">
             <Outlet />
           </div>
         </div>

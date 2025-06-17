@@ -167,17 +167,16 @@ export default function TopArtists() {
       </CardContent>
     </Card>
   );
-
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
+    <div className="container mx-auto space-y-6 p-2 sm:p-4 md:p-6">
       {/* Header Section */}
       <Card className="border-t-4 border-t-yellow-500">
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-6">
           <div className="flex items-center">
-            <Trophy className="h-6 w-6 text-yellow-500 mr-3 flex-shrink-0" />
+            <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 mr-3 flex-shrink-0" />
             <div>
-              <CardTitle className="text-2xl">Top Artists</CardTitle>
-              <CardDescription>Discover the leading creators on the platform</CardDescription>
+              <CardTitle className="text-lg sm:text-xl md:text-2xl">Top Artists</CardTitle>
+              <CardDescription className="text-sm">Discover the leading creators on the platform</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -248,20 +247,19 @@ function ArtistCard({ artist, rank }) {
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/profile/${artist.userId}`)}>
-      <CardContent className="p-4 flex flex-col sm:flex-row items-center gap-4">
+      <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row items-center gap-4">
+        {" "}
         {/* Rank */}
-        <div className={`w-10 text-center text-xl ${getRankStyle(rank)} flex-shrink-0`}>#{rank}</div>
-
+        <div className={`w-8 sm:w-10 text-center text-lg sm:text-xl ${getRankStyle(rank)} flex-shrink-0`}>#{rank}</div>
         {/* Avatar */}
-        <Avatar className="h-16 w-16 flex-shrink-0">
+        <Avatar className="h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0">
           {/* Use getFullStorageUrl helper */}
           <AvatarImage src={getFullStorageUrl(artist.avatar)} alt={artist.username} />
           <AvatarFallback>{artist.username ? artist.username.charAt(0).toUpperCase() : "?"}</AvatarFallback>
         </Avatar>
-
         {/* Artist Info */}
         <div className="flex-grow text-center sm:text-left">
-          <h3 className="font-bold text-lg">{artist.username}</h3>
+          <h3 className="font-bold text-base sm:text-lg">{artist.username}</h3>
           {/* Removed username line as it's now the main title */}
           {/* Display Level */}
           <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-muted-foreground mt-1">
@@ -276,9 +274,8 @@ function ArtistCard({ artist, rank }) {
             )}
           </div>
         </div>
-
         {/* Stats Section - Updated for new data structure */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 gap-x-4 gap-y-2 text-center sm:text-right text-sm flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4 border-dashed">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-2 sm:gap-x-4 gap-y-2 text-center sm:text-right text-xs sm:text-sm flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4 border-dashed">
           <div title="Followers">
             <p className="font-semibold">{formatStat(artist.followers)}</p>
             <p className="text-xs text-muted-foreground flex items-center justify-center sm:justify-end gap-1">
@@ -336,7 +333,6 @@ function ArtistCard({ artist, rank }) {
             </p>
           </div>
         </div>
-
         {/* Action / Indicator */}
         <div className="hidden lg:flex items-center pl-4 text-muted-foreground hover:text-primary">
           <ChevronRight className="h-5 w-5" />

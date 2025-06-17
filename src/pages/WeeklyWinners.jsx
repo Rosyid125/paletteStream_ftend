@@ -193,10 +193,17 @@ export default function WeeklyWinners() {
       <Card>
         <CardContent className="pt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="recent">Recent Winners</TabsTrigger>
-              <TabsTrigger value="popular">Most Popular</TabsTrigger>
-              <TabsTrigger value="all">All Winners</TabsTrigger>
+            {" "}
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-1">
+              <TabsTrigger value="recent" className="text-xs sm:text-sm px-2 py-1.5">
+                Recent Winners
+              </TabsTrigger>
+              <TabsTrigger value="popular" className="text-xs sm:text-sm px-2 py-1.5">
+                Most Popular
+              </TabsTrigger>
+              <TabsTrigger value="all" className="text-xs sm:text-sm px-2 py-1.5">
+                All Winners
+              </TabsTrigger>
             </TabsList>{" "}
             <TabsContent value="recent" className="mt-6">
               <ChallengeWinnersList challenges={getFilteredChallenges()} challengeWinners={challengeWinners} getFullImageUrl={getFullImageUrl} formatDate={formatDate} navigate={navigate} emptyMessage="No recent winners found" />

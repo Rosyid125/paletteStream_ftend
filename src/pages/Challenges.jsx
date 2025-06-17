@@ -204,10 +204,15 @@ export default function Challenges() {
               <CardDescription>Find active challenges to participate in</CardDescription>
             </CardHeader>
             <CardContent>
+              {" "}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="completed">Closed</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 gap-1">
+                  <TabsTrigger value="active" className="text-sm px-3">
+                    Active
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="text-sm px-3">
+                    Closed
+                  </TabsTrigger>
                 </TabsList>{" "}
                 <TabsContent value="active" className="mt-6">
                   <ChallengesList

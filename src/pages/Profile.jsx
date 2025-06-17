@@ -696,28 +696,27 @@ export default function Profile() {
   const xpRangeForLevel = Math.max(1, nextThreshold - currentThreshold);
   const levelProgressPercentage = Math.min(100, Math.max(0, (xpInCurrentLevel / xpRangeForLevel) * 100));
   const xpNeededForNextLevel = Math.max(0, nextThreshold - currentExp);
-
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-4 lg:space-y-6 p-2 sm:p-4 md:p-6">
       {/* Profile Header Card */}
       <Card className="border-t-4 border-t-indigo-500 shadow-lg overflow-hidden">
         {/* ... (Profile Header Content remains largely the same, using userProfile data) ... */}
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-6 items-start">
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
             {/* Left Side: Avatar, Name, Actions */}
-            <div className="flex flex-col items-center md:items-start w-full md:w-auto">
-              <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background shadow-md ring-2 ring-offset-2 ring-offset-background ring-indigo-200">
+            <div className="flex flex-col items-center sm:items-start w-full sm:w-auto">
+              <Avatar className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 lg:h-32 lg:w-32 border-4 border-background shadow-md ring-2 ring-offset-2 ring-offset-background ring-indigo-200">
                 <AvatarImage src={avatarUrl} alt={`${userProfile.username}'s Avatar`} />
                 <AvatarFallback>{userProfile.username?.charAt(0).toUpperCase() || "?"}</AvatarFallback>
               </Avatar>
 
-              <div className="mt-4 text-center md:text-left">
-                <h2 className="text-2xl font-bold">{displayName}</h2>
-                <p className="text-muted-foreground">@{userProfile.username}</p>
+              <div className="mt-4 text-center sm:text-left">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold">{displayName}</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">@{userProfile.username}</p>
 
-                <div className="flex items-center justify-center md:justify-start mt-2 space-x-2 flex-wrap">
+                <div className="flex items-center justify-center sm:justify-start mt-2 space-x-2 flex-wrap">
                   {" "}
-                  <Badge variant="outline" className="bg-indigo-100 text-indigo-700 border-indigo-300 font-medium dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-700">
+                  <Badge variant="outline" className="bg-indigo-100 text-indigo-700 border-indigo-300 font-medium dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-700 text-xs sm:text-sm">
                     Level {userProfile.level || 1}
                   </Badge>
                 </div>
@@ -725,7 +724,7 @@ export default function Profile() {
                 {/* Action Buttons: Follow/Unfollow/Message or Edit Profile */}
                 {/* Logic here correctly uses isCurrentUserProfile state */}
                 {CURRENT_USER_ID !== null && !isCurrentUserProfile && (
-                  <div className="flex mt-4 space-x-3 justify-center md:justify-start">
+                  <div className="flex flex-col sm:flex-row mt-4 space-y-2 sm:space-y-0 sm:space-x-3 justify-center sm:justify-start">
                     <Button onClick={handleFollowToggle} size="sm" variant={isFollowing ? "outline" : "default"} disabled={followLoading} className="min-w-[100px]">
                       {followLoading ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -746,7 +745,7 @@ export default function Profile() {
                   </div>
                 )}
                 {isCurrentUserProfile && (
-                  <div className="flex mt-4 justify-center md:justify-start">
+                  <div className="flex mt-4 justify-center sm:justify-start">
                     <Button onClick={() => navigate("/settings/profile")} size="sm">
                       {" "}
                       Edit Profile{" "}
@@ -754,10 +753,9 @@ export default function Profile() {
                   </div>
                 )}
               </div>
-            </div>
-
+            </div>{" "}
             {/* Right Side: Bio, Stats, Location, Progress */}
-            <div className="flex-1 mt-6 md:mt-0 space-y-4">
+            <div className="flex-1 mt-4 sm:mt-6 md:mt-0 space-y-4">
               {userBio && (
                 <Card className="bg-muted/30 p-4 border border-dashed">
                   <CardDescription className="whitespace-pre-wrap">{userBio}</CardDescription>
@@ -838,20 +836,19 @@ export default function Profile() {
               </div>
             </div>
           </div>
-
-          <Separator className="my-6" />
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
+          <Separator className="my-6" /> {/* Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
             {userStats ? (
               <>
                 <Card className="bg-muted/50 border-none shadow-sm hover:bg-muted/70 transition-colors duration-200">
-                  <CardContent className="flex flex-col items-center justify-center p-3 h-full text-center">
-                    <Image className="h-5 w-5 text-indigo-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.totalUploads}</span> <span className="text-xs text-muted-foreground mt-0.5">Uploads</span>
+                  <CardContent className="flex flex-col items-center justify-center p-2 sm:p-3 h-full text-center">
+                    <Image className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-500 mb-1 sm:mb-1.5" />
+                    <span className="font-bold text-sm sm:text-lg">{userStats.totalUploads}</span>
+                    <span className="text-xs text-muted-foreground mt-0.5">Uploads</span>
                   </CardContent>
                 </Card>
                 <Card className="bg-muted/50 border-none shadow-sm hover:bg-muted/70 transition-colors duration-200">
-                  <CardContent className="flex flex-col items-center justify-center p-3 h-full text-center">
+                  <CardContent className="flex flex-col items-center justify-center p-2 sm:p-3 h-full text-center">
                     <Heart className="h-5 w-5 text-red-500 mb-1.5" /> <span className="font-bold text-lg">{userStats.totalLikes}</span> <span className="text-xs text-muted-foreground mt-0.5">Likes Rec.</span>
                   </CardContent>
                 </Card>
@@ -876,25 +873,33 @@ export default function Profile() {
             )}
           </div>
         </CardContent>
-      </Card>
+      </Card>{" "}
       {/* --- Profile Content Tabs --- */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-          <TabsTrigger value="artworks" className="flex items-center justify-center gap-2">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+          <TabsTrigger value="artworks" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
             {" "}
-            <Image className="h-4 w-4" /> Artworks{" "}
+            <Image className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Artworks</span>
+            <span className="xs:hidden">Art</span>{" "}
           </TabsTrigger>
-          <TabsTrigger value="badges" className="flex items-center justify-center gap-2">
+          <TabsTrigger value="badges" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
             {" "}
-            <Award className="h-4 w-4" /> Badges{" "}
+            <Award className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Badges</span>
+            <span className="xs:hidden">Badge</span>{" "}
           </TabsTrigger>
-          <TabsTrigger value="achievements" className="flex items-center justify-center gap-2">
+          <TabsTrigger value="achievements" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
             {" "}
-            <Star className="h-4 w-4" /> Achievements{" "}
+            <Star className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Achievements</span>
+            <span className="xs:hidden">Achiev</span>{" "}
           </TabsTrigger>
-          <TabsTrigger value="challenges" className="flex items-center justify-center gap-2">
+          <TabsTrigger value="challenges" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
             {" "}
-            <Trophy className="h-4 w-4" /> Challenges{" "}
+            <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Challenges</span>
+            <span className="xs:hidden">Chall</span>{" "}
           </TabsTrigger>
         </TabsList>
         {/* --- Artworks Tab Content --- */}

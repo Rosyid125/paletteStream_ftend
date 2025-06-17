@@ -204,12 +204,11 @@ function ChatList({ userId, onSelect, selectedUserId }) {
       socket.disconnect();
     };
   }, [userId]);
-
   return (
-    <div className="h-full overflow-y-auto border-r bg-muted/50 w-72 flex-shrink-0">
-      <div className="p-4 font-bold text-lg">Chats</div>
-      <div className="px-4 pb-2">
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search user by username..." />
+    <div className="h-full overflow-y-auto border-r bg-muted/50 w-full sm:w-72 flex-shrink-0">
+      <div className="p-3 sm:p-4 font-bold text-base sm:text-lg">Chats</div>
+      <div className="px-3 sm:px-4 pb-2">
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search user by username..." className="text-sm" />
       </div>
       {search && (
         <div ref={searchContainerRef} style={{ maxHeight: 300, overflowY: "auto" }}>
@@ -227,7 +226,8 @@ function ChatList({ userId, onSelect, selectedUserId }) {
                 >
                   <img src={getAvatarUrl(userResult.avatar)} alt={userResult.username} className="h-8 w-8 rounded-full object-cover border" />
                   <div className="flex-1">
-                    <div className="font-medium">{userResult.username}</div>
+                    {" "}
+                    <div className="font-medium text-sm">{userResult.username}</div>
                     <div className="text-xs text-muted-foreground truncate">{userResult.first_name || "-"}</div>
                   </div>
                 </div>
@@ -242,12 +242,12 @@ function ChatList({ userId, onSelect, selectedUserId }) {
         </div>
       )}
       {userId && chats.length === 0 && !search && <div className="p-4 text-muted-foreground">No chats available or still loading...</div>}
-      {!userId && <div className="p-4 text-muted-foreground">Please log in to see chats.</div>}
+      {!userId && <div className="p-4 text-muted-foreground">Please log in to see chats.</div>}{" "}
       {chats.map((chat, idx) => (
-        <div key={chat.user_id || chat.id || idx} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted ${selectedUserId === chat.user_id ? "bg-muted" : ""}`} onClick={() => onSelect(chat.user_id)}>
-          <img src={getAvatarUrl(chat.avatar)} alt={chat.username} className="h-10 w-10 rounded-full object-cover border" />
-          <div className="flex-1">
-            <div className="font-medium">{chat.username}</div>
+        <div key={chat.user_id || chat.id || idx} className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 cursor-pointer hover:bg-muted ${selectedUserId === chat.user_id ? "bg-muted" : ""}`} onClick={() => onSelect(chat.user_id)}>
+          <img src={getAvatarUrl(chat.avatar)} alt={chat.username} className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover border" />
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-sm sm:text-base truncate">{chat.username}</div>
             <div className="text-xs text-muted-foreground truncate">{chat.last_message}</div>
           </div>
           {/* BARU: Tampilkan unread_count jika ada dari API /chats */}
@@ -429,25 +429,25 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
   return (
     <div className="flex-1 flex flex-col h-full">
       {" "}
-      <div className="flex items-center gap-3 border-b p-4 bg-background">
+      <div className="flex items-center gap-2 sm:gap-3 border-b p-3 sm:p-4 bg-background">
         {targetUser ? (
           <>
             <img
               src={getAvatarUrl(targetUser.avatar)}
               alt={targetUser.username || "User"}
-              className="h-10 w-10 rounded-full border object-cover cursor-pointer hover:opacity-80 transition-opacity"
+              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border object-cover cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate(`/profile/${targetUserId}`)}
             />
-            <div className="font-semibold cursor-pointer hover:underline transition-all" onClick={() => navigate(`/profile/${targetUserId}`)}>
+            <div className="font-semibold text-sm sm:text-base cursor-pointer hover:underline transition-all truncate" onClick={() => navigate(`/profile/${targetUserId}`)}>
               {targetUser.username || targetUser.first_name || "User"}
             </div>
           </>
         ) : (
-          <div className="font-semibold">Loading user...</div>
+          <div className="font-semibold text-sm sm:text-base">Loading user...</div>
         )}
         {/* Indikator koneksi socket DIHAPUS */}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 bg-muted">
         {" "}
         {/* KEMBALIKAN KE bg-muted */}
         {loading ? (
@@ -504,9 +504,9 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
           })()
         )}
         <div ref={messagesEndRef} />
-      </div>
+      </div>{" "}
       <form
-        className="flex items-center gap-2 p-4 border-t"
+        className="flex items-center gap-2 p-3 sm:p-4 border-t"
         onSubmit={(e) => {
           e.preventDefault();
           sendMessage();
@@ -517,12 +517,12 @@ function ChatWindow({ userId, targetUserId, onRefreshAccessToken }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={isSocketConnected ? "Type a message..." : "Connecting to chat..."}
-          className="flex-1"
+          className="flex-1 text-sm"
           autoFocus
           disabled={sending || !isSocketConnected}
         />
-        <Button type="submit" size="icon" disabled={!input.trim() || sending || !isSocketConnected}>
-          <Send />
+        <Button type="submit" size="icon" disabled={!input.trim() || sending || !isSocketConnected} className="h-9 w-9 sm:h-10 sm:w-10">
+          <Send className="h-4 w-4" />
         </Button>
       </form>
     </div>
@@ -577,15 +577,24 @@ export default function ChatPage() {
     return { accessToken: localStorage.getItem("accessToken") }; // Placeholder, sesuaikan
   };
   return (
-    <div className="flex h-screen">
-      <ChatList userId={userId} onSelect={handleUserSelect} selectedUserId={selectedUserId} />
-      {userId ? (
-        <ChatWindow userId={userId} targetUserId={selectedUserId} onRefreshAccessToken={handleRefreshAccessToken} />
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-lg">
-          <span>Loading chat... (Authenticating user)</span>
+    <div className="flex h-screen flex-col sm:flex-row">
+      <div className="sm:hidden border-b bg-background p-2">
+        <div className="text-sm font-medium">Chat</div>
+      </div>
+      <div className="flex-1 flex h-full overflow-hidden">
+        <div className={`${selectedUserId ? "hidden sm:block" : "block"} w-full sm:w-auto`}>
+          <ChatList userId={userId} onSelect={handleUserSelect} selectedUserId={selectedUserId} />
         </div>
-      )}
+        {userId ? (
+          <div className={`${selectedUserId ? "block" : "hidden sm:block"} flex-1`}>
+            <ChatWindow userId={userId} targetUserId={selectedUserId} onRefreshAccessToken={handleRefreshAccessToken} />
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm sm:text-lg p-4">
+            <span>Loading chat... (Authenticating user)</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

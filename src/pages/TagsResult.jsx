@@ -364,20 +364,21 @@ export default function TagsResult() {
 
   // --- Main Render ---
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
+    <div className="container mx-auto space-y-6 p-2 sm:p-4 md:p-6">
       {/* Header Section */}
       <Card className="border-t-4 border-t-green-500">
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-6">
+          {" "}
           <div className="flex items-center gap-2">
-            <Tag className="h-5 w-5 text-green-500" /> {/* Tag Icon */}
-            <CardTitle>Tag Search Results</CardTitle>
+            <Tag className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" /> {/* Tag Icon */}
+            <CardTitle className="text-lg sm:text-xl">Tag Search Results</CardTitle>
           </div>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Showing posts tagged with:
             {tagsQuery.length > 0 ? (
               <span className="ml-2 space-x-1">
                 {tagsQuery.map((tag, index) => (
-                  <Badge key={index} variant="secondary">
+                  <Badge key={index} variant="secondary" className="text-xs">
                     #{tag}
                   </Badge>
                 ))}
@@ -397,12 +398,11 @@ export default function TagsResult() {
       )}
       {/* Results Grid Area */}
       <div className="mt-6">
+        {" "}
         {/* Initial Loading Skeletons */}
-        {loading && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"> {Array.from({ length: limit }).map((_, index) => renderSkeleton(`initial-skeleton-${index}`))} </div>}
-
-        {/* Displayed Results Grid */}
+        {loading && <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6"> {Array.from({ length: limit }).map((_, index) => renderSkeleton(`initial-skeleton-${index}`))} </div>} {/* Displayed Results Grid */}
         {!loading && results.length > 0 && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
             {" "}
             {results.map((artwork, index) => (
               <div ref={results.length === index + 1 ? lastResultRef : null} key={`${artwork.id}-${index}`}>
@@ -421,10 +421,8 @@ export default function TagsResult() {
             ))}
           </div>
         )}
-
         {/* Loading More Indicator */}
         {loadingMore && <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-6"> {Array.from({ length: 3 }).map((_, index) => renderSkeleton(`loading-skeleton-${index}`))} </div>}
-
         {/* Empty State */}
         {initialLoadComplete && !loading && results.length === 0 && !error && (
           <div className="text-center text-muted-foreground py-10 col-span-full">
@@ -434,7 +432,6 @@ export default function TagsResult() {
             </Button>
           </div>
         )}
-
         {/* End of List Message */}
         {!loading && !loadingMore && !hasMore && results.length > 0 && initialLoadComplete && (
           <div className="text-center text-muted-foreground py-10 col-span-full">

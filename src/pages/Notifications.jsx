@@ -108,7 +108,6 @@ export default function Notifications() {
           )}
         </div>
       </div>
-
       {/* Filters */}
       <div className="flex items-center gap-4 mb-6">
         <div className="flex items-center gap-2">
@@ -126,15 +125,14 @@ export default function Notifications() {
             </SelectContent>
           </Select>
         </div>
-      </div>
-
+      </div>{" "}
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="all" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-2 gap-1">
+          <TabsTrigger value="all" className="flex items-center gap-2 text-sm px-3">
             All
           </TabsTrigger>
-          <TabsTrigger value="unread" className="flex items-center gap-2">
+          <TabsTrigger value="unread" className="flex items-center gap-2 text-sm px-3">
             Unread
           </TabsTrigger>
         </TabsList>{" "}

@@ -108,61 +108,115 @@ export default function AdminUsers() {
     setEditId(null);
     fetchUsers();
   };
-
   return (
-    <div className="space-y-6 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-6 border border-zinc-200 dark:border-zinc-800">
+    <div className="space-y-4 sm:space-y-6 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-3 sm:p-6 border border-zinc-200 dark:border-zinc-800">
       <div>
-        <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">
+        <h2 className="text-xl sm:text-2xl font-bold mb-1 flex items-center gap-2">
           <span className="text-indigo-600">👤</span> Admin & Users
         </h2>
         <p className="text-zinc-500 text-sm mb-4">Kelola akun admin dan pengguna platform.</p>
       </div>
-      <div className="flex gap-2 items-center mb-2">
-        <Input placeholder="Search user..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
-        <Button onClick={() => setOpenAdd(true)} variant="outline" size="sm" className="gap-1">
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center mb-2">
+        <Input placeholder="Search user..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 sm:max-w-xs" />
+        <Button onClick={() => setOpenAdd(true)} variant="outline" size="sm" className="gap-1 justify-center">
           <Plus className="w-4 h-4" />
           Add Admin
         </Button>
-      </div>
+      </div>{" "}
       {loading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="animate-spin" />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-          <table className="min-w-full text-sm bg-white dark:bg-zinc-900 rounded-lg">
-            <thead>
-              <tr className="border-b bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200">
-                <th className="py-3 px-4 text-left font-semibold">Email</th>
-                <th className="py-3 px-4 text-left font-semibold">Name</th>
-                <th className="py-3 px-4 text-left font-semibold">Status</th>
-                <th className="py-3 px-4 text-left font-semibold">Role</th>
-                <th className="py-3 px-4 text-left font-semibold">Active</th>
-                <th className="py-3 px-4 text-left font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, idx) => (
-                <tr key={u.id} className={"border-b transition-colors " + (idx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-zinc-50 dark:bg-zinc-800") + " hover:bg-indigo-50/60 dark:hover:bg-indigo-950/40"}>
-                  <td className="py-2 px-4">{u.email}</td>
-                  <td className="py-2 px-4">
-                    {u.first_name} {u.last_name}
-                  </td>
-                  <td className="py-2 px-4">
-                    <Badge variant={u.status === "active" ? "success" : u.status === "banned" ? "destructive" : "secondary"}>{u.status}</Badge>
-                  </td>
-                  <td className="py-2 px-4">
-                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
-                  </td>
-                  <td className="py-2 px-4">
-                    <Badge variant={u.is_active ? "success" : "destructive"}>{u.is_active ? "Active" : "Inactive"}</Badge>
-                  </td>
-                  <td className="py-2 px-4">
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <table className="min-w-full text-sm bg-white dark:bg-zinc-900 rounded-lg">
+              <thead>
+                <tr className="border-b bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200">
+                  <th className="py-3 px-4 text-left font-semibold">Email</th>
+                  <th className="py-3 px-4 text-left font-semibold">Name</th>
+                  <th className="py-3 px-4 text-left font-semibold">Status</th>
+                  <th className="py-3 px-4 text-left font-semibold">Role</th>
+                  <th className="py-3 px-4 text-left font-semibold">Active</th>
+                  <th className="py-3 px-4 text-left font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u, idx) => (
+                  <tr key={u.id} className={"border-b transition-colors " + (idx % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-zinc-50 dark:bg-zinc-800") + " hover:bg-indigo-50/60 dark:hover:bg-indigo-950/40"}>
+                    <td className="py-2 px-4">{u.email}</td>
+                    <td className="py-2 px-4">
+                      {u.first_name} {u.last_name}
+                    </td>
+                    <td className="py-2 px-4">
+                      <Badge variant={u.status === "active" ? "success" : u.status === "banned" ? "destructive" : "secondary"}>{u.status}</Badge>
+                    </td>
+                    <td className="py-2 px-4">
+                      <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
+                    </td>
+                    <td className="py-2 px-4">
+                      <Badge variant={u.is_active ? "success" : "destructive"}>{u.is_active ? "Active" : "Inactive"}</Badge>
+                    </td>
+                    <td className="py-2 px-4">
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="hover:bg-indigo-100 dark:hover:bg-indigo-900"
+                          onClick={() => {
+                            setEditId(u.id);
+                            setEditForm({
+                              first_name: u.first_name,
+                              last_name: u.last_name,
+                              email: u.email,
+                              role: u.role,
+                              status: u.status,
+                              is_active: u.is_active,
+                            });
+                          }}
+                          aria-label="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={u.status === "active" ? "hover:bg-orange-100 dark:hover:bg-orange-900" : "hover:bg-green-100 dark:hover:bg-green-900"}
+                          onClick={() => handleBan(u.id)}
+                          aria-label={u.status === "active" ? "Ban" : "Unban"}
+                          title={u.status === "active" ? "Ban user" : "Unban user"}
+                        >
+                          <Ban className={"w-4 h-4 " + (u.status === "active" ? "text-orange-500" : "text-green-500")} />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="hover:bg-red-100 dark:hover:bg-red-900" onClick={() => handleDelete(u.id)} aria-label="Delete">
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {users.map((u) => (
+              <Card key={u.id} className="p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <p className="font-medium text-sm">
+                        {u.first_name} {u.last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{u.email}</p>
+                    </div>
                     <div className="flex gap-1">
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="hover:bg-indigo-100 dark:hover:bg-indigo-900"
+                        className="h-8 w-8 hover:bg-indigo-100 dark:hover:bg-indigo-900"
                         onClick={() => {
                           setEditId(u.id);
                           setEditForm({
@@ -176,37 +230,48 @@ export default function AdminUsers() {
                         }}
                         aria-label="Edit"
                       >
-                        <Pencil className="w-4 h-4" />
+                        <Pencil className="w-3 h-3" />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
-                        className={u.status === "active" ? "hover:bg-orange-100 dark:hover:bg-orange-900" : "hover:bg-green-100 dark:hover:bg-green-900"}
+                        className={`h-8 w-8 ${u.status === "active" ? "hover:bg-orange-100 dark:hover:bg-orange-900" : "hover:bg-green-100 dark:hover:bg-green-900"}`}
                         onClick={() => handleBan(u.id)}
                         aria-label={u.status === "active" ? "Ban" : "Unban"}
                         title={u.status === "active" ? "Ban user" : "Unban user"}
                       >
-                        <Ban className={"w-4 h-4 " + (u.status === "active" ? "text-orange-500" : "text-green-500")} />
+                        <Ban className={`w-3 h-3 ${u.status === "active" ? "text-orange-500" : "text-green-500"}`} />
                       </Button>
-                      <Button size="icon" variant="ghost" className="hover:bg-red-100 dark:hover:bg-red-900" onClick={() => handleDelete(u.id)} aria-label="Delete">
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                      <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-red-100 dark:hover:bg-red-900" onClick={() => handleDelete(u.id)} aria-label="Delete">
+                        <Trash2 className="w-3 h-3 text-red-500" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={u.status === "active" ? "success" : u.status === "banned" ? "destructive" : "secondary"} className="text-xs">
+                      {u.status}
+                    </Badge>
+                    <Badge variant={u.role === "admin" ? "default" : "secondary"} className="text-xs">
+                      {u.role}
+                    </Badge>
+                    <Badge variant={u.is_active ? "success" : "destructive"} className="text-xs">
+                      {u.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}{" "}
       {/* Add Admin Dialog */}
       <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Admin</DialogTitle>
+            <DialogTitle className="text-lg">Add Admin</DialogTitle>
           </DialogHeader>
           <form
-            className="space-y-2"
+            className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
               handleAdd();
@@ -237,12 +302,12 @@ export default function AdminUsers() {
           if (!v) setEditId(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle className="text-lg">Edit User</DialogTitle>
           </DialogHeader>
           <form
-            className="space-y-2"
+            className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
               handleEdit();

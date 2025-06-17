@@ -337,15 +337,15 @@ export default function TitleDescriptionResult() {
 
   // --- Main Render ---
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
+    <div className="container mx-auto space-y-6 p-2 sm:p-4 md:p-6">
       {/* Header Section */}
       <Card className="border-t-4 border-t-blue-500">
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-6">
           <div className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-blue-500" />
-            <CardTitle>Search Results</CardTitle>
+            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+            <CardTitle className="text-lg sm:text-xl">Search Results</CardTitle>
           </div>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Showing results for title/description matching: <span className="font-semibold text-foreground">"{query}"</span>
           </CardDescription>
         </CardHeader>
