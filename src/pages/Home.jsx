@@ -34,7 +34,7 @@ const RECOMMENDED_USERS_LIMIT = 5; // *** NEW: Limit for recommended users per p
 
 export default function Home() {
   const navigate = useNavigate(); // Hook untuk navigasi
-  const { user } = useAuth(); // Get user from AuthContext
+  const { user, loading: authLoading } = useAuth(); // Get user and loading from AuthContext
 
   // Handle notification redirects and highlighting
   useNotificationHandler();
@@ -82,10 +82,15 @@ export default function Home() {
   const [activeChallenges, setActiveChallenges] = useState([]);
   const [activeChallengesLoading, setActiveChallengesLoading] = useState(true);
   const [activeChallengesError, setActiveChallengesError] = useState(null);
-
   const observer = useRef();
   // --- useEffect ini menangani pemuatan data SETELAH userId ditentukan ---
   useEffect(() => {
+    // Tunggu sampai AuthContext selesai loading
+    if (authLoading) {
+      console.log("AuthContext is still loading, waiting...");
+      return;
+    }
+
     // Hanya muat data jika userId ada (pengguna login)
     if (userId) {
       console.log(`userId is now set to: ${userId}. Loading initial posts and recommendations.`);
@@ -95,7 +100,7 @@ export default function Home() {
       loadActiveChallenges(); // Load active challenges
     } else {
       // Tangani kasus pengguna tidak login setelah cek localStorage
-      console.log("userId is null after check. Setting initial states for logged-out user.");
+      console.log("userId is null after auth check. Setting initial states for logged-out user.");
       // Reset posts untuk tampilan logout
       setPosts([]);
       setInitialLoading(false);
@@ -121,10 +126,14 @@ export default function Home() {
       setActiveChallengesError("Login to see active challenges.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
+  }, [userId, authLoading]); // Added authLoading to dependency array
   // --- Fetch achievements for the logged-in user ---
   useEffect(() => {
+    // Tunggu sampai AuthContext selesai loading
+    if (authLoading) {
+      return;
+    }
+
     if (!userId) {
       setAchievements([]);
       setAchievementsLoading(false);
@@ -148,7 +157,7 @@ export default function Home() {
         setAchievementsError(err.response?.data?.message || err.message || "Failed to fetch achievements.");
       })
       .finally(() => setAchievementsLoading(false));
-  }, [userId]);
+  }, [userId, authLoading]); // Added authLoading to dependency array
 
   // --- Helper function to format image URLs ---
   const formatImageUrl = (imagePath) => {
@@ -558,8 +567,100 @@ export default function Home() {
     repeat: Repeat2,
     // tambahkan jika backend menambah icon baru
   };
-
   // --- Return JSX ---
+  // Show loading screen while AuthContext is still loading
+  if (authLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 p-4 md:p-6">
+        {/* Main Feed Loading */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle>Feed</CardTitle>
+              <CardDescription>Loading your personalized feed...</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-6">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <Card key={`auth-skeleton-${index}`} className="overflow-hidden">
+                    <CardHeader className="pb-2 space-y-0">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div>
+                            <Skeleton className="h-4 w-20 mb-1" />
+                            <Skeleton className="h-3 w-16" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-6 w-16 rounded-md" />
+                      </div>
+                    </CardHeader>
+                    <Skeleton className="aspect-video w-full" />
+                    <CardContent className="pt-4">
+                      <Skeleton className="h-5 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-full mb-1" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar Loading */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center">
+                <Trophy className="h-5 w-5 text-primary mr-2" />
+                Active Challenges
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center">
+                <Award className="h-5 w-5 text-amber-500 mr-2" />
+                Gamification Hub
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center">
+                <Fire className="h-5 w-5 text-blue-500 mr-2" />
+                Recommended for You
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center space-x-3">
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-24 mb-1" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                    <Skeleton className="h-7 w-16" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 p-4 md:p-6">
