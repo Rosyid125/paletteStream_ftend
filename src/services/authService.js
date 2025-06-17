@@ -18,8 +18,8 @@ export const register = async (data) => {
 export const login = async (data, navigate) => {
   const response = await api.post(`${API_URL}/login`, data);
 
-  // Role - tidak perlu menyimpan ke localStorage karena data sudah di cookie
-  console.log("Login data:", response.data.data.role);
+  // Simpan ke localStorage
+  localStorage.setItem("user", JSON.stringify(response.data.data));
 
   const role = response.data.data.role;
 
