@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Favicon Generator</title>
+  </head>
+  <body>
+    <canvas id="canvas" width="32" height="32" style="border: 1px solid #ccc"></canvas>
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // Create gradient
+      const gradient = ctx.createLinearGradient(0, 0, 32, 32);
+      gradient.addColorStop(0, "#8B5CF6");
+      gradient.addColorStop(0.25, "#EC4899");
+      gradient.addColorStop(0.5, "#F59E0B");
+      gradient.addColorStop(0.75, "#10B981");
+      gradient.addColorStop(1, "#3B82F6");
+
+      // Background circle
+      ctx.fillStyle = gradient;
+      ctx.globalAlpha = 0.1;
+      ctx.beginPath();
+      ctx.arc(16, 16, 14, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Palette shape
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(16, 16, 10, 8, 0, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Paint brush
+      ctx.fillStyle = "#6B7280";
+      ctx.fillRect(20, 8, 4, 4);
+      ctx.fillRect(16, 12, 8, 8);
+
+      // Color dots
+      const colors = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"];
+      const positions = [
+        [12, 12],
+        [16, 10],
+        [20, 12],
+        [14, 16],
+        [18, 18],
+      ];
+
+      colors.forEach((color, i) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(positions[i][0], positions[i][1], 1.5, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+
+      // Convert to ICO (simplified - just save as PNG with ICO extension)
+      const link = document.createElement("a");
+      link.download = "favicon.ico";
+      link.href = canvas.toDataURL();
+      link.click();
+    </script>
+  </body>
+</html>
