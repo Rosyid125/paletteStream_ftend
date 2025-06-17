@@ -39,7 +39,9 @@ export const login = async (data, navigate) => {
 export const fetchMe = async () => {
   const response = await api.get(`${API_URL}/me`);
 
-  // Data user sudah tersimpan di cookie HttpOnly, tidak perlu localStorage
+  // Simpan data user ke localStorage untuk akses mudah
+  localStorage.setItem("user", JSON.stringify(response.data.data));
+
   return response.data;
 };
 
@@ -59,7 +61,8 @@ export const refreshToken = async () => {
 export const logout = async () => {
   await api.post(`${API_URL}/logout`);
 
-  // Cookie HttpOnly akan dihapus otomatis oleh server
+  // Hapus data user dari localStorage
+  localStorage.removeItem("user");
 };
 
 // Request OTP untuk register
@@ -97,7 +100,9 @@ export const resendLoginOtp = async (email) => {
 export const verifyLoginOtp = async (data) => {
   const response = await api.post(`/auth/login/email/verify`, data);
 
-  // Data user sudah tersimpan di cookie HttpOnly, tidak perlu localStorage
+  // Set data user to localStorage for easy access
+  localStorage.setItem("user", JSON.stringify(response.data.data));
+
   return {
     ...response.data,
   };
