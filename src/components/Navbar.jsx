@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useTheme } from "@/contexts/ThemeContext"; // Assuming you have this context
 import { Switch } from "@/components/ui/switch";
 import { Link, useNavigate } from "react-router-dom"; // Use useNavigate for programmatic navigation
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { logout } from "@/services/authService"; // Import logout service
 import NotificationDropdown from "@/components/NotificationDropdown";
 import api from "./../api/axiosInstance"; // Import the custom axios instance
@@ -33,10 +34,8 @@ const formatImageUrl = (imagePath) => {
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
-  // Removed searchFocused state as it wasn't used
   const [userId, setUserId] = useState(null); // State for user ID (if needed later)
   const [isDark, setIsDark] = useState(theme === "dark");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu (if needed later)
 
   // State for fetched user profile data
   const [miniProfile, setMiniProfile] = useState(null);
@@ -133,44 +132,41 @@ export default function Navbar() {
     const nameForFallback = miniProfile.username || miniProfile.first_name;
     return nameForFallback.charAt(0).toUpperCase();
   };
-
   // Get formatted avatar URL
   const avatarUrl = miniProfile ? formatImageUrl(miniProfile.avatar) : formatImageUrl(null);
-
-  // --- Mobile Menu Toggle (Implementation depends on full mobile design) ---
-  // const toggleMobileMenu = () => {
-  //   setIsMobileMenuOpen(!isMobileMenuOpen);
-  // };
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {" "}
-        {/* Desktop Navigation Links (Consider moving to separate component if complex) */}
-        <div className={`hidden items-center space-x-1 md:flex`}>
-          <Link to="/home">
-            <Button variant="ghost" className="text-sm font-medium">
-              Home
-            </Button>
-          </Link>
-          <Link to="/discover">
-            <Button variant="ghost" className="text-sm font-medium">
-              Discover
-            </Button>
-          </Link>
-          <Link to="/challenges">
-            <Button variant="ghost" className="text-sm font-medium">
-              Challenges
-            </Button>
-          </Link>
-          <Link to="/notifications">
-            <Button variant="ghost" className="text-sm font-medium">
-              Notifications
-            </Button>
-          </Link>
-          {/* Add more links as needed */}
-        </div>
-        {/* Right side Actions (Mobile Menu trigger might go here) */}
+        {/* Mobile Sidebar Trigger (Hamburger Menu) */}
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="md:hidden" />
+          {/* Desktop Navigation Links */}
+          <div className={`hidden items-center space-x-1 md:flex`}>
+            <Link to="/home">
+              <Button variant="ghost" className="text-sm font-medium">
+                Home
+              </Button>
+            </Link>
+            <Link to="/discover">
+              <Button variant="ghost" className="text-sm font-medium">
+                Discover
+              </Button>
+            </Link>
+            <Link to="/challenges">
+              <Button variant="ghost" className="text-sm font-medium">
+                Challenges
+              </Button>
+            </Link>
+            <Link to="/notifications">
+              <Button variant="ghost" className="text-sm font-medium">
+                Notifications
+              </Button>
+            </Link>
+            {/* Add more links as needed */}
+          </div>
+        </div>{" "}
+        {/* Right side Actions */}
         <div className="flex items-center gap-1 md:gap-2 ml-auto">
           {/* Conditionally render based on userId */}
           {userId ? (
@@ -313,8 +309,7 @@ export default function Navbar() {
                 </Link>
               </div>
             )
-          )}
-
+          )}{" "}
           {/* --- Loading Indicator (Optional) --- */}
           {isLoading && userId && (
             // Show spinner only when fetching user data and user is logged in
@@ -322,27 +317,8 @@ export default function Navbar() {
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
             </div>
           )}
-
-          {/* --- Mobile Menu Button (Add logic if needed) --- */}
-          {/* <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMobileMenu}>
-            <Menu className="h-6 w-6" />
-            <span className="sr-only">Toggle Menu</span>
-          </Button> */}
         </div>
       </div>
-
-      {/* --- Mobile Menu Dropdown (Example Structure - Implement if needed) --- */}
-      {/* {isMobileMenuOpen && (
-        <div className="container mx-auto px-4 pb-4 md:hidden">
-          <Separator className="my-2" />
-          <div className="flex flex-col space-y-2">
-            <Link to="/" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Home</Button></Link>
-            <Link to="/discover" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Discover</Button></Link>
-            <Link to="/challenges" onClick={toggleMobileMenu}><Button variant="ghost" className="w-full justify-start">Challenges</Button></Link>
-            {/* Add more mobile links */}
-      {/* </div>
-        </div>
-      )} */}
     </nav>
   );
 }
