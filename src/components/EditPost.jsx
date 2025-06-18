@@ -227,9 +227,8 @@ export function EditPost({ isOpen, onClose, post, onPostUpdated }) {
           "Content-Type": "multipart/form-data",
         },
       });
-
-      if (response.status === 200 && response.data.success) {
-        toast.success("Post updated successfully!");
+      if (response.status === 200 && response.data?.success) {
+        toast.success(response.data?.message || "Post updated successfully!");
 
         // Call the callback to update the post in the parent component
         if (onPostUpdated) {
@@ -245,11 +244,20 @@ export function EditPost({ isOpen, onClose, post, onPostUpdated }) {
 
         onClose();
       } else {
-        throw new Error(response.data?.message || "Failed to update post");
+        toast.error(response.data?.message || "Failed to update post");
       }
     } catch (error) {
       console.error("Error updating post:", error);
-      toast.error(error.response?.data?.message || "Failed to update post");
+      // Handle different types of errors
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (error.response?.status) {
+        toast.error(`Error ${error.response.status}: ${error.response.statusText || "Failed to update post"}`);
+      } else if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error("An unexpected error occurred while updating the post");
+      }
     } finally {
       setLoading(false);
     }

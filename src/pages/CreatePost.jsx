@@ -237,16 +237,25 @@ export default function CreatePost() {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        });
-
-        // Pastikan response sukses sebelum melanjutkan
-        if (response.status === 200) {
-          toast("Post created successfully!");
+        }); // Pastikan response sukses sebelum melanjutkan
+        if (response.status === 200 && response.data?.success) {
+          toast.success(response.data?.message || "Post created successfully!");
           navigate("/home");
+        } else {
+          toast.error(response.data?.message || "Failed to create post");
         }
       } catch (error) {
         console.error("Error creating post:", error);
-        alert("Failed to create post.");
+        // Handle different types of errors
+        if (error.response?.data?.message) {
+          toast.error(error.response.data.message);
+        } else if (error.response?.status) {
+          toast.error(`Error ${error.response.status}: ${error.response.statusText || "Failed to create post"}`);
+        } else if (error.message) {
+          toast.error(error.message);
+        } else {
+          toast.error("An unexpected error occurred while creating the post");
+        }
       } finally {
         // Finally merupakan blok yang akan dijalankan mekipun try/catch gagal atau berhasil
         setLoading(false);
