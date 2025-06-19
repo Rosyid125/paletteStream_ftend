@@ -23,7 +23,7 @@ import {
   ShieldCheck,
   Sparkles, // Ensure all needed icons are imported
 } from "lucide-react";
-import Navbar from "@/components/Navbar"; // Assuming Navbar is in English already
+import LandingNavbar from "@/components/LandingNavbar";
 import { Link } from "react-router-dom";
 
 export default function BetterLanding() {
@@ -88,10 +88,9 @@ export default function BetterLanding() {
       icon: <Sparkles className="h-5 w-5 text-yellow-400" />,
     },
   ];
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-[#101c19] dark:to-[#1a2a25]">
-      <Navbar />
+      <LandingNavbar />
       <section className="relative pt-40 pb-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <Badge variant="outline" className="mb-4 bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200 dark:border-green-700">
@@ -232,13 +231,13 @@ export default function BetterLanding() {
       {/* Footer - Assumed English */}
       <footer className="py-8 px-4 border-t bg-white dark:bg-[#101c19]">
         <div className="max-w-6xl mx-auto text-center text-sm text-muted-foreground dark:text-green-100/80">
-          © {new Date().getFullYear()} PaletteStream. All rights reserved.
+          © {new Date().getFullYear()} PaletteStream. All rights reserved.{" "}
           <div className="mt-2">
-            <Link href="/privacy" className="hover:text-green-700 mx-2 dark:hover:text-green-300">
+            <Link to="/privacy" className="hover:text-green-700 mx-2 dark:hover:text-green-300">
               Privacy Policy
             </Link>{" "}
             |
-            <Link href="/terms" className="hover:text-green-700 mx-2 dark:hover:text-green-300">
+            <Link to="/terms" className="hover:text-green-700 mx-2 dark:hover:text-green-300">
               Terms of Service
             </Link>
           </div>

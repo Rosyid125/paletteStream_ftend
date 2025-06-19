@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import Layout from "@/layouts/Layout";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -39,6 +39,12 @@ import TopArtworks from "@/pages/TopArtworks";
 import PostDetail from "@/pages/PostDetail";
 
 const router = createBrowserRouter([
+  // Root redirect route - default to landing page
+  {
+    path: "/",
+    element: <Navigate to="/landing" replace />,
+  },
+
   // Route for the Landing Page (unauthenticated users primarily)
   {
     path: "/landing",
@@ -89,9 +95,7 @@ const router = createBrowserRouter([
       </Suspense>
     ),
     errorElement: <Error404 />,
-  },
-
-  // Routes for authenticated users, wrapped in Layout and ProtectedRoute
+  }, // Routes for authenticated users, wrapped in Layout and ProtectedRoute
   {
     path: "/", // This path segment is just for grouping routes under Layout
     element: (
