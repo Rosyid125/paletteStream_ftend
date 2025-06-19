@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Trophy, Calendar, Clock, Users, Award, CheckCircle2, ArrowRight, Star, Crown, Medal, Heart, MessageCircle, Send, Eye, Upload, Target } from "lucide-react";
+import { Trophy, Calendar, Clock, Users, Award, CheckCircle2, ArrowRight, Star, Crown, Medal, Heart, MessageCircle, Send, Eye, Upload, Target, Loader2 } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -619,11 +619,11 @@ function SubmitPostModal({ open, onOpenChange, challenge, userPosts, selectedPos
                 View Post
               </Button>
             )}
-          </div>
+          </div>{" "}
           <Button onClick={onSubmit} disabled={!selectedPost || submitting}>
             {submitting ? (
               <>
-                <LoadingSpinner className="h-4 w-4 mr-2" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Submitting...
               </>
             ) : (
