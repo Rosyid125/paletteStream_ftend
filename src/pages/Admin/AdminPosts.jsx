@@ -270,12 +270,12 @@ export default function AdminPosts() {
         <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-1">
           <TabsTrigger value="posts" className="text-xs sm:text-sm px-2 sm:px-3">
             All Posts
-          </TabsTrigger>
+          </TabsTrigger>{" "}
           <TabsTrigger value="reported-posts" className="relative text-xs sm:text-sm px-2 sm:px-3">
             <span className="truncate">Reported Posts</span>
-            {(reportStats.pending > 0 || reportStats.totalReports > 0) && (
+            {reportStats.pending > 0 && (
               <Badge variant="destructive" className="ml-1 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 p-0 text-xs flex items-center justify-center">
-                {reportStats.pending > 0 ? (reportStats.pending > 99 ? "99+" : reportStats.pending) : reportStats.totalReports > 99 ? "99+" : reportStats.totalReports}
+                {reportStats.pending > 99 ? "99+" : reportStats.pending}
               </Badge>
             )}{" "}
           </TabsTrigger>
