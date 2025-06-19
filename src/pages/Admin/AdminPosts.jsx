@@ -174,7 +174,7 @@ export default function AdminPosts() {
       // Optimistic update
       setReports((prevReports) => prevReports.map((report) => (report.id === reportId ? { ...report, status } : report)));
 
-      await updateReportStatus(reportId, { status });
+      await updateReportStatus(reportId, status);
       toast({
         title: `Report ${status}`,
         description: `Report has been marked as ${status}`,
@@ -273,11 +273,6 @@ export default function AdminPosts() {
           </TabsTrigger>{" "}
           <TabsTrigger value="reported-posts" className="relative text-xs sm:text-sm px-2 sm:px-3">
             <span className="truncate">Reported Posts</span>
-            {reportStats.pending > 0 && (
-              <Badge variant="destructive" className="ml-1 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 p-0 text-xs flex items-center justify-center">
-                {reportStats.pending > 99 ? "99+" : reportStats.pending}
-              </Badge>
-            )}{" "}
           </TabsTrigger>
           <TabsTrigger value="reports" className="text-xs sm:text-sm px-2 sm:px-3">
             All Reports
